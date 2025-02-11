@@ -1,6 +1,37 @@
+#' Check if a Seurat object is version 5
+#'
+#' @param srt An object of class 'Seurat'
+#' @return Logical indicating whether the object is Seurat v5
+#' @importFrom methods slot
+#' @export
+is_seurat_v5 <- function(srt) {
+  if (!inherits(srt, "Seurat")) {
+    stop("Input must be a Seurat object")
+  }
+  # Check for characteristic v5 slots and methods
+  has_layers <- tryCatch({
+    !is.null(Layers(srt[[DefaultAssay(srt)]]))
+  }, error = function(e) FALSE)
+  
+  # Additional checks specific to v5 structure
+  has_v5_structure <- tryCatch({
+    assay <- srt[[DefaultAssay(srt)]]
+    # In v5, counts and data slots are typically NULL or missing
+    no_counts_slot <- is.null(slot(assay, "counts"))
+    no_data_slot <- is.null(slot(assay, "data"))
+    # Check for layers slot
+    has_layers_slot <- "layers" %in% slotNames(assay)
+    
+    no_counts_slot && no_data_slot && has_layers_slot
+  }, error = function(e) FALSE)
+  
+  return(has_layers && has_v5_structure)
+}
+
 #' Check and report the type of data
 #'
-#' This function checks the type of data and returns a string indicating the type of data. It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
+#' This function checks the type of data and returns a string indicating the type of data. 
+#' It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
 #'
 #' @param srt An object of class 'Seurat'.
 #' @param data The input data. If not provided, it will be extracted from the the 'srt' object.
@@ -12,10 +43,23 @@
 #' @importFrom Seurat DefaultAssay GetAssayData LayerData
 #' @export
 check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
-  if (is.null(data)) {
+  if (!is.null(srt)) {
+    is_v5 <- is_seurat_v5(srt)
     assay <- assay %||% DefaultAssay(srt)
-    data <- LayerData(srt[[assay]], layer = slot)
+    
+    if (is.null(data)) {
+      if (is_v5) {
+        data <- LayerData(srt[[assay]], layer = slot)
+      } else {
+        data <- GetAssayData(srt, slot = slot, assay = assay)
+      }
+    }
   }
+  
+  if (is.null(data)) {
+    stop("No data provided and unable to extract data from Seurat object")
+  }
+  
   isfinite <- all(is.finite(range(data, na.rm = TRUE)))
   if (inherits(data, "dgCMatrix")) {
     isfloat <- any(data@x %% 1 != 0, na.rm = TRUE)
@@ -45,6 +89,7 @@ check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
     }
   }
 }
+
 
 #' Check and preprocess a list of seurat objects
 #'
