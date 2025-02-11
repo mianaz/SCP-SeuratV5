@@ -16,7 +16,7 @@
 #'   pancreas <- adata_to_srt(adata)
 #'   set.seed(11)
 #'   pancreas_sub <- subset(pancreas, cells = sample(colnames(pancreas), size = 1000))
-#'   pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA@counts) > 0, ]
+#'   pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA$counts) > 0, ]
 #'   pancreas_sub[["CellType"]] <- pancreas_sub[["clusters_coarse"]]
 #'   pancreas_sub[["SubCellType"]] <- pancreas_sub[["clusters"]]
 #'   pancreas_sub[["clusters_coarse"]] <- pancreas_sub[["clusters"]] <- NULL
@@ -54,7 +54,7 @@ NULL
 #'   set.seed(11)
 #'   cells_sub <- unlist(lapply(split(colnames(panc8), panc8$dataset), function(x) sample(x, size = 200)))
 #'   panc8_sub <- subset(panc8, cells = cells_sub)
-#'   panc8_sub <- panc8_sub[rowSums(panc8_sub@assays$RNA@counts) > 0, ]
+#'   panc8_sub <- panc8_sub[rowSums(panc8_sub@assays$RNA$counts) > 0, ]
 #'   panc8_sub <- panc8_sub[toupper(rownames(panc8_sub)) %in% toupper(rownames(pancreas_sub)), ]
 #'   panc8_sub <- UpdateSeuratObject(panc8_sub)
 #'   # usethis::use_data(panc8_sub, compress = "xz")
@@ -83,7 +83,7 @@ NULL
 #'   set.seed(11)
 #'   cells_sub <- unlist(lapply(split(colnames(ifnb), ifnb$stim), function(x) sample(x, size = 1000)))
 #'   ifnb_sub <- subset(ifnb, cells = cells_sub)
-#'   ifnb_sub <- ifnb_sub[rowSums(ifnb_sub@assays$RNA@counts) > 0, ]
+#'   ifnb_sub <- ifnb_sub[rowSums(ifnb_sub@assays$RNA$counts) > 0, ]
 #'   ifnb_sub <- UpdateSeuratObject(ifnb_sub)
 #'   # usethis::use_data(ifnb_sub, compress = "xz")
 #' }

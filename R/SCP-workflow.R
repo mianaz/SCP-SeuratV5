@@ -9,12 +9,12 @@
 #'
 #' @return A string indicating the type of data. Possible values are: "raw_counts", "log_normalized_counts", "raw_normalized_counts", or "unknown".
 #'
-#' @importFrom Seurat DefaultAssay GetAssayData
+#' @importFrom Seurat DefaultAssay GetAssayData LayerData
 #' @export
 check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
   if (is.null(data)) {
     assay <- assay %||% DefaultAssay(srt)
-    data <- GetAssayData(srt, slot = slot, assay = assay)
+    data <- LayerData(srt[[assay]], layer = slot)
   }
   isfinite <- all(is.finite(range(data, na.rm = TRUE)))
   if (inherits(data, "dgCMatrix")) {
@@ -66,7 +66,7 @@ check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
 #'
 #' @return A list containing the preprocessed seurat objects, the highly variable features, the assay name, and the type of assay (e.g., "RNA" or "Chromatin").
 #'
-#' @importFrom Seurat SplitObject GetAssayData Assays NormalizeData FindVariableFeatures SCTransform SCTResults SelectIntegrationFeatures PrepSCTIntegration DefaultAssay DefaultAssay<- VariableFeatures VariableFeatures<-
+#' @importFrom Seurat SplitObject GetAssayData LayerData Assays NormalizeData FindVariableFeatures SCTransform SCTResults SelectIntegrationFeatures PrepSCTIntegration DefaultAssay DefaultAssay<- VariableFeatures VariableFeatures<-
 #' @importFrom Signac RunTFIDF
 #' @importFrom Matrix rowSums
 #' @importFrom utils head
@@ -292,14 +292,14 @@ check_srtList <- function(srtList, batch, assay = NULL,
     }
   } else {
     cf <- Reduce(intersect, lapply(srtList, function(srt) {
-      rownames(GetAssayData(srt, slot = "counts", assay = DefaultAssay(srt)))
+      rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "counts"))
     }))
     HVF <- HVF[HVF %in% cf]
   }
   message("Number of available HVF: ", length(HVF))
 
   hvf_sum <- lapply(srtList, function(srt) {
-    colSums(GetAssayData(srt, slot = "counts", assay = DefaultAssay(srt))[HVF, , drop = FALSE])
+    colSums(LayerData(srt[[DefaultAssay(srt)]], layer = "counts")[HVF, , drop = FALSE])
   })
   cell_all <- unlist(unname(hvf_sum))
   cell_abnormal <- names(cell_all)[cell_all == 0]
@@ -329,7 +329,7 @@ check_srtList <- function(srtList, batch, assay = NULL,
 #' @param srtMerge A merged Seurat object that includes the batch information.
 #'
 #' @inheritParams Integration_SCP
-#' @importFrom Seurat GetAssayData SplitObject SetAssayData VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData LayerData SplitObject SetAssayData VariableFeatures VariableFeatures<-
 #' @export
 check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
                            do_normalization = NULL, normalization_method = "LogNormalize",
@@ -403,23 +403,23 @@ check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
 #'
 #' @examples
 #' data("pancreas_sub")
-#' raw_counts <- pancreas_sub@assays$RNA@counts
+#' raw_counts <- pancreas_sub@assays$RNA$counts
 #'
 #' # Normalized the data
 #' pancreas_sub <- Seurat::NormalizeData(pancreas_sub)
 #'
 #' # Now replace counts with the log-normalized data matrix
-#' pancreas_sub@assays$RNA@counts <- pancreas_sub@assays$RNA@data
+#' pancreas_sub@assays$RNA$counts <- pancreas_sub@assays$RNA$data
 #'
 #' # Recover the counts and compare with the raw counts matrix
 #' pancreas_sub <- RecoverCounts(pancreas_sub)
-#' identical(raw_counts, pancreas_sub@assays$RNA@counts)
-#' @importFrom Seurat GetAssayData SetAssayData
+#' identical(raw_counts, pancreas_sub@assays$RNA$counts)
+#' @importFrom Seurat GetAssayData SetAssayData LayerData LayerData<-
 #' @importFrom SeuratObject as.sparse
 #' @export
 RecoverCounts <- function(srt, assay = NULL, trans = c("expm1", "exp", "none"), min_count = c(1, 2, 3), tolerance = 0.1, sf = NULL, verbose = TRUE) {
   assay <- assay %||% DefaultAssay(srt)
-  counts <- GetAssayData(srt, assay = assay, slot = "counts")
+  counts <- LayerData(srt[[assay]], layer = "counts")
   if (!inherits(counts, "dgCMatrix")) {
     counts <- as.sparse(counts[1:nrow(counts), , drop = FALSE])
   }
@@ -472,7 +472,7 @@ RecoverCounts <- function(srt, assay = NULL, trans = c("expm1", "exp", "none"), 
       return(srt)
     }
     counts@x <- round(counts@x * rep(nCount, diff(counts@p)))
-    srt <- SetAssayData(srt, new.data = counts, assay = assay, slot = "counts")
+    LayerData(srt[[assay]], layer = "counts") <- counts
     srt[[paste0("nCount_", assay)]] <- nCount
   } else {
     warning("Scale factor is not unique. No changes to be made.", immediate. = TRUE)
@@ -728,8 +728,8 @@ SrtAppend <- function(srt_raw, srt_append,
             if (!info %in% Assays(srt_raw)) {
               srt_raw[[info]] <- srt_append[[info]]
             } else {
-              srt_raw[[info]]@counts <- srt_append[[info]]@counts
-              srt_raw[[info]]@data <- srt_append[[info]]@data
+              srt_raw[[info]]$counts <- srt_append[[info]]$counts
+              srt_raw[[info]]$data <- srt_append[[info]]$data
               srt_raw[[info]]@key <- srt_append[[info]]@key
               srt_raw[[info]]@var.features <- srt_append[[info]]@var.features
               srt_raw[[info]]@misc <- srt_append[[info]]@misc
@@ -900,7 +900,7 @@ RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, slo
     }
     if (linear_reduction == "pca") {
       pca.out <- srt[[paste0(prefix, linear_reduction)]]
-      center <- rowMeans(GetAssayData(object = srt, slot = "scale.data", assay = assay)[features, , drop = FALSE])
+      center <- rowMeans(LayerData(object = srt[[assay]], layer = "scale.data")[features, , drop = FALSE])
       model <- list(sdev = pca.out@stdev, rotation = pca.out@feature.loadings, center = center, scale = FALSE, x = pca.out@cell.embeddings)
       class(model) <- "prcomp"
       srt@reductions[[paste0(prefix, linear_reduction)]]@misc[["model"]] <- model
@@ -1087,7 +1087,7 @@ DefaultReduction <- function(srt, pattern = NULL, min_dim = 2, max_distance = 0.
 #'
 #' @inheritParams Integration_SCP
 #'
-#' @importFrom Seurat GetAssayData SetAssayData VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData LayerData SetAssayData VariableFeatures VariableFeatures<-
 #' @export
 Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                                   do_normalization = NULL, normalization_method = "LogNormalize",
@@ -1182,7 +1182,7 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(Uncorrected) on the data...\n"))
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtMerge[[DefaultAssay(srtMerge)]], layer = "scale.data"))))) {
     if (normalization_method != "SCT") {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
@@ -1270,7 +1270,7 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
 #' @param IntegrateData_params A list of parameters for the Seurat::IntegrateData function, default is an empty list.
 #' @param IntegrateEmbeddings_params A list of parameters for the Seurat::IntegrateEmbeddings function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData FindIntegrationAnchors IntegrateData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData FindIntegrationAnchors IntegrateData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents
 #' @importFrom Signac RunTFIDF
 #' @export
 Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -1403,7 +1403,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     cat(paste0("[", Sys.time(), "]", " Use 'rpca' integration workflow...\n"))
     for (i in seq_along(srtList)) {
       srt <- srtList[[i]]
-      if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+      if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "scale.data"))))) {
         cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
         srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
       }
@@ -1451,7 +1451,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     DefaultAssay(srtIntegrated) <- "Seuratcorrected"
     VariableFeatures(srtIntegrated[["Seuratcorrected"]]) <- HVF
 
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtIntegrated[[DefaultAssay(srtIntegrated)]], layer = "scale.data"))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srtIntegrated <- ScaleData(object = srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
@@ -1567,7 +1567,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
 #' @param PEAKVI_params A list of parameters for the PEAKVI model, default is an empty list.
 #' @param num_threads An integer setting the number of threads for scVI, default is 8.
 #'
-#' @importFrom Seurat CreateSeuratObject GetAssayData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat CreateSeuratObject GetAssayData LayerData LayerData<- SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @importFrom reticulate import
 #' @export
 scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -1757,7 +1757,7 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
 #' @inheritParams Integration_SCP
 #' @param mnnCorrect_params A list of parameters for the batchelor::mnnCorrect function, default is an empty list.
 #'
-#' @importFrom Seurat CreateSeuratObject GetAssayData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat CreateSeuratObject GetAssayData LayerData LayerData<- SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @export
 MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                           do_normalization = NULL, normalization_method = "LogNormalize",
@@ -1852,7 +1852,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
   }
 
   sceList <- lapply(srtList, function(srt) {
-    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = GetAssayData(srt, slot = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
+    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = LayerData(srt[[DefaultAssay(srt)]], layer = "data")[HVF, , drop = FALSE]))
     if (inherits(sce@assays@data$logcounts, "dgCMatrix")) {
       sce@assays@data$logcounts <- as_matrix(sce@assays@data$logcounts)
     }
@@ -1878,7 +1878,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
   VariableFeatures(srtIntegrated[["MNNcorrected"]]) <- HVF
   DefaultAssay(srtIntegrated) <- "MNNcorrected"
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtIntegrated[[assay = DefaultAssay(srtIntegrated)]], layer = "scale.data"))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtIntegrated <- ScaleData(object = srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2037,7 +2037,7 @@ fastMNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
   }
 
   sceList <- lapply(srtList, function(srt) {
-    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = GetAssayData(srt, slot = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
+    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = LayerData(srt[[DefaultAssay(srt)]], layer = "data")[HVF, , drop = FALSE]))
     if (inherits(sce@assays@data$logcounts, "dgCMatrix")) {
       sce@assays@data$logcounts <- as_matrix(sce@assays@data$logcounts)
     }
@@ -2231,7 +2231,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtMerge[[DefaultAssay(srtMerge)]], layer = "scale.data"))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2261,7 +2261,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     reduction.save = "Harmony",
     verbose = FALSE
   )
-  if (nrow(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge))) == 0) {
+  if (nrow(LayerData(srtMerge[[DefaultAssay(srtMerge)]], layer = "scale.data")) == 0) {
     params[["project.dim"]] <- FALSE
   }
   for (nm in names(RunHarmony_params)) {
@@ -2340,7 +2340,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
 #' @param return_corrected Logical indicating whether to return the corrected data. Default is FALSE.
 #' @param Scanorama_params A list of parameters for the scanorama.correct function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
 #' @importFrom Matrix t
 #' @importFrom reticulate import
 #' @importFrom stats sd
@@ -2423,7 +2423,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
   assaylist <- list()
   genelist <- list()
   for (i in seq_along(srtList)) {
-    assaylist[[i]] <- t(as_matrix(GetAssayData(object = srtList[[i]], slot = "data", assay = DefaultAssay(srtList[[i]]))[HVF, , drop = FALSE]))
+    assaylist[[i]] <- t(as_matrix(LayerData(object = srtList[[i]][[DefaultAssay(srtList[[i]])]], layer = "data")[HVF, , drop = FALSE])) # test
     genelist[[i]] <- HVF
   }
   if (isTRUE(return_corrected)) {
@@ -2534,7 +2534,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
 #' @inheritParams Integration_SCP
 #' @param bbknn_params A list of parameters for the bbknn.matrix.bbknn function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- as.Graph Embeddings FindClusters Idents VariableFeatures VariableFeatures<- as.sparse
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- as.Graph Embeddings FindClusters Idents VariableFeatures VariableFeatures<- as.sparse
 #' @importFrom Matrix t
 #' @importFrom reticulate import
 #' @export
@@ -2632,7 +2632,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtMerge[[DefaultAssay(srtMerge)]], layer = "scale.data"))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2760,7 +2760,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @param CSS_dims_use A vector specifying the dimensions returned by CSS that will be utilized for downstream cell cluster finding and non-linear reduction. If set to NULL, all the returned dimensions will be used by default.
 #' @param CSS_params A list of parameters for the simspec::cluster_sim_spectrum function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @export
 CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                           do_normalization = NULL, normalization_method = "LogNormalize",
@@ -2856,7 +2856,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtMerge[[DefaultAssay(srtMerge)]], layer = "scale.data"))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2966,7 +2966,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
 #' @param optimizeALS_params A list of parameters for the rliger::optimizeALS function, default is an empty list.
 #' @param quantilenorm_params A list of parameters for the rliger::quantile_norm function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @export
 LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                             do_normalization = NULL, normalization_method = "LogNormalize",
@@ -3053,11 +3053,11 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
   scale.data <- list()
   for (i in seq_along(srtList)) {
     srt <- srtList[[i]]
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "scale.data"))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, do.center = FALSE, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
-    scale.data[[i]] <- t(x = GetAssayData(object = srt, slot = "scale.data", assay = DefaultAssay(srt)))
+    scale.data[[i]] <- t(x = LayerData(object = srt[[DefaultAssay(srt)]], layer = "scale.data"))
   }
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(LIGER) on the data...\n"))
@@ -3177,7 +3177,7 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @param buildGraph_params A list of parameters for the buildGraph function, default is an empty list.
 #' @param num_threads  An integer setting the number of threads for Conos, default is 2.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @importFrom igraph as_adjacency_matrix
 #' @export
 Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -3287,7 +3287,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 
   for (i in seq_along(srtList)) {
     srt <- srtList[[i]]
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "scale.data"))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
@@ -3390,7 +3390,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @inheritParams Integration_SCP
 #' @param ComBat_params A list of parameters for the sva::ComBat function, default is an empty list.
 #'
-#' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
+#' @importFrom Seurat GetAssayData LayerData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
 #' @export
 ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                              do_normalization = NULL, normalization_method = "LogNormalize",
@@ -3486,7 +3486,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
   }
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(Combat) on the data...\n"))
-  dat <- GetAssayData(srtMerge, slot = "data", assay = DefaultAssay(srtMerge))[HVF, , drop = FALSE]
+  dat <- LayerData(srtMerge[[DefaultAssay(srtMerge)]], slot = "data")[HVF, , drop = FALSE]
   batch <- srtMerge[[batch, drop = TRUE]]
   params <- list(
     dat = dat,
@@ -3503,7 +3503,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
   DefaultAssay(srtIntegrated) <- "ComBatcorrected"
   VariableFeatures(srtIntegrated[["ComBatcorrected"]]) <- HVF
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srtIntegrated[[DefaultAssay(srtIntegrated)]], layer = "scale.data"))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtIntegrated <- ScaleData(srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -3657,7 +3657,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
 #' })
 #' patchwork::wrap_plots(plotlist = plist2)
 #'
-#' @importFrom Seurat Assays GetAssayData NormalizeData SCTransform SCTResults ScaleData SetAssayData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom Seurat Assays GetAssayData LayerData NormalizeData SCTransform SCTResults ScaleData SetAssayData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
 #' @importFrom Matrix rowSums
 #' @export
 Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
@@ -3716,7 +3716,7 @@ Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "scale.data"))))) {
     if (normalization_method != "SCT") {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)

@@ -84,7 +84,7 @@ db_scds <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, metho
 #' CellDimPlot(pancreas_sub, reduction = "umap", group.by = "db.Scrublet_class")
 #' FeatureDimPlot(pancreas_sub, reduction = "umap", features = "db.Scrublet_score")
 #' @importFrom reticulate import
-#' @importFrom Seurat GetAssayData
+#' @importFrom Seurat GetAssayData LayerData
 #' @export
 db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, ...) {
   if (!inherits(srt, "Seurat")) {
@@ -96,7 +96,7 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
   }
   check_Python("scrublet")
   scr <- import("scrublet")
-  raw_counts <- t(as_matrix(GetAssayData(object = srt, assay = assay, slot = "counts")))
+  raw_counts <- t(as_matrix(LayerData(object = srt[[assay]], layer = "counts")))
   scrub <- scr$Scrublet(raw_counts, expected_doublet_rate = db_rate, ...)
   res <- scrub$scrub_doublets()
   doublet_scores <- res[[1]]
@@ -127,7 +127,7 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
 #' CellDimPlot(pancreas_sub, reduction = "umap", group.by = "db.DoubletDetection_class")
 #' FeatureDimPlot(pancreas_sub, reduction = "umap", features = "db.DoubletDetection_score")
 #' @importFrom reticulate import
-#' @importFrom Seurat GetAssayData
+#' @importFrom Seurat GetAssayData LayerData
 #' @export
 db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, ...) {
   if (!inherits(srt, "Seurat")) {
@@ -139,7 +139,7 @@ db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 *
   }
   check_Python("doubletdetection")
   doubletdetection <- import("doubletdetection")
-  counts <- GetAssayData(object = srt, assay = assay, slot = "counts")
+  counts <- LayerData(object = srt[[assay]], layer = "counts")
   clf <- doubletdetection$BoostClassifier(
     n_iters = as.integer(5),
     standard_scaling = TRUE,
@@ -346,10 +346,10 @@ RunCellQC <- function(srt, assay = "RNA", split.by = NULL, return_filtered = FAL
     warning("Data type is not raw counts!", immediate. = TRUE)
   }
   if (!paste0("nCount_", assay) %in% colnames(srt@meta.data)) {
-    srt@meta.data[[paste0("nCount_", assay)]] <- colSums(srt[[assay]]@counts)
+    srt@meta.data[[paste0("nCount_", assay)]] <- colSums(srt[[assay]]$counts)
   }
   if (!paste0("nFeature_", assay) %in% colnames(srt@meta.data)) {
-    srt@meta.data[[paste0("nFeature_", assay)]] <- colSums(srt[[assay]]@counts > 0)
+    srt@meta.data[[paste0("nFeature_", assay)]] <- colSums(srt[[assay]]$counts > 0)
   }
   srt_raw <- srt
   if (!is.null(split.by)) {
@@ -389,8 +389,8 @@ RunCellQC <- function(srt, assay = "RNA", split.by = NULL, return_filtered = FAL
       sp <- species[n]
       prefix <- species_gene_prefix[n]
       sp_genes <- rownames(srt[[assay]])[grep(pattern = paste0("^", prefix), x = rownames(srt[[assay]]))]
-      nCount <- srt[[paste0(c(paste0("nCount_", assay), sp), collapse = ".")]] <- colSums(srt[[assay]]@counts[sp_genes, ])
-      nFeature <- srt[[paste0(c(paste0("nFeature_", assay), sp), collapse = ".")]] <- colSums(srt[[assay]]@counts[sp_genes, ] > 0)
+      nCount <- srt[[paste0(c(paste0("nCount_", assay), sp), collapse = ".")]] <- colSums(srt[[assay]]$counts[sp_genes, ])
+      nFeature <- srt[[paste0(c(paste0("nFeature_", assay), sp), collapse = ".")]] <- colSums(srt[[assay]]$counts[sp_genes, ] > 0)
       percent.mito <- srt[[paste0(c("percent.mito", sp), collapse = ".")]] <- PercentageFeatureSet(object = srt, assay = assay, pattern = paste0("(", paste0("^", prefix, "-*", mito_pattern), ")", collapse = "|"), features = mito_gene)[[1]]
       percent.ribo <- srt[[paste0(c("percent.ribo", sp), collapse = ".")]] <- PercentageFeatureSet(object = srt, assay = assay, pattern = paste0("(", paste0("^", prefix, "-*", ribo_pattern), ")", collapse = "|"), features = ribo_gene)[[1]]
       percent.genome <- srt[[paste0(c("percent.genome", sp), collapse = ".")]] <- PercentageFeatureSet(object = srt, assay = assay, pattern = paste0("^", prefix))[[1]]
@@ -401,7 +401,7 @@ RunCellQC <- function(srt, assay = "RNA", split.by = NULL, return_filtered = FAL
       if (n == 1) {
         if ("outlier" %in% qc_metrics) {
           # "percent.top_20:higher:5"
-          # countx <- as(srt[[assay]]@counts[sp_genes, ], "sparseMatrix")
+          # countx <- as(srt[[assay]]$counts[sp_genes, ], "sparseMatrix")
           # agg <- aggregate(x = countx@x, by = list(rep(colnames(countx), diff(countx@p))), FUN = function(x) {
           #   sum(head(x, 20))
           # })

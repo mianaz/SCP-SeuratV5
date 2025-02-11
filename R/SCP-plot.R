@@ -3508,8 +3508,8 @@ FeatureDimPlot3D <- function(srt, features, reduction = NULL, dims = c(1, 2, 3),
 #' ), group.by = "SubCellType", plot.by = "feature", stack = TRUE)
 #'
 #' library(Matrix)
-#' data <- pancreas_sub@assays$RNA@data
-#' pancreas_sub@assays$RNA@scale.data <- as_matrix(data / rowMeans(data))
+#' data <- pancreas_sub@assays$RNA$data
+#' pancreas_sub@assays$RNA$scale.data <- as_matrix(data / rowMeans(data))
 #' FeatureStatPlot(pancreas_sub,
 #'   stat.by = c("Neurog3", "Rbp4", "Ins1"), group.by = "CellType",
 #'   slot = "scale.data", ylab = "FoldChange", same.y.lims = TRUE, y.max = 4
@@ -3717,7 +3717,7 @@ FeatureStatPlot <- function(srt, stat.by, group.by = NULL, split.by = NULL, bg.b
   }
 }
 
-#' @importFrom Seurat DefaultAssay GetAssayData
+#' @importFrom Seurat DefaultAssay GetAssayData LayerData
 #' @importFrom ggplot2 geom_blank geom_violin geom_rect geom_boxplot geom_count geom_col geom_vline geom_hline layer_data layer_scales position_jitterdodge position_dodge stat_summary scale_x_discrete element_line element_text element_blank annotate mean_sdl after_stat scale_shape_identity
 #' @importFrom Matrix rowSums
 ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by = NULL, plot.by = c("group", "feature"), fill.by = c("group", "feature", "expression"),
@@ -4450,8 +4450,8 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
 #' )
 #' pancreas_sub$Progenitor <- pancreas_sub$CellType %in% c("Ngn3 low EP", "Ngn3 high EP")
 #' pancreas_sub$G2M <- pancreas_sub$Phase == "G2M"
-#' pancreas_sub$Sox9_Expressed <- pancreas_sub[["RNA"]]@counts["Sox9", ] > 0
-#' pancreas_sub$Neurog3_Expressed <- pancreas_sub[["RNA"]]@counts["Neurog3", ] > 0
+#' pancreas_sub$Sox9_Expressed <- pancreas_sub[["RNA"]]$counts["Sox9", ] > 0
+#' pancreas_sub$Neurog3_Expressed <- pancreas_sub[["RNA"]]$counts["Neurog3", ] > 0
 #' CellStatPlot(pancreas_sub, stat.by = c("Progenitor", "G2M", "Sox9_Expressed", "Neurog3_Expressed"), plot_type = "venn", stat_level = "TRUE")
 #' CellStatPlot(pancreas_sub, stat.by = c("Progenitor", "G2M", "Sox9_Expressed", "Neurog3_Expressed"), plot_type = "upset", stat_level = "TRUE")
 #' sum(pancreas_sub$Progenitor == "FALSE" &
@@ -8246,7 +8246,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
     data.frame(row.names = cells, cells = cells),
     cbind.data.frame(
       srt@meta.data[cells, c(group.by, intersect(cell_annotation, colnames(srt@meta.data))), drop = FALSE],
-      t(srt@assays[[assay]]@data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), cells, drop = FALSE])
+      t(srt@assays[[assay]]$data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), cells, drop = FALSE])
     )
   )
   feature_metadata <- cbind.data.frame(
@@ -9105,7 +9105,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
 #' @importFrom grid unit gpar grid.grabExpr grid.text
 #' @importFrom gtable gtable_add_padding
 #' @importFrom patchwork wrap_plots
-#' @importFrom Seurat GetAssayData
+#' @importFrom Seurat GetAssayData LayerData
 #' @importFrom stats hclust order.dendrogram as.dendrogram reorder sd
 #' @importFrom dplyr %>% filter group_by arrange desc across mutate distinct n .data "%>%"
 #' @importFrom Matrix t
@@ -9391,7 +9391,7 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
     data.frame(row.names = colnames(mat_raw), cells = colnames(mat_raw)),
     cbind.data.frame(
       srt@meta.data[colnames(mat_raw), c(group.by, intersect(cell_annotation, colnames(srt@meta.data))), drop = FALSE],
-      t(srt@assays[[assay]]@data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), colnames(mat_raw), drop = FALSE])
+      t(srt@assays[[assay]]$data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), colnames(mat_raw), drop = FALSE])
     )
   )
   feature_metadata <- cbind.data.frame(
@@ -10295,12 +10295,12 @@ CellCorHeatmap <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   )
   query_metadata <- cbind.data.frame(
     srt_query@meta.data[cell_metadata[["cells"]], c(query_group, intersect(query_cell_annotation, colnames(srt_query@meta.data))), drop = FALSE],
-    as.data.frame(t(srt_query[[query_assay]]@data[intersect(query_cell_annotation, rownames(srt_query[[query_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
+    as.data.frame(t(srt_query[[query_assay]]$data[intersect(query_cell_annotation, rownames(srt_query[[query_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
   )
   colnames(query_metadata) <- paste0("query_", colnames(query_metadata))
   ref_metadata <- cbind.data.frame(
     srt_ref@meta.data[cell_metadata[["cells"]], c(ref_group, intersect(ref_cell_annotation, colnames(srt_ref@meta.data))), drop = FALSE],
-    as.data.frame(t(srt_ref[[ref_assay]]@data[intersect(ref_cell_annotation, rownames(srt_ref[[ref_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
+    as.data.frame(t(srt_ref[[ref_assay]]$data[intersect(ref_cell_annotation, rownames(srt_ref[[ref_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
   )
   colnames(ref_metadata) <- paste0("ref_", colnames(ref_metadata))
   cell_metadata <- cbind.data.frame(cell_metadata, cbind.data.frame(query_metadata, ref_metadata))
@@ -11006,7 +11006,7 @@ CellCorHeatmap <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
 #' )
 #' ht6$plot
 #'
-#' @importFrom Seurat GetAssayData NormalizeData DefaultAssay
+#' @importFrom Seurat GetAssayData NormalizeData DefaultAssay LayerData
 #' @importFrom circlize colorRamp2
 #' @importFrom ComplexHeatmap Heatmap Legend HeatmapAnnotation anno_empty anno_mark anno_simple anno_textbox draw decorate_heatmap_body width.HeatmapAnnotation height.HeatmapAnnotation width.Legends height.Legends decorate_annotation row_order %v%
 #' @importFrom stats kmeans sd
@@ -11208,7 +11208,7 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
       cell_metadata,
       cbind.data.frame(
         srt@meta.data[rownames(cell_metadata), c(intersect(cell_annotation, colnames(srt@meta.data))), drop = FALSE],
-        t(srt@assays[[assay]]@data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), rownames(cell_metadata), drop = FALSE])
+        t(srt@assays[[assay]]$data[intersect(cell_annotation, rownames(srt@assays[[assay]])) %||% integer(), rownames(cell_metadata), drop = FALSE])
       )
     )
   }

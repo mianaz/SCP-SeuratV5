@@ -13,6 +13,7 @@
 #' @seealso \code{\link{CreateMetaFile}} \code{\link{PrepareSCExplorer}} \code{\link{FetchH5}} \code{\link{RunSCExplorer}}
 #'
 #' @importFrom Seurat GetAssayData
+#' @importFrom Seurat LayerData
 #' @importFrom SeuratObject as.sparse
 #' @importFrom rhdf5 h5ls h5createFile h5createGroup h5delete h5write
 #' @importFrom HDF5Array writeTENxMatrix
@@ -38,7 +39,7 @@ CreateDataFile <- function(srt, DataFile, name = NULL, assays = "RNA", slots = "
   message("Write the expression matrix to hdf5 file: ", DataFile)
   for (assay in assays) {
     for (slot in slots) {
-      data <- t(GetAssayData(srt, slot = slot, assay = assay))
+      data <- t(LayerData(srt[[assay]], layer = slot)
       if (isTRUE(overwrite)) {
         try(h5delete(file = DataFile, name = paste0(name, "/", assay, "/", slot)), silent = TRUE)
       }

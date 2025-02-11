@@ -36,7 +36,7 @@
 #'
 #' # Convert the human genes to mouse homologs and replace the raw counts in a Seurat object.
 #' data("pancreas_sub")
-#' counts <- pancreas_sub@assays$RNA@counts
+#' counts <- pancreas_sub@assays$RNA$counts
 #' res <- GeneConvert(
 #'   geneID = rownames(counts),
 #'   geneID_from_IDtype = "symbol",
@@ -510,7 +510,7 @@ LengthCheck <- function(values, cutoff = 0) {
 }
 
 #' @importFrom Seurat UpdateSymbolList CaseMatch
-#' @importFrom SeuratObject DefaultAssay GetAssayData CheckGC
+#' @importFrom SeuratObject DefaultAssay GetAssayData LayerData CheckGC
 #' @importFrom BiocParallel bplapply bpaggregate
 #' @importFrom stats rnorm
 #' @importFrom Matrix rowMeans colMeans
@@ -524,7 +524,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, slot = slot)
+  assay.data <- LayerData(object[[assay]], layer = slot)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = "k")
@@ -653,7 +653,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
 #' @inheritParams RunEnrichment
 #' @param srt A Seurat object
 #' @param features A named list of feature lists for scoring. If NULLL, \code{db} will be used to create features sets.
-#' @param slot The slot of the Seurat object to use for scoring. Defaults to "data".
+#' @param slot The slot(layer) of the Seurat object to use for scoring. Defaults to "data".
 #' @param assay The assay of the Seurat object to use for scoring. Defaults to NULL, in which case the default assay of the object is used.
 #' @param split.by A cell metadata variable used for splitting the Seurat object into subsets and performing scoring on each subset. Defaults to NULL.
 #' @param termnames A vector of term names to be used from the database. Defaults to NULL, in which case all features from the database are used.
@@ -726,7 +726,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
 #' }
 #'
 #' @importFrom BiocParallel bpprogressbar<- bpRNGseed<- bpworkers
-#' @importFrom Seurat AddModuleScore AddMetaData
+#' @importFrom Seurat AddModuleScore AddMetaData LayerData
 #' @export
 CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split.by = NULL,
                         IDtype = "symbol", species = "Homo_sapiens",
@@ -799,7 +799,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
   if (!is.list(features) || length(names(features)) == 0) {
     stop("'features' must be a named list")
   }
-  expressed <- names(which(rowSums(GetAssayData(srt, slot = slot, assay = assay) > 0) > 0))
+  expressed <- names(which(rowSums(LayerData(srt[[assay]], layer = slot) > 0) > 0))
   features <- lapply(setNames(names(features), names(features)), function(x) features[[x]][features[[x]] %in% expressed])
   filtered_none <- names(which(sapply(features, length) == 0))
   if (length(filtered_none) > 0) {
@@ -862,7 +862,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
       colnames(scores) <- make.names(paste(name, names(features_nm), sep = "_"))
     } else if (method == "AUCell") {
       check_R("AUCell")
-      CellRank <- AUCell::AUCell_buildRankings(as_matrix(GetAssayData(srt_sp, slot = slot, assay = assay)), BPPARAM = BPPARAM, plotStats = FALSE)
+      CellRank <- AUCell::AUCell_buildRankings(as_matrix(LayerData(srt_sp[[assau]], layer = slot)), BPPARAM = BPPARAM, plotStats = FALSE)
       cells_AUC <- AUCell::AUCell_calcAUC(
         geneSets = features,
         rankings = CellRank,
@@ -1265,13 +1265,13 @@ FindExpressedMarkers <- function(object, ident.1 = NULL, ident.2 = NULL, cells.1
     yes = "counts",
     no = slot
   )
-  data.use <- GetAssayData(object = object, slot = data.slot)
+  data.use <- LayerData(object = object[[DefaultAssay(object)]], layer = data.slot)
   data.use <- data.use[rowSums(data.use) > 0, ]
   data.use <- as_matrix(data.use)
   data.use[data.use <= min.expression] <- NA
   counts <- switch(
     EXPR = data.slot,
-    "scale.data" = GetAssayData(object = object, slot = "counts"),
+    "scale.data" = LayerData(object[[DefaultAssay(object)]], layer = "counts"),
     numeric()
   )
 
@@ -4401,7 +4401,7 @@ RunSlingshot <- function(srt, group.by, reduction = NULL, dims = NULL, start = N
 #'   CellDimPlot(pancreas_sub, group.by = "Monocle2_State", reduction = "UMAP", label = TRUE, theme_use = "theme_blank")
 #'   FeatureDimPlot(pancreas_sub, features = "Monocle2_Pseudotime", reduction = "UMAP", theme_use = "theme_blank")
 #' }
-#' @importFrom Seurat DefaultAssay CreateDimReducObject GetAssayData VariableFeatures FindVariableFeatures
+#' @importFrom Seurat DefaultAssay CreateDimReducObject GetAssayData LayerData VariableFeatures FindVariableFeatures
 #' @importFrom SeuratObject as.sparse
 #' @importFrom igraph as_data_frame
 #' @importFrom ggplot2 geom_segment
@@ -4419,7 +4419,7 @@ RunMonocle2 <- function(srt, assay = NULL, slot = "counts", expressionFamily = "
   }
 
   assay <- assay %||% DefaultAssay(srt)
-  expr_matrix <- as.sparse(GetAssayData(srt, assay = assay, slot = slot))
+  expr_matrix <- as.sparse(LayerData(srt[[assay]], layer = slot))
   p_data <- srt@meta.data
   f_data <- data.frame(gene_short_name = row.names(expr_matrix), row.names = row.names(expr_matrix))
   pd <- new("AnnotatedDataFrame", data = p_data)
@@ -4735,7 +4735,7 @@ extract_ddrtree_ordering <- function(cds, root_cell, verbose = TRUE) {
 #'   FeatureDimPlot(pancreas_sub, features = "Monocle3_Pseudotime", reduction = "StandardUMAP2D", theme_use = "theme_blank") + trajectory
 #' }
 #' @importFrom SeuratObject as.sparse Embeddings Loadings Stdev
-#' @importFrom Seurat DefaultAssay GetAssayData
+#' @importFrom Seurat DefaultAssay GetAssayData LayerData
 #' @importFrom igraph as_data_frame
 #' @importFrom ggplot2 geom_segment
 #' @importFrom ggrepel geom_text_repel
@@ -4752,7 +4752,7 @@ RunMonocle3 <- function(srt, assay = NULL, slot = "counts",
     check_R("cole-trapnell-lab/monocle3", force = TRUE)
   }
   assay <- assay %||% DefaultAssay(srt)
-  expr_matrix <- as.sparse(GetAssayData(srt, assay = assay, slot = slot))
+  expr_matrix <- as.sparse(LayerData(srt[[assay]], layer = slot))
   p_data <- srt@meta.data
   f_data <- data.frame(gene_short_name = row.names(expr_matrix), row.names = row.names(expr_matrix))
   cds <- monocle3::new_cell_data_set(
@@ -4976,13 +4976,13 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
     }
   }
 
-  Y <- GetAssayData(srt, slot = slot, assay = assay)
+  Y <- LayerData(srt[[assay]], layer = slot)
   if (is.null(libsize)) {
     status <- check_DataType(srt, assay = assay, slot = "counts")
     if (status != "raw_counts") {
       Y_libsize <- setNames(rep(1, ncol(srt)), colnames(srt))
     } else {
-      Y_libsize <- colSums(GetAssayData(srt, slot = "counts", assay = assay))
+      Y_libsize <- colSums(LayerData(srt[[assay]], layer = "counts"))
     }
   } else {
     if (length(libsize) == 1) {
@@ -5007,7 +5007,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
         stop("'features' or 'n_candidates' must provided at least one.")
       }
       HVF <- VariableFeatures(FindVariableFeatures(srt_sub, nfeatures = n_candidates, assay = assay), assay = assay)
-      HVF_counts <- srt_sub[[assay]]@counts[HVF, , drop = FALSE]
+      HVF_counts <- srt_sub[[assay]]$counts[HVF, , drop = FALSE]
       HVF <- HVF[apply(HVF_counts, 1, function(x) {
         length(unique(x))
       }) >= minfreq]
@@ -5104,7 +5104,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
 
         # ggplot(data = data.frame(
         #   x = t_ordered,
-        #   raw = FetchData(srt_sub, vars = feature_nm, slot = "counts")[names(t_ordered), feature_nm, drop = TRUE],
+        #   raw = FetchData(srt_sub, vars = feature_nm, layer = "counts")[names(t_ordered), feature_nm, drop = TRUE],
         #   fitted = fitted.values,
         #   upr.values = upr.values,
         #   lwr.values = lwr.values,
@@ -5297,7 +5297,7 @@ RunDynamicEnrichment <- function(srt, lineages,
     srt <- RunDynamicFeatures(
       srt = srt,
       lineages = lineages,
-      features = rownames(srt[[term]]@counts),
+      features = rownames(srt[[term]]$counts),
       suffix = paste(lineages, term, sep = "_"),
       assay = term
     )
@@ -5345,7 +5345,7 @@ py_to_r_auto <- function(x) {
 #' # adata$write_loom("pancreas_sub.loom", write_obsm_varm = TRUE)
 #'
 #' @importFrom reticulate import np_array
-#' @importFrom Seurat GetAssayData
+#' @importFrom Seurat GetAssayData LayerData
 #' @importFrom Matrix t
 #' @export
 srt_to_adata <- function(srt, features = NULL,
@@ -5395,8 +5395,7 @@ srt_to_adata <- function(srt, features = NULL,
     var[["highly_variable"]] <- features %in% VariableFeatures(srt, assay = assay_X)
   }
 
-  # X <- t(as_matrix(slot(srt@assays[[assay_X]], slot_X)[features, , drop = FALSE]))
-  X <- t(GetAssayData(srt, assay = assay_X, slot = slot_X)[features, , drop = FALSE])
+  X <- t(LayerData(srt[[assay_X]], layer = slot_X)[features, , drop = FALSE])
   adata <- sc$AnnData(
     X = np_array(X, dtype = np$float32),
     obs = obs,
@@ -5407,7 +5406,7 @@ srt_to_adata <- function(srt, features = NULL,
   layer_list <- list()
   for (assay in names(srt@assays)[names(srt@assays) != assay_X]) {
     if (assay %in% assay_layers) {
-      layer <- t(GetAssayData(srt, assay = assay, slot = slot_layers[assay]))
+      layer <- t(LayerData(srt[[assay]], layer = slot_layers[assay]))
       if (!identical(dim(layer), dim(X))) {
         if (all(colnames(X) %in% colnames(layer))) {
           layer <- layer[, colnames(X)]
