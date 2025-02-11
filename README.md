@@ -1,7 +1,8 @@
 # SCP-SeuratV5
 
-This is an experimental version of SCP to add support for Seurat V5 (and will only support Seurat V5 from now on). Note that this has not been comprehensively tested.
+This is an experimental version of SCP to add support for Seurat V5 and expand functionalities. Note that this has not been comprehensively tested.
 To install:
+
 ``` r
 if (!require("devtools", quietly = TRUE)) {
   install.packages("devtools")
@@ -9,6 +10,9 @@ if (!require("devtools", quietly = TRUE)) {
 devtools::install_github("mianaz/SCP-SeuratV5")
 ```
 
+02/11/25
+1. Changed data structure for accessing Seurat V5 objects
+2. Added imputation methods (magic, alra and knn_smooth)
 
 
 # SCP: Single-Cell Pipeline
