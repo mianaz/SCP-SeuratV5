@@ -27,6 +27,7 @@
 #'   pancreas_sub[["UMAP"]] <- pancreas_sub[["X_umap"]]
 #'   pancreas_sub[["X_umap"]] <- pancreas_sub[["X_pca"]] <- NULL
 #'   VariableFeatures(pancreas_sub) <- rownames(pancreas_sub[["RNA"]])[which(pancreas_sub[["RNA"]]@meta.features$highly_variable_genes == "True")]
+#'   pancreas_sub <- UpdateSeuratObject(pancreas_sub)
 #'   # usethis::use_data(pancreas_sub, compress = "xz")
 #' }
 #' }
@@ -274,6 +275,9 @@ NULL
 #'   # usethis::use_data(ref_scHCL, compress = "xz")
 #'   # usethis::use_data(ref_scMCA, compress = "xz")
 #'   # usethis::use_data(ref_scZCL, compress = "xz")
+#'   ref_scHCL <- UpdateSeuratObject(ref_scHCL)
+#'   ref_scMCA <- UpdateSeuratObject(ref_scMCA)
+#'   ref_scZCL <- UpdateSeuratObject(ref_scZCL)
 #' }
 #' }
 #' @usage ref_scHCL
