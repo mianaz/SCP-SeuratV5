@@ -5904,9 +5904,33 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
                       palette = "Paired", palcolor = NULL,
                       show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                       return_seurat = !is.null(srt)) {
-  check_Python("scvelo")
+  # Check for required Python modules with robust error handling
+  result <- tryCatch({
+    check_Python("scvelo")
+    NULL
+  }, error = function(e) {
+    message("Python module 'scvelo' is required for velocity analysis but is not installed.")
+    message("To install, run: PrepareEnv() and then check_Python('scvelo')")
+    return(e)
+  })
+  
+  if (!is.null(result)) {
+    stop("Required Python module 'scvelo' is not available. Please install it first.")
+  }
+  
   if (isTRUE(magic_impute)) {
-    check_Python("magic-impute")
+    result <- tryCatch({
+      check_Python("magic-impute")
+      NULL
+    }, error = function(e) {
+      message("Python module 'magic-impute' is required for imputation but is not installed.")
+      message("To install, run: PrepareEnv() and then check_Python('magic-impute')")
+      return(e)
+    })
+    
+    if (!is.null(result)) {
+      stop("Required Python module 'magic-impute' is not available. Please install it first.")
+    }
   }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
@@ -5948,8 +5972,22 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
-  adata <- do.call(SCP_analysis$SCVELO, args)
+  # Import Python module with better error handling
+  SCP_analysis <- tryCatch({
+    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  }, error = function(e) {
+    message("Failed to import SCP_analysis Python module: ", e$message)
+    message("This may indicate an issue with your Python environment setup.")
+    stop("Python module import failed. Please run PrepareEnv() to set up the environment correctly.")
+  })
+  
+  # Wrap the Python call in a tryCatch for better error handling
+  adata <- tryCatch({
+    do.call(SCP_analysis$SCVELO, args)
+  }, error = function(e) {
+    message("Error running velocity analysis: ", e$message)
+    stop("Velocity analysis failed. Check your input parameters and Python environment.")
+  })
 
   if (isTRUE(return_seurat)) {
     srt_out <- adata_to_srt(adata)

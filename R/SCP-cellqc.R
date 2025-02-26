@@ -94,8 +94,26 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
   if (status != "raw_counts") {
     stop("Data type is not raw counts!")
   }
-  check_Python("scrublet")
-  scr <- import("scrublet")
+  # Check for scrublet availability with better error handling
+  result <- tryCatch({
+    check_Python("scrublet")
+    NULL
+  }, error = function(e) {
+    message("Python module 'scrublet' is required for doublet detection but is not installed.")
+    message("To install, run: PrepareEnv() and then check_Python('scrublet')")
+    return(e)
+  })
+  
+  if (!is.null(result)) {
+    stop("Required Python module 'scrublet' is not available. Please install it first.")
+  }
+  
+  # Import with error handling
+  scr <- tryCatch({
+    import("scrublet")
+  }, error = function(e) {
+    stop("Failed to import scrublet: ", e$message)
+  })
   raw_counts <- t(as_matrix(LayerData(object = srt[[assay]], layer = "counts")))
   scrub <- scr$Scrublet(raw_counts, expected_doublet_rate = db_rate, ...)
   res <- scrub$scrub_doublets()
@@ -137,8 +155,26 @@ db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 *
   if (status != "raw_counts") {
     stop("Data type is not raw counts!")
   }
-  check_Python("doubletdetection")
-  doubletdetection <- import("doubletdetection")
+  # Check for doubletdetection availability with better error handling
+  result <- tryCatch({
+    check_Python("doubletdetection")
+    NULL
+  }, error = function(e) {
+    message("Python module 'doubletdetection' is required for DoubletDetection but is not installed.")
+    message("To install, run: PrepareEnv() and then check_Python('doubletdetection')")
+    return(e)
+  })
+  
+  if (!is.null(result)) {
+    stop("Required Python module 'doubletdetection' is not available. Please install it first.")
+  }
+  
+  # Import with error handling
+  doubletdetection <- tryCatch({
+    import("doubletdetection")
+  }, error = function(e) {
+    stop("Failed to import doubletdetection: ", e$message)
+  })
   counts <- LayerData(object = srt[[assay]], layer = "counts")
   clf <- doubletdetection$BoostClassifier(
     n_iters = as.integer(5),
