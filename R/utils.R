@@ -120,12 +120,19 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
     "==================================================================="
   )
   invisible(lapply(pyinfo_mesg, packageStartupMessage))
-  invisible(run_Python(command = "import matplotlib", envir = .GlobalEnv))
-  if (!interactive()) {
-    invisible(run_Python(command = "matplotlib.use('pdf')", envir = .GlobalEnv))
-  }
-  invisible(run_Python(command = "import matplotlib.pyplot as plt", envir = .GlobalEnv))
-  invisible(run_Python(command = "import scanpy", envir = .GlobalEnv))
+  # Initialize matplotlib and scanpy with proper error handling
+  tryCatch({
+    invisible(run_Python(command = "import matplotlib", envir = .GlobalEnv))
+    if (!interactive()) {
+      invisible(run_Python(command = "matplotlib.use('pdf')", envir = .GlobalEnv))
+    }
+    invisible(run_Python(command = "import matplotlib.pyplot as plt", envir = .GlobalEnv))
+    invisible(run_Python(command = "import scanpy", envir = .GlobalEnv))
+    message("Successfully loaded Python dependencies.")
+  }, error = function(e) {
+    message("Warning: Unable to load Python modules: ", e$message)
+    message("Some Python-dependent functionality may not work correctly.")
+  })
 }
 
 #' Env_requirements function
@@ -477,18 +484,34 @@ conda_python <- function(envname = NULL, conda = "auto", all = FALSE) {
   return(normalizePath(as.character(python), mustWork = FALSE))
 }
 
-run_Python <- function(command, envir = .GlobalEnv) {
-  tryCatch(expr = {
+#' Run Python code safely
+#'
+#' Execute Python code through reticulate with proper error handling
+#'
+#' @param command A string containing Python code to execute
+#' @param envir The R environment where Python objects should be made available
+#' @param stop_on_error Whether to stop execution when an error occurs. If FALSE, will return the error object instead.
+#'
+#' @return Invisibly returns NULL on success, or an error object if stop_on_error is FALSE
+#' @export
+run_Python <- function(command, envir = .GlobalEnv, stop_on_error = TRUE) {
+  result <- tryCatch(expr = {
     eval(
       {
         reticulate::py_run_string(command)
       },
       envir = envir
     )
+    NULL
   }, error = function(error) {
-    message(error)
-    stop("Failed to run \"", command, "\". Please check manually.")
+    if (stop_on_error) {
+      message(error)
+      stop("Failed to run \"", command, "\". Please check manually.")
+    } else {
+      error
+    }
   })
+  invisible(result)
 }
 
 #' Check and install python packages
