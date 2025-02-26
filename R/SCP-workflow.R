@@ -337,14 +337,22 @@ check_srtList <- function(srtList, batch, assay = NULL,
     }
   } else {
     cf <- Reduce(intersect, lapply(srtList, function(srt) {
-      rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "counts"))
+      is_v5 <- is_seurat_v5(srt)
+      if (is_v5) {
+        rownames(LayerData(srt[[DefaultAssay(srt)]], layer = "counts"))
+      } else {
+        rownames(GetAssayData(srt, slot = "counts", assay = DefaultAssay(srt)))
+      }
     }))
     HVF <- HVF[HVF %in% cf]
   }
   message("Number of available HVF: ", length(HVF))
+  
+  # Use the utility function get_seurat_data for data access
 
   hvf_sum <- lapply(srtList, function(srt) {
-    colSums(LayerData(srt[[DefaultAssay(srt)]], layer = "counts")[HVF, , drop = FALSE])
+    count_data <- get_seurat_data(srt, slot = "counts")
+    colSums(count_data[HVF, , drop = FALSE])
   })
   cell_all <- unlist(unname(hvf_sum))
   cell_abnormal <- names(cell_all)[cell_all == 0]

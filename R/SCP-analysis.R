@@ -36,7 +36,7 @@
 #'
 #' # Convert the human genes to mouse homologs and replace the raw counts in a Seurat object.
 #' data("pancreas_sub")
-#' counts <- pancreas_sub@assays$RNA$counts
+#' counts <- get_seurat_data(pancreas_sub, slot = "counts", assay = "RNA")
 #' res <- GeneConvert(
 #'   geneID = rownames(counts),
 #'   geneID_from_IDtype = "symbol",

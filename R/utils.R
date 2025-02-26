@@ -797,6 +797,30 @@ invoke <- function(.fn, .args = list(), ..., .env = caller_env()) {
 #' @param cols Columns to unnest.
 #' @param keep_empty By default, you get one row of output for each element of the list your unchopping/unnesting. This means that if there's a size-0 element (like \code{NULL} or an empty data frame), that entire row will be dropped from the output. If you want to preserve all rows, use \code{keep_empty = TRUE} to replace size-0 elements with a single row of missing values.
 #' @export
+#'
+#' @importFrom Seurat GetAssayData LayerData DefaultAssay
+#' 
+#' #' Get data from Seurat object in a version-agnostic way
+#' #'
+#' #' This function retrieves data from a Seurat object, handling both V4 and V5 versions
+#' #' appropriately by using either GetAssayData or LayerData.
+#' #'
+#' #' @param srt A Seurat object
+#' #' @param slot The data slot/layer to access ("counts", "data", or "scale.data")
+#' #' @param assay Name of assay to use (defaults to DefaultAssay)
+#' #'
+#' #' @return A matrix or sparse matrix of the requested data
+#' #' @export
+get_seurat_data <- function(srt, slot = "data", assay = NULL) {
+  is_v5 <- is_seurat_v5(srt)
+  assay <- assay %||% DefaultAssay(srt)
+  
+  if (is_v5) {
+    return(LayerData(srt[[assay]], layer = slot))
+  } else {
+    return(GetAssayData(srt, slot = slot, assay = assay))
+  }
+}
 unnest <- function(data, cols, keep_empty = FALSE) {
   if (nrow(data) == 0 || length(cols) == 0) {
     return(data)
