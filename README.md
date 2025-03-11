@@ -7,12 +7,17 @@ To install:
 if (!require("devtools", quietly = TRUE)) {
   install.packages("devtools")
 }
-devtools::install_github("mianaz/SCP-SeuratV5")
+devtools::install_github("mianaz/SCP-SeuratV5", ref="dev")
 ```
 
-02/11/25
-1. Changed data structure for accessing Seurat V5 objects
-2. Added imputation methods (magic, alra and knn_smooth)
+Key changes/goals:
+- Changed Python version validation to require 3.9-3.12
+- Updated default environment from 3.7/3.8 to 3.10
+- Added environment configurations for Python 3.10, 3.11, and 3.12
+- Created TestPythonCompatibility() function for version testing
+- Updated documentation to reflect new version requirements
+- Added imputation functions (ALRA, MAGIC, KNNSmooth)
+- Added utility functions for Seurat V5 compatibility
 
 
 # SCP: Single-Cell Pipeline
