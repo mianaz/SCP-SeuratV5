@@ -23,7 +23,7 @@ if (interactive()) {
   pancreas <- adata_to_srt(adata)
   set.seed(11)
   pancreas_sub <- subset(pancreas, cells = sample(colnames(pancreas), size = 1000))
-  pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA@counts) > 0, ]
+  pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA$counts) > 0, ]
   pancreas_sub[["CellType"]] <- pancreas_sub[["clusters_coarse"]]
   pancreas_sub[["SubCellType"]] <- pancreas_sub[["clusters"]]
   pancreas_sub[["clusters_coarse"]] <- pancreas_sub[["clusters"]] <- NULL
@@ -34,6 +34,7 @@ if (interactive()) {
   pancreas_sub[["UMAP"]] <- pancreas_sub[["X_umap"]]
   pancreas_sub[["X_umap"]] <- pancreas_sub[["X_pca"]] <- NULL
   VariableFeatures(pancreas_sub) <- rownames(pancreas_sub[["RNA"]])[which(pancreas_sub[["RNA"]]@meta.features$highly_variable_genes == "True")]
+  pancreas_sub <- UpdateSeuratObject(pancreas_sub)
   # usethis::use_data(pancreas_sub, compress = "xz")
 }
 }

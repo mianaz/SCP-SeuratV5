@@ -2,16 +2,16 @@
 #'
 #' @param miniconda_repo  Repositories for miniconda. Default is \code{https://repo.anaconda.com/miniconda}
 #' @param force Whether to force a new environment to be created. If \code{TRUE}, the existing environment will be recreated. Default is \code{FALSE}
-#' @param version A character vector specifying the version of the environment (default is "3.8-1").
+#' @param version A character vector specifying the version of the environment (default is "3.10-1").
 #' @inheritParams check_Python
 #' @details This function prepares the SCP Python environment by checking if conda is installed, creating a new conda environment if needed, installing the required packages, and setting up the Python environment for use with SCP.
 #' In order to create the environment, this function requires the path to the conda binary. If \code{conda} is set to \code{"auto"}, it will attempt to automatically find the conda binary.
 #' If a conda environment with the specified name already exists and \code{force} is set to \code{FALSE}, the function will use the existing environment. If \code{force} set to \code{TRUE}, the existing environment will be recreated. Note that recreating the environment will remove any existing data in the environment.
-#' The function also checks if the package versions in the environment meet the requirements specified by the \code{version} parameter. The default is \code{3.8-1}.
+#' The function also checks if the package versions in the environment meet the requirements specified by the \code{version} parameter. The default is \code{3.10-1}.
 #'
 #' @export
 PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.com/miniconda",
-                       envname = NULL, version = "3.8-1", force = FALSE, ...) {
+                       envname = NULL, version = "3.10-1", force = FALSE, ...) {
   envname <- get_envname(envname)
 
   requirements <- Env_requirements(version = version)
@@ -87,8 +87,8 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
       conda <- reticulate:::miniconda_conda(miniconda_path)
       envs_dir <- reticulate:::conda_info(conda = conda)$envs_dirs[1]
     }
-    if (python_version < numeric_version("3.7.0") || python_version >= numeric_version("3.10.0")) {
-      stop("SCP currently only support python version 3.7-3.9!")
+    if (python_version < numeric_version("3.9.0") || python_version >= numeric_version("3.13.0")) {
+      stop("SCP currently only supports Python version 3.9-3.12!")
     }
     python_path <- reticulate::conda_create(conda = conda, envname = envname, python_version = python_version, packages = "pytables")
     env_path <- paste0(envs_dir, "/", envname)
@@ -137,19 +137,21 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
 
 #' Env_requirements function
 #'
-#' This function provides the SCP python environment requirements for a specific version.
+#' This function provides the SCP Python environment requirements for a specific version.
 #'
-#' @param version A character vector specifying the version of the environment (default is "3.8-1").
+#' @param version A character vector specifying the version of the environment (default is "3.10-1").
+#'                Valid options are "3.9-1", "3.10-1", "3.11-1", and "3.12-1", representing
+#'                different Python versions with compatible package sets.
 #' @return A list of requirements for the specified version.
 #' @details The function returns a list of requirements including the required Python version
 #'          and a list of packages with their corresponding versions.
 #' @examples
-#' # Get requirements for version "3.8-1"
-#' Env_requirements("3.8-1")
+#' # Get requirements for version "3.10-1"
+#' Env_requirements("3.10-1")
 #'
 #' @export
-Env_requirements <- function(version = "3.8-1") {
-  version <- match.arg(version, choices = c("3.8-1", "3.8-2", "3.9-1", "3.10-1", "3.11-1"))
+Env_requirements <- function(version = "3.10-1") {
+  version <- match.arg(version, choices = c("3.9-1", "3.10-1", "3.11-1", "3.12-1"))
   requirements <- switch(version,
     "3.8-1" = list(
       python = "3.8",
@@ -244,7 +246,30 @@ Env_requirements <- function(version = "3.8-1") {
       )
     ),
     "3.11-1" = list(
-      python = "3.10",
+      python = "3.11",
+      packages = c(
+        "leidenalg" = "leidenalg==0.10.1",
+        "matplotlib" = "matplotlib==3.8.0",
+        "numba" = "numba==0.58.1",
+        "numpy" = "numpy==1.25.2",
+        "palantir" = "palantir==1.3.0",
+        "pandas" = "pandas==1.5.3",
+        "python-igraph" = "python-igraph==0.10.8",
+        "scanpy" = "scanpy==1.9.5",
+        "scikit-learn" = "scikit-learn==1.3.2",
+        "scipy" = "scipy==1.11.3",
+        "scvelo" = "scvelo==0.2.5",
+        "wot" = "wot==1.0.8.post2",
+        "trimap" = "trimap==1.1.4",
+        "pacmap" = "pacmap==0.7.0",
+        "phate" = "phate==1.0.11",
+        "bbknn" = "bbknn==1.6.0",
+        "scanorama" = "scanorama==1.7.4",
+        "scvi-tools" = "scvi-tools==0.20.3"
+      )
+    ),
+    "3.12-1" = list(
+      python = "3.12",
       packages = c(
         "leidenalg" = "leidenalg==0.10.1",
         "matplotlib" = "matplotlib==3.8.0",
@@ -512,6 +537,124 @@ run_Python <- function(command, envir = .GlobalEnv, stop_on_error = TRUE) {
     }
   })
   invisible(result)
+}
+
+#' Test Python version compatibility
+#'
+#' This function tests compatibility of different Python versions with SCP
+#' by attempting to create environments for each supported version.
+#'
+#' @param versions Character vector of environment versions to test (e.g., "3.9-1", "3.10-1", etc.)
+#' @param cleanup Logical, whether to remove the test environments after testing
+#' @param test_prefix Prefix to add to test environment names (default: "test_")
+#' @param verbose Logical, whether to print detailed output during tests
+#'
+#' @return A data frame with compatibility test results for each Python version
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Test all supported Python versions
+#' test_results <- TestPythonCompatibility()
+#' print(test_results)
+#' 
+#' # Test only Python 3.10 and 3.11
+#' test_results <- TestPythonCompatibility(versions = c("3.10-1", "3.11-1"))
+#' }
+TestPythonCompatibility <- function(versions = c("3.9-1", "3.10-1", "3.11-1", "3.12-1"), 
+                                   cleanup = TRUE, 
+                                   test_prefix = "test_", 
+                                   verbose = TRUE) {
+  results <- data.frame(
+    version = character(),
+    python_version = character(),
+    success = logical(),
+    error_message = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (version in versions) {
+    if (verbose) message("Testing Python compatibility for version: ", version)
+    
+    # Get Python version from requirements
+    requirements <- try(Env_requirements(version = version), silent = TRUE)
+    if (inherits(requirements, "try-error")) {
+      results <- rbind(results, data.frame(
+        version = version,
+        python_version = NA,
+        success = FALSE,
+        error_message = "Invalid version specification",
+        stringsAsFactors = FALSE
+      ))
+      next
+    }
+    
+    python_version <- requirements[["python"]]
+    test_env_name <- paste0(test_prefix, "py", gsub("\\.", "", python_version))
+    
+    if (verbose) message("Creating test environment: ", test_env_name, " with Python ", python_version)
+    
+    # Try to create the environment
+    env_result <- tryCatch({
+      PrepareEnv(
+        envname = test_env_name,
+        version = version,
+        force = TRUE
+      )
+      TRUE
+    }, error = function(e) {
+      list(success = FALSE, message = as.character(e))
+    })
+    
+    if (is.logical(env_result) && env_result) {
+      # Test importing key packages
+      test_imports <- tryCatch({
+        run_Python("import scanpy", stop_on_error = FALSE)
+        run_Python("import matplotlib", stop_on_error = FALSE)
+        run_Python("import numpy", stop_on_error = FALSE)
+        NULL
+      }, error = function(e) {
+        as.character(e)
+      })
+      
+      import_success <- is.null(test_imports)
+      
+      results <- rbind(results, data.frame(
+        version = version,
+        python_version = python_version,
+        success = import_success,
+        error_message = if (import_success) "All packages imported successfully" else test_imports,
+        stringsAsFactors = FALSE
+      ))
+    } else {
+      results <- rbind(results, data.frame(
+        version = version,
+        python_version = python_version,
+        success = FALSE,
+        error_message = if (is.list(env_result)) env_result$message else "Unknown error",
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    # Clean up test environment if requested
+    if (cleanup) {
+      if (verbose) message("Cleaning up test environment: ", test_env_name)
+      conda <- find_conda()
+      if (!is.null(conda)) {
+        tryCatch({
+          envs_dir <- reticulate:::conda_info(conda = conda)$envs_dirs[1]
+          env_path <- paste0(envs_dir, "/", test_env_name)
+          if (file.exists(env_path)) {
+            unlink(env_path, recursive = TRUE)
+          }
+        }, error = function(e) {
+          if (verbose) message("Warning: Could not clean up environment: ", as.character(e))
+        })
+      }
+    }
+  }
+  
+  return(results)
 }
 
 #' Check and install python packages

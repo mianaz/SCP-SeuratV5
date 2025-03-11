@@ -177,8 +177,8 @@ CellStatPlot(pancreas_sub,
 )
 pancreas_sub$Progenitor <- pancreas_sub$CellType \%in\% c("Ngn3 low EP", "Ngn3 high EP")
 pancreas_sub$G2M <- pancreas_sub$Phase == "G2M"
-pancreas_sub$Sox9_Expressed <- pancreas_sub[["RNA"]]@counts["Sox9", ] > 0
-pancreas_sub$Neurog3_Expressed <- pancreas_sub[["RNA"]]@counts["Neurog3", ] > 0
+pancreas_sub$Sox9_Expressed <- pancreas_sub[["RNA"]]$counts["Sox9", ] > 0
+pancreas_sub$Neurog3_Expressed <- pancreas_sub[["RNA"]]$counts["Neurog3", ] > 0
 CellStatPlot(pancreas_sub, stat.by = c("Progenitor", "G2M", "Sox9_Expressed", "Neurog3_Expressed"), plot_type = "venn", stat_level = "TRUE")
 CellStatPlot(pancreas_sub, stat.by = c("Progenitor", "G2M", "Sox9_Expressed", "Neurog3_Expressed"), plot_type = "upset", stat_level = "TRUE")
 sum(pancreas_sub$Progenitor == "FALSE" &

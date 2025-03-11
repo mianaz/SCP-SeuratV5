@@ -45,7 +45,8 @@ RunSingleR(
 
 \item{de.n}{An integer scalar specifying the number of DE genes to use when \code{genes="de"}.
 If \code{de.method="classic"}, defaults to \code{500 * (2/3) ^ log2(N)} where \code{N} is the number of unique labels.
-Otherwise, defaults to 10.}
+Otherwise, defaults to 10.
+Ignored if \code{genes} is a list of markers/DE genes.}
 
 \item{aggr.ref, aggr.args}{Arguments controlling the aggregation of the references prior to annotation, see \code{\link[SingleR]{trainSingleR}}.}
 

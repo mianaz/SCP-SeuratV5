@@ -34,6 +34,9 @@ if (interactive()) {
   # usethis::use_data(ref_scHCL, compress = "xz")
   # usethis::use_data(ref_scMCA, compress = "xz")
   # usethis::use_data(ref_scZCL, compress = "xz")
+  ref_scHCL <- UpdateSeuratObject(ref_scHCL)
+  ref_scMCA <- UpdateSeuratObject(ref_scMCA)
+  ref_scZCL <- UpdateSeuratObject(ref_scZCL)
 }
 }
 }

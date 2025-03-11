@@ -294,8 +294,8 @@ FeatureStatPlot(pancreas_sub, stat.by = c(
 ), group.by = "SubCellType", plot.by = "feature", stack = TRUE)
 
 library(Matrix)
-data <- pancreas_sub@assays$RNA@data
-pancreas_sub@assays$RNA@scale.data <- as_matrix(data / rowMeans(data))
+data <- pancreas_sub@assays$RNA$data
+pancreas_sub@assays$RNA$scale.data <- as_matrix(data / rowMeans(data))
 FeatureStatPlot(pancreas_sub,
   stat.by = c("Neurog3", "Rbp4", "Ins1"), group.by = "CellType",
   slot = "scale.data", ylab = "FoldChange", same.y.lims = TRUE, y.max = 4

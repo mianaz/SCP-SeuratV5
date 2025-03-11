@@ -4,23 +4,25 @@
 \alias{Env_requirements}
 \title{Env_requirements function}
 \usage{
-Env_requirements(version = "3.8-1")
+Env_requirements(version = "3.10-1")
 }
 \arguments{
-\item{version}{A character vector specifying the version of the environment (default is "3.8-1").}
+\item{version}{A character vector specifying the version of the environment (default is "3.10-1").
+Valid options are "3.9-1", "3.10-1", "3.11-1", and "3.12-1", representing
+different Python versions with compatible package sets.}
 }
 \value{
 A list of requirements for the specified version.
 }
 \description{
-This function provides the SCP python environment requirements for a specific version.
+This function provides the SCP Python environment requirements for a specific version.
 }
 \details{
 The function returns a list of requirements including the required Python version
          and a list of packages with their corresponding versions.
 }
 \examples{
-# Get requirements for version "3.8-1"
-Env_requirements("3.8-1")
+# Get requirements for version "3.10-1"
+Env_requirements("3.10-1")
 
 }
