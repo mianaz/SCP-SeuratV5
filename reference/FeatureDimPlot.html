@@ -465,44 +465,54 @@
 <span class="r-plt img"><img src="FeatureDimPlot-5.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="Standard_SCP.html">Standard_SCP</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-02-11 22:24:03.523335] Start Standard_SCP</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-02-11 22:24:03.523773] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:39.052309] Start Standard_SCP</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:39.052466] Checking srtList... ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/1 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/1 of the srtList...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in h(simpleError(msg, call)):</span> error in evaluating the argument 'x' in selecting a method for function 'colSums': could not find function "LayerData"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:39.931885] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:39.932064] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:40.022122] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:40.675247] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:40.746297] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:42.671455] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Standardpca, dims:1-13) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Standardpca, dims:1-13) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-03-11 02:25:49.846496] Standard_SCP done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 10.79 secs </span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"StandardPC_1"</span>, <span class="st">"StandardPC_2"</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, bg_cutoff <span class="op">=</span> <span class="op">-</span><span class="cn">Inf</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>StandardPC_1,StandardPC_2 are not in the features of srt.</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in FeatureDimPlot(pancreas_sub, features = c("StandardPC_1", "StandardPC_2"),     reduction = "UMAP", bg_cutoff = -Inf):</span> There are no valid features present.</span>
+<span class="r-plt img"><img src="FeatureDimPlot-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Label and highlight cell points</span></span></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="st">"Rbp4"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  cells.highlight <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span><span class="op">[</span><span class="va">pancreas_sub</span><span class="op">$</span><span class="va">SubCellType</span> <span class="op">==</span> <span class="st">"Delta"</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="FeatureDimPlot-6.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-7.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="st">"Rbp4"</span>, split.by <span class="op">=</span> <span class="st">"Phase"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>,</span></span>
 <span class="r-in"><span>  cells.highlight <span class="op">=</span> <span class="cn">TRUE</span>, theme_use <span class="op">=</span> <span class="st">"theme_blank"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="FeatureDimPlot-7.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-8.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Add a density layer</span></span></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="st">"Rbp4"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, add_density <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="FeatureDimPlot-8.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-9.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="st">"Rbp4"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, add_density <span class="op">=</span> <span class="cn">TRUE</span>, density_filled <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Removed 396 rows containing missing values or values outside the scale range (`geom_raster()`).</span>
-<span class="r-plt img"><img src="FeatureDimPlot-9.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-10.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Chane the plot type from point to the hexagonal bin</span></span></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="st">"Rbp4"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, hex <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Removed 4 rows containing missing values or values outside the scale range (`geom_hex()`).</span>
-<span class="r-plt img"><img src="FeatureDimPlot-10.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-11.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="st">"Rbp4"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, hex <span class="op">=</span> <span class="cn">TRUE</span>, hex.bins <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Removed 3 rows containing missing values or values outside the scale range (`geom_hex()`).</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Removed 5 rows containing missing values or values outside the scale range (`geom_hex()`).</span>
-<span class="r-plt img"><img src="FeatureDimPlot-11.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-12.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Show lineages on the plot based on the pseudotime</span></span></span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="RunSlingshot.html">RunSlingshot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"SubCellType"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span><span class="op">)</span></span></span>
@@ -531,22 +541,22 @@
 <span class="r-in"><span>  theme_use <span class="op">=</span> <span class="st">"theme_blank"</span>,</span></span>
 <span class="r-in"><span>  theme_args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>plot.subtitle <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>, strip.text <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="FeatureDimPlot-12.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-13.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Plot multiple features with different scales</span></span></span>
 <span class="r-in"><span><span class="va">endocrine_markers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Beta"</span> <span class="op">=</span> <span class="st">"Ins1"</span>, <span class="st">"Alpha"</span> <span class="op">=</span> <span class="st">"Gcg"</span>, <span class="st">"Delta"</span> <span class="op">=</span> <span class="st">"Sst"</span>, <span class="st">"Epsilon"</span> <span class="op">=</span> <span class="st">"Ghrl"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="FeatureDimPlot-13.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, lower_quantile <span class="op">=</span> <span class="fl">0</span>, upper_quantile <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="FeatureDimPlot-14.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, lower_cutoff <span class="op">=</span> <span class="fl">1</span>, upper_cutoff <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, lower_quantile <span class="op">=</span> <span class="fl">0</span>, upper_quantile <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="FeatureDimPlot-15.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, bg_cutoff <span class="op">=</span> <span class="fl">2</span>, lower_cutoff <span class="op">=</span> <span class="fl">2</span>, upper_cutoff <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, lower_cutoff <span class="op">=</span> <span class="fl">1</span>, upper_cutoff <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="FeatureDimPlot-16.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, keep_scale <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, bg_cutoff <span class="op">=</span> <span class="fl">2</span>, lower_cutoff <span class="op">=</span> <span class="fl">2</span>, upper_cutoff <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="FeatureDimPlot-17.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Delta"</span> <span class="op">=</span> <span class="st">"Sst"</span>, <span class="st">"Epsilon"</span> <span class="op">=</span> <span class="st">"Ghrl"</span><span class="op">)</span>, split.by <span class="op">=</span> <span class="st">"Phase"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, keep_scale <span class="op">=</span> <span class="st">"feature"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="va">endocrine_markers</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, keep_scale <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="FeatureDimPlot-18.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Delta"</span> <span class="op">=</span> <span class="st">"Sst"</span>, <span class="st">"Epsilon"</span> <span class="op">=</span> <span class="st">"Ghrl"</span><span class="op">)</span>, split.by <span class="op">=</span> <span class="st">"Phase"</span>, reduction <span class="op">=</span> <span class="st">"UMAP"</span>, keep_scale <span class="op">=</span> <span class="st">"feature"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="FeatureDimPlot-19.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Plot multiple features on one picture</span></span></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
@@ -555,35 +565,35 @@
 <span class="r-in"><span>  label <span class="op">=</span> <span class="cn">TRUE</span>, label_insitu <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">colour</span> values.</span>
-<span class="r-plt img"><img src="FeatureDimPlot-19.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-20.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S_score"</span>, <span class="st">"G2M_score"</span><span class="op">)</span>, pt.size <span class="op">=</span> <span class="fl">1</span>, palcolor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>, <span class="st">"green"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  compare_features <span class="op">=</span> <span class="cn">TRUE</span>, color_blend_mode <span class="op">=</span> <span class="st">"blend"</span>, title <span class="op">=</span> <span class="st">"blend"</span>,</span></span>
 <span class="r-in"><span>  label <span class="op">=</span> <span class="cn">TRUE</span>, label_insitu <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">colour</span> values.</span>
-<span class="r-plt img"><img src="FeatureDimPlot-20.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-21.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S_score"</span>, <span class="st">"G2M_score"</span><span class="op">)</span>, pt.size <span class="op">=</span> <span class="fl">1</span>, palcolor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>, <span class="st">"green"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  compare_features <span class="op">=</span> <span class="cn">TRUE</span>, color_blend_mode <span class="op">=</span> <span class="st">"average"</span>, title <span class="op">=</span> <span class="st">"average"</span>,</span></span>
 <span class="r-in"><span>  label <span class="op">=</span> <span class="cn">TRUE</span>, label_insitu <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">colour</span> values.</span>
-<span class="r-plt img"><img src="FeatureDimPlot-21.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-22.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S_score"</span>, <span class="st">"G2M_score"</span><span class="op">)</span>, pt.size <span class="op">=</span> <span class="fl">1</span>, palcolor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>, <span class="st">"green"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  compare_features <span class="op">=</span> <span class="cn">TRUE</span>, color_blend_mode <span class="op">=</span> <span class="st">"screen"</span>, title <span class="op">=</span> <span class="st">"screen"</span>,</span></span>
 <span class="r-in"><span>  label <span class="op">=</span> <span class="cn">TRUE</span>, label_insitu <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">colour</span> values.</span>
-<span class="r-plt img"><img src="FeatureDimPlot-22.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-23.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">FeatureDimPlot</span><span class="op">(</span><span class="va">pancreas_sub</span>,</span></span>
 <span class="r-in"><span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S_score"</span>, <span class="st">"G2M_score"</span><span class="op">)</span>, pt.size <span class="op">=</span> <span class="fl">1</span>, palcolor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"red"</span>, <span class="st">"green"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  compare_features <span class="op">=</span> <span class="cn">TRUE</span>, color_blend_mode <span class="op">=</span> <span class="st">"multiply"</span>, title <span class="op">=</span> <span class="st">"multiply"</span>,</span></span>
 <span class="r-in"><span>  label <span class="op">=</span> <span class="cn">TRUE</span>, label_insitu <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">colour</span> values.</span>
-<span class="r-plt img"><img src="FeatureDimPlot-23.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="FeatureDimPlot-24.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
