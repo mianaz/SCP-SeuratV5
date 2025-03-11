@@ -87,6 +87,7 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
       conda <- reticulate:::miniconda_conda(miniconda_path)
       envs_dir <- reticulate:::conda_info(conda = conda)$envs_dirs[1]
     }
+    # Validate Python version compatibility
     if (python_version < numeric_version("3.9.0") || python_version >= numeric_version("3.13.0")) {
       stop("SCP currently only supports Python version 3.9-3.12!")
     }
@@ -120,9 +121,10 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
     "==================================================================="
   )
   invisible(lapply(pyinfo_mesg, packageStartupMessage))
-  # Initialize matplotlib and scanpy with proper error handling
+  # Initialize key Python packages and configure matplotlib backend
   tryCatch({
     invisible(run_Python(command = "import matplotlib", envir = .GlobalEnv))
+    # Set non-interactive backend for batch processing
     if (!interactive()) {
       invisible(run_Python(command = "matplotlib.use('pdf')", envir = .GlobalEnv))
     }
@@ -141,10 +143,13 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
 #'
 #' @param version A character vector specifying the version of the environment (default is "3.10-1").
 #'                Valid options are "3.9-1", "3.10-1", "3.11-1", and "3.12-1", representing
-#'                different Python versions with compatible package sets.
-#' @return A list of requirements for the specified version.
-#' @details The function returns a list of requirements including the required Python version
-#'          and a list of packages with their corresponding versions.
+#'                different Python versions.
+#' @return A list containing:
+#'         \item{python}{The Python version to use (e.g., "3.10")}
+#'         \item{packages}{A character vector of required package names}
+#' @details All supported Python versions use the same set of required packages.
+#'          The function simply maps the version parameter to the appropriate Python version
+#'          and returns a standardized list of package requirements.
 #' @examples
 #' # Get requirements for version "3.10-1"
 #' Env_requirements("3.10-1")
@@ -152,147 +157,43 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
 #' @export
 Env_requirements <- function(version = "3.10-1") {
   version <- match.arg(version, choices = c("3.9-1", "3.10-1", "3.11-1", "3.12-1"))
-  requirements <- switch(version,
-    "3.8-1" = list(
-      python = "3.8",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.6.3",
-        "numba" = "numba==0.55.2",
-        "numpy" = "numpy==1.21.6",
-        "palantir" = "palantir==1.0.1",
-        "pandas" = "pandas==1.3.5",
-        "python-igraph" = "python-igraph==0.10.2",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.10.1",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    ),
-    "3.8-2" = list(
-      python = "3.8",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.7.3",
-        "numba" = "numba==0.58.1",
-        "numpy" = "numpy==1.24.4",
-        "palantir" = "palantir==1.3.0",
-        "pandas" = "pandas==1.5.3",
-        "python-igraph" = "python-igraph==0.10.8",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.10.1",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    ),
-    "3.9-1" = list(
-      python = "3.9",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.8.0",
-        "numba" = "numba==0.58.1",
-        "numpy" = "numpy==1.25.2",
-        "palantir" = "palantir==1.3.0",
-        "pandas" = "pandas==1.5.3",
-        "python-igraph" = "python-igraph==0.10.8",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.11.3",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    ),
-    "3.10-1" = list(
-      python = "3.10",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.8.0",
-        "numba" = "numba==0.58.1",
-        "numpy" = "numpy==1.25.2",
-        "palantir" = "palantir==1.3.0",
-        "pandas" = "pandas==1.5.3",
-        "python-igraph" = "python-igraph==0.10.8",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.11.3",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    ),
-    "3.11-1" = list(
-      python = "3.11",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.8.0",
-        "numba" = "numba==0.58.1",
-        "numpy" = "numpy==1.25.2",
-        "palantir" = "palantir==1.3.0",
-        "pandas" = "pandas==1.5.3",
-        "python-igraph" = "python-igraph==0.10.8",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.11.3",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    ),
-    "3.12-1" = list(
-      python = "3.12",
-      packages = c(
-        "leidenalg" = "leidenalg==0.10.1",
-        "matplotlib" = "matplotlib==3.8.0",
-        "numba" = "numba==0.58.1",
-        "numpy" = "numpy==1.25.2",
-        "palantir" = "palantir==1.3.0",
-        "pandas" = "pandas==1.5.3",
-        "python-igraph" = "python-igraph==0.10.8",
-        "scanpy" = "scanpy==1.9.5",
-        "scikit-learn" = "scikit-learn==1.3.2",
-        "scipy" = "scipy==1.11.3",
-        "scvelo" = "scvelo==0.2.5",
-        "wot" = "wot==1.0.8.post2",
-        "trimap" = "trimap==1.1.4",
-        "pacmap" = "pacmap==0.7.0",
-        "phate" = "phate==1.0.11",
-        "bbknn" = "bbknn==1.6.0",
-        "scanorama" = "scanorama==1.7.4",
-        "scvi-tools" = "scvi-tools==0.20.3"
-      )
-    )
+  
+  # Extract Python version from the parameter
+  python_version <- switch(version,
+    "3.9-1" = "3.9",
+    "3.10-1" = "3.10",
+    "3.11-1" = "3.11",
+    "3.12-1" = "3.12"
   )
-
+  
+  # Define the common packages needed for all Python versions
+  common_packages <- c(
+    "leidenalg" = "leidenalg",
+    "matplotlib" = "matplotlib",
+    "numba" = "numba",
+    "numpy" = "numpy",
+    "palantir" = "palantir",
+    "pandas" = "pandas",
+    "python-igraph" = "python-igraph",
+    "scanpy" = "scanpy",
+    "scikit-learn" = "scikit-learn",
+    "scipy" = "scipy",
+    "scvelo" = "scvelo",
+    "wot" = "wot",
+    "trimap" = "trimap",
+    "pacmap" = "pacmap",
+    "phate" = "phate",
+    "bbknn" = "bbknn",
+    "scanorama" = "scanorama",
+    "scvi-tools" = "scvi-tools"
+  )
+  
+  # Create and return the requirements list
+  requirements <- list(
+    python = python_version,
+    packages = common_packages
+  )
+  
   return(requirements)
 }
 
