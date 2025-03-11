@@ -21,6 +21,7 @@ Imports:
     ComplexHeatmap (>= 2.13.0),
     data.table,
     dplyr (>= 1.1.0),
+    FNN,
     future,
     future.apply,
     ggnewscale,
@@ -35,6 +36,7 @@ Imports:
     HDF5Array,
     igraph,
     intrinsicDimension,
+    irlba,
     methods,
     mgcv,
     Matrix,
@@ -46,7 +48,7 @@ Imports:
     R.cache,
     R.utils,
     reshape2,
-    reticulate,
+    reticulate (>= 1.22),
     rlang,
     rhdf5,
     scales,
@@ -61,14 +63,14 @@ Suggests:
     batchelor,
     Biobase,
     BiocGenerics,
-    BiocManager,
+    BiocManager (>= 1.30.16),
     concaveman,
     conos,
     covr,
     cowplot,
     dendextend,
     destiny,
-    devtools,
+    devtools (>= 2.4.3),
     DDRTree,
     e1071,
     ggpubr,
@@ -117,7 +119,7 @@ Suggests:
     tidyr,
     umap,
     UCell,
-    withr
+    withr (>= 2.5.0)
 LinkingTo: Rcpp
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3

@@ -1,5 +1,112 @@
+# Check for and potentially install critical dependencies
+check_critical_dependencies <- function() {
+  # Define critical R packages
+  critical_deps <- list(
+    cran_imports = c("Matrix", "Seurat", "SeuratObject", "reticulate", "rlang", "dplyr", "ggplot2"),
+    cran_suggests = c("devtools", "withr"),
+    bioc_imports = c("AnnotationDbi", "biomaRt", "BiocParallel", "ComplexHeatmap", "clusterProfiler"),
+    bioc_suggests = c("GO.db", "GOSemSim", "slingshot")
+  )
+  
+  # Check if each critical package is installed
+  missing_deps <- list()
+  for (type in names(critical_deps)) {
+    missing_deps[[type]] <- character(0)
+    for (pkg in critical_deps[[type]]) {
+      if (!requireNamespace(pkg, quietly = TRUE)) {
+        missing_deps[[type]] <- c(missing_deps[[type]], pkg)
+      }
+    }
+  }
+  
+  # Check if BiocManager is installed
+  has_biocmanager <- requireNamespace("BiocManager", quietly = TRUE)
+  if (!has_biocmanager) {
+    missing_deps$bioc_manager <- "BiocManager"
+  } else {
+    missing_deps$bioc_manager <- character(0)
+  }
+  
+  # If there are missing dependencies, provide information about them
+  if (length(unlist(missing_deps)) > 0) {
+    cran_missing <- c(missing_deps$cran_imports, missing_deps$cran_suggests)
+    bioc_missing <- c(missing_deps$bioc_imports, missing_deps$bioc_suggests)
+    
+    packageStartupMessage(
+      "\n",
+      "╔════════════════════════════════════════════════════════════╗\n",
+      "║                  SCP Dependency Notice                     ║\n",
+      "╚════════════════════════════════════════════════════════════╝\n"
+    )
+    
+    if (length(missing_deps$cran_imports) > 0) {
+      packageStartupMessage("Required CRAN packages missing: ", 
+                           paste(missing_deps$cran_imports, collapse = ", "))
+    }
+    
+    if (length(missing_deps$bioc_manager) > 0) {
+      packageStartupMessage("BiocManager is required for Bioconductor packages")
+    }
+    
+    if (length(missing_deps$bioc_imports) > 0) {
+      packageStartupMessage("Required Bioconductor packages missing: ", 
+                           paste(missing_deps$bioc_imports, collapse = ", "))
+    }
+    
+    if (length(missing_deps$cran_suggests) > 0 || length(missing_deps$bioc_suggests) > 0) {
+      packageStartupMessage("\nAdditional recommended packages:")
+      if (length(missing_deps$cran_suggests) > 0) {
+        packageStartupMessage("CRAN: ", paste(missing_deps$cran_suggests, collapse = ", "))
+      }
+      if (length(missing_deps$bioc_suggests) > 0) {
+        packageStartupMessage("Bioconductor: ", paste(missing_deps$bioc_suggests, collapse = ", "))
+      }
+    }
+    
+    packageStartupMessage(
+      "\nTo install all dependencies automatically, run:\n",
+      "  SCP::install_all_dependencies()\n",
+      "\nOr to install packages manually:\n"
+    )
+    
+    if (length(cran_missing) > 0) {
+      packageStartupMessage(
+        sprintf('install.packages(c("%s"))', paste(cran_missing, collapse = '", "')),
+        "\n"
+      )
+    }
+    
+    if (length(missing_deps$bioc_manager) > 0) {
+      packageStartupMessage('install.packages("BiocManager")', "\n")
+    }
+    
+    if (length(bioc_missing) > 0 && has_biocmanager) {
+      packageStartupMessage(
+        sprintf('BiocManager::install(c("%s"))', paste(bioc_missing, collapse = '", "')),
+        "\n"
+      )
+    } else if (length(bioc_missing) > 0) {
+      packageStartupMessage(
+        "# After installing BiocManager, run:\n",
+        sprintf('BiocManager::install(c("%s"))', paste(bioc_missing, collapse = '", "')),
+        "\n"
+      )
+    }
+    
+    packageStartupMessage(
+      "╔════════════════════════════════════════════════════════════╗\n",
+      "║        Some SCP functionality may be limited                ║\n",
+      "╚════════════════════════════════════════════════════════════╝\n"
+    )
+  }
+}
+
 .onAttach <- function(libname, pkgname) {
   options(future.globals.maxSize = Inf)
+  
+  # Check for critical dependencies first
+  check_critical_dependencies()
+  
   env <- FALSE
   # Only initialize Python environment if explicitly requested by setting SCP_env_init
   if (isTRUE(getOption("SCP_env_init", default = FALSE))) {

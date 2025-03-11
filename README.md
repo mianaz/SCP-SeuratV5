@@ -1,7 +1,12 @@
 # SCP-SeuratV5
 
 This is an experimental version of SCP to add support for Seurat V5 and expand functionalities. Note that this has not been comprehensively tested.
-To install:
+
+## Installation
+
+### Basic Installation
+
+To install the SCP-SeuratV5 package:
 
 ``` r
 if (!require("devtools", quietly = TRUE)) {
@@ -10,7 +15,48 @@ if (!require("devtools", quietly = TRUE)) {
 devtools::install_github("mianaz/SCP-SeuratV5", ref="dev")
 ```
 
-Key changes/goals:
+### Handling Dependencies
+
+This package requires several R dependencies that might not be automatically installed. To ensure all dependencies are properly installed, you can use the built-in dependency installer after installing the package:
+
+```r
+# Load the package
+library(SCP)
+
+# Install all required and recommended dependencies
+install_all_dependencies()
+
+# For more control over which dependencies to install
+install_all_dependencies(bioc_deps = TRUE, optional_deps = TRUE)
+```
+
+### Critical Dependencies
+
+The following packages are essential for proper functioning:
+- Core dependencies: Matrix, Seurat, SeuratObject, reticulate, rlang, dplyr, ggplot2
+- Bioconductor dependencies: BiocManager, AnnotationDbi, ComplexHeatmap, clusterProfiler, biomaRt
+- Development tools: devtools, withr
+
+If the package installation fails due to missing dependencies, try installing these critical packages first:
+
+```r
+# Install BiocManager first (needed for all Bioconductor packages)
+install.packages("BiocManager")
+
+# Install core CRAN packages
+install.packages(c("Matrix", "Seurat", "SeuratObject", "reticulate", "rlang", "dplyr", "ggplot2"))
+
+# Install critical Bioconductor packages
+BiocManager::install(c("AnnotationDbi", "ComplexHeatmap", "clusterProfiler", "biomaRt"))
+
+# Additional Bioconductor packages that may be needed for specific functionality
+BiocManager::install(c("GO.db", "GOSemSim", "HDF5Array", "rhdf5", "slingshot"))
+```
+
+Note that some Bioconductor packages like clusterProfiler have their own dependencies that may need to be installed. If you encounter errors, check the error messages to identify which additional packages are needed.
+
+## Key changes/features:
+- Support for Seurat V5
 - Changed Python version validation to require 3.9-3.12
 - Updated default environment from 3.7/3.8 to 3.10
 - Added environment configurations for Python 3.10, 3.11, and 3.12
@@ -18,6 +64,7 @@ Key changes/goals:
 - Updated documentation to reflect new version requirements
 - Added imputation functions (ALRA, MAGIC, KNNSmooth)
 - Added utility functions for Seurat V5 compatibility
+- Improved dependency management
 
 
 # SCP: Single-Cell Pipeline
