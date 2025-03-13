@@ -284,6 +284,17 @@ PrepareEnv <- function(conda = "auto", miniconda_repo = "https://repo.anaconda.c
   message("- Configuring Python environment...")
   Sys.unsetenv("RETICULATE_PYTHON")
   python_path <- conda_python(conda = conda, envname = envname)
+  
+  # Check if reticulate is already loaded, if not, use conda env before loading
+  if (!isNamespaceLoaded("reticulate")) {
+    # Set the Python path before loading reticulate
+    Sys.setenv(RETICULATE_PYTHON = python_path)
+    Sys.setenv(RETICULATE_PYTHON_ENV = envname)
+    # Now load reticulate with the correct Python path
+    requireNamespace("reticulate", quietly = TRUE)
+  }
+  
+  # Use the specified Python regardless
   reticulate::use_python(python_path, required = TRUE)
   
   # Display environment information
@@ -785,11 +796,67 @@ conda_python <- function(envname = NULL, conda = "auto", all = FALSE) {
 #' @param command A string containing Python code to execute
 #' @param envir The R environment where Python objects should be made available
 #' @param stop_on_error Whether to stop execution when an error occurs. If FALSE, will return the error object instead.
+#' @param use_scp_env Whether to ensure the SCP environment is used before running the command. If TRUE (default),
+#'   this will attempt to configure reticulate to use the SCP conda environment before executing the command.
+#'   When FALSE, it will use whatever Python environment reticulate is currently configured to use.
 #'
 #' @return Invisibly returns NULL on success, or an error object if stop_on_error is FALSE
+#' @examples
+#' \dontrun{
+#' # Basic usage
+#' run_Python("import numpy as np; print(np.array([1,2,3]))")
+#' 
+#' # Return error instead of stopping
+#' error <- run_Python("import non_existent_module", stop_on_error = FALSE)
+#' 
+#' # Use a custom environment
+#' my_env <- new.env()
+#' run_Python("x = [1, 2, 3]", envir = my_env)
+#' my_env$x  # Access the Python object from R
+#' 
+#' # Use a specific Python environment (not SCP)
+#' run_Python("import sys; print(sys.executable)", use_scp_env = FALSE)
+#' }
 #' @export
-run_Python <- function(command, envir = .GlobalEnv, stop_on_error = TRUE) {
+run_Python <- function(command, envir = .GlobalEnv, stop_on_error = TRUE, use_scp_env = TRUE) {
+  # Ensure reticulate is using the SCP environment if requested
+  if (use_scp_env) {
+    # Get the SCP environment name
+    envname <- get_envname()
+    
+    # Check if reticulate is loaded
+    if (!isNamespaceLoaded("reticulate")) {
+      # Find conda and the Python path
+      conda <- find_conda()
+      if (!is.null(conda)) {
+        envs_dir <- reticulate:::conda_info(conda = conda)$envs_dirs[1]
+        env <- env_exist(conda = conda, envname = envname, envs_dir = envs_dir)
+        
+        if (isTRUE(env)) {
+          python_path <- conda_python(conda = conda, envname = envname)
+          
+          # Set the Python path before loading reticulate
+          Sys.setenv(RETICULATE_PYTHON = python_path)
+          Sys.setenv(RETICULATE_PYTHON_ENV = envname)
+        }
+      }
+    } else {
+      # If reticulate is already loaded, try to use the SCP environment
+      conda <- find_conda()
+      if (!is.null(conda)) {
+        python_path <- conda_python(conda = conda, envname = envname)
+        reticulate::use_python(python_path, required = FALSE)
+      }
+    }
+  }
+  
+  # Now execute the Python command
   result <- tryCatch(expr = {
+    # Make sure reticulate is loaded
+    if (!requireNamespace("reticulate", quietly = TRUE)) {
+      stop("The reticulate package is required but could not be loaded")
+    }
+    
     eval(
       {
         reticulate::py_run_string(command)
