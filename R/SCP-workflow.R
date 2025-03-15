@@ -561,19 +561,64 @@ RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
     }
     names(newnames) <- rownames(srt[[assays[1]]])
   }
+  
+  # Check if using Seurat V5
+  is_v5 <- is_seurat_v5(srt)
+  
   for (assay in assays) {
     message("Rename features for the assay: ", assay)
     assay_obj <- GetAssay(srt, assay)
-    for (d in c("meta.features", "scale.data", "counts", "data")) {
-      index <- which(rownames(slot(assay_obj, d)) %in% names(newnames))
-      rownames(slot(assay_obj, d))[index] <- newnames[rownames(slot(assay_obj, d))[index]]
+    
+    if (is_v5) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      
+      # Handle feature metadata renaming
+      meta_features <- SeuratObject::FetchData(assay_obj, vars = NULL, layer = "meta.features")
+      if (nrow(meta_features) > 0) {
+        index <- which(rownames(meta_features) %in% names(newnames))
+        rownames(meta_features)[index] <- newnames[rownames(meta_features)[index]]
+        assay_obj <- SeuratObject::AddMetaData(assay_obj, meta_features, layer = "meta.features")
+      }
+      
+      # Handle layer data renaming for different layers
+      for (layer_name in c("counts", "data", "scale.data")) {
+        if (layer_name %in% SeuratObject::Layers(assay_obj)) {
+          layer_data <- SeuratObject::LayerData(assay_obj, layer = layer_name)
+          if (nrow(layer_data) > 0) {
+            index <- which(rownames(layer_data) %in% names(newnames))
+            rownames(layer_data)[index] <- newnames[rownames(layer_data)[index]]
+            SeuratObject::LayerData(assay_obj, layer = layer_name) <- layer_data
+          }
+        }
+      }
+      
+      # Handle variable features renaming
+      var_features <- assay_obj[["var.features"]]
+      if (length(var_features) > 0) {
+        index <- which(var_features %in% names(newnames))
+        var_features[index] <- newnames[var_features[index]]
+        assay_obj[["var.features"]] <- var_features
+      }
+    } else {
+      # Seurat V4 approach - use direct slot access
+      for (d in c("meta.features", "scale.data", "counts", "data")) {
+        if (length(dim(slot(assay_obj, d))) > 0) {
+          index <- which(rownames(slot(assay_obj, d)) %in% names(newnames))
+          rownames(slot(assay_obj, d))[index] <- newnames[rownames(slot(assay_obj, d))[index]]
+        }
+      }
+      if (length(slot(assay_obj, "var.features")) > 0) {
+        index <- which(slot(assay_obj, "var.features") %in% names(newnames))
+        slot(assay_obj, "var.features")[index] <- newnames[slot(assay_obj, "var.features")[index]]
+      }
     }
-    if (length(slot(assay_obj, "var.features")) > 0) {
-      index <- which(slot(assay_obj, "var.features") %in% names(newnames))
-      slot(assay_obj, "var.features")[index] <- newnames[slot(assay_obj, "var.features")[index]]
-    }
+    
     srt[[assay]] <- assay_obj
   }
+  
   return(srt)
 }
 

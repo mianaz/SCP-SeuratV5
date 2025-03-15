@@ -8074,11 +8074,25 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
     if (length(npal[npal != 0]) > 1) {
       stop("feature_annotation_palette and feature_annotation_palcolor must be the same length as feature_annotation")
     }
-    if (any(!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features))) {
-      stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features)], collapse = ","), " is not in the meta data of the ", assay, " assay in the Seurat object.")
-    }
-  }
-  if (length(width) == 1) {
+    # Check if using Seurat V5
+    is_v5 <- is_seurat_v5(srt)
+    if (is_v5) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      feature_meta <- colnames(SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features"))
+      if (any(!feature_annotation %in% feature_meta)) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% feature_meta], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    } else {
+      # Seurat V4 approach
+      if (any(!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features))) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features)], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    }  if (length(width) == 1) {
     width <- rep(width, length(group.by))
   }
   if (length(height) == 1) {
@@ -8152,13 +8166,33 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
   gene_unique <- features_unique[features %in% rownames(srt@assays[[assay]])]
   meta <- features[features %in% colnames(srt@meta.data)]
 
-  mat_raw <- as_matrix(rbind(slot(srt@assays[[assay]], slot)[gene, cells, drop = FALSE], t(srt@meta.data[cells, meta, drop = FALSE])))[features, , drop = FALSE]
+  # Check if using Seurat V5
+  is_v5 <- is_seurat_v5(srt)
+  
+  # Get assay data based on Seurat version
+  if (is_v5) {
+    gene_data <- LayerData(srt[[assay]], layer = slot)[gene, cells, drop = FALSE]
+  } else {
+    gene_data <- slot(srt@assays[[assay]], slot)[gene, cells, drop = FALSE]
+  }
+  
+  mat_raw <- as_matrix(rbind(gene_data, t(srt@meta.data[cells, meta, drop = FALSE])))[features, , drop = FALSE]
   rownames(mat_raw) <- features_unique
   if (isTRUE(lib_normalize) && min(mat_raw, na.rm = TRUE) >= 0) {
     if (!is.null(libsize)) {
       libsize_use <- libsize
     } else {
-      libsize_use <- colSums(slot(srt@assays[[assay]], "counts")[, colnames(mat_raw), drop = FALSE])
+      # Get counts based on Seurat version
+      if (is_v5) {
+        counts_data <- LayerData(srt[[assay]], layer = "counts")
+        if (is.null(counts_data)) {
+          warning("No 'counts' layer found in Seurat V5 object. Using 'data' layer instead.", immediate. = TRUE)
+          counts_data <- LayerData(srt[[assay]], layer = "data")
+        }
+        libsize_use <- colSums(counts_data[, colnames(mat_raw), drop = FALSE])
+      } else {
+        libsize_use <- colSums(slot(srt@assays[[assay]], "counts")[, colnames(mat_raw), drop = FALSE])
+      }
       isfloat <- any(libsize_use %% 1 != 0, na.rm = TRUE)
       if (isTRUE(isfloat)) {
         libsize_use <- rep(1, length(libsize_use))
@@ -8251,7 +8285,17 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
   )
   feature_metadata <- cbind.data.frame(
     data.frame(row.names = features_unique, features = features, features_uique = features_unique),
-    srt@assays[[assay]]@meta.features[features, intersect(feature_annotation, colnames(srt@assays[[assay]]@meta.features)), drop = FALSE]
+    if (is_seurat_v5(srt)) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      meta_features <- SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features")
+      meta_features[features, intersect(feature_annotation, colnames(meta_features)), drop = FALSE]
+    } else {
+      # Seurat V4 approach
+      srt@assays[[assay]]@meta.features[features, intersect(feature_annotation, colnames(srt@assays[[assay]]@meta.features)), drop = FALSE]
+    }
   )
   feature_metadata[, "duplicated"] <- feature_metadata[["features"]] %in% features[duplicated(features)]
 
@@ -9233,9 +9277,25 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
   if (!is.null(feature_annotation)) {
     if (length(feature_annotation_palette) == 1) {
       feature_annotation_palette <- rep(feature_annotation_palette, length(feature_annotation))
-    }
-    if (length(feature_annotation_palcolor) == 1) {
-      feature_annotation_palcolor <- rep(feature_annotation_palcolor, length(feature_annotation))
+    # Check if using Seurat V5
+    is_v5 <- is_seurat_v5(srt)
+    if (is_v5) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      feature_meta <- colnames(SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features"))
+      if (any(!feature_annotation %in% feature_meta)) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% feature_meta], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    } else {
+      # Seurat V4 approach
+      if (any(!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features))) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features)], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    }      feature_annotation_palcolor <- rep(feature_annotation_palcolor, length(feature_annotation))
     }
     npal <- unique(c(length(feature_annotation_palette), length(feature_annotation_palcolor), length(feature_annotation)))
     if (length(npal[npal != 0]) > 1) {
@@ -11107,9 +11167,25 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
   }
   if (!is.null(cell_annotation)) {
     if (length(cell_annotation_palette) == 1) {
-      cell_annotation_palette <- rep(cell_annotation_palette, length(cell_annotation))
-    }
-    if (length(cell_annotation_palcolor) == 1) {
+    # Check if using Seurat V5
+    is_v5 <- is_seurat_v5(srt)
+    if (is_v5) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      feature_meta <- colnames(SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features"))
+      if (any(!feature_annotation %in% feature_meta)) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% feature_meta], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    } else {
+      # Seurat V4 approach
+      if (any(!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features))) {
+        stop("feature_annotation: ", paste0(feature_annotation[!feature_annotation %in% colnames(srt@assays[[assay]]@meta.features)], collapse = ","), 
+             " is not in the meta data of the ", assay, " assay in the Seurat object.")
+      }
+    }    if (length(cell_annotation_palcolor) == 1) {
       cell_annotation_palcolor <- rep(cell_annotation_palcolor, length(cell_annotation))
     }
     npal <- unique(c(length(cell_annotation_palette), length(cell_annotation_palcolor), length(cell_annotation)))
