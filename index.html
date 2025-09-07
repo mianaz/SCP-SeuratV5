@@ -57,7 +57,7 @@
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="st"><a href="https://devtools.r-lib.org/" class="external-link">"devtools"</a></span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"mianaz/SCP-SeuratV5"</span>, ref<span class="op">=</span><span class="st">"dev"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"mianaz/SCP-SeuratV5"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="handling-dependencies">Handling Dependencies<a class="anchor" aria-label="anchor" href="#handling-dependencies"></a>
@@ -96,31 +96,6 @@
 <div class="section level2">
 <h2 id="key-changesfeatures">Key changes/features:<a class="anchor" aria-label="anchor" href="#key-changesfeatures"></a>
 </h2>
-<div class="section level3">
-<h3 id="id_-complete-seurat-v5-compatibility-latest-update---2025-05-22">🎯 Complete Seurat V5 Compatibility (Latest Update - 2025-05-22)<a class="anchor" aria-label="anchor" href="#id_-complete-seurat-v5-compatibility-latest-update---2025-05-22"></a>
-</h3>
-<ul>
-<li>
-<strong>✅ Full backward compatibility</strong> - Works seamlessly with both Seurat V4 and V5</li>
-<li>
-<strong>✅ Automatic version detection</strong> - No user configuration required</li>
-<li>
-<strong>✅ 77+ LayerData compatibility fixes</strong> - ALL functions now use version-safe data access patterns</li>
-<li>
-<strong>✅ Zero breaking changes</strong> - All existing code continues to work unchanged</li>
-<li>
-<strong>✅ Performance optimized</strong> - Efficient data access for both Seurat versions</li>
-<li>
-<strong>✅ Comprehensive testing</strong> - 100% test success rate (9/9 core compatibility tests passed)</li>
-<li>
-<strong>✅ Documentation verified</strong> - All 50+ examples from original repository confirmed working</li>
-<li>
-<strong>✅ Environment setup optimized</strong> - Clean renv environment with 415+ packages</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="additional-features">Additional Features<a class="anchor" aria-label="anchor" href="#additional-features"></a>
-</h3>
 <ul>
 <li>Changed Python version validation to require 3.9-3.12</li>
 <li>Updated default environment from 3.7/3.8 to 3.10</li>
@@ -131,35 +106,6 @@
 <li>Added utility functions for Seurat V5 compatibility</li>
 <li>Improved dependency management</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="compatibility-matrix">Compatibility Matrix<a class="anchor" aria-label="anchor" href="#compatibility-matrix"></a>
-</h3>
-<table class="table">
-<thead><tr class="header">
-<th>Seurat Version</th>
-<th>SCP Compatibility</th>
-<th>Status</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>4.0.x - 4.4.x</td>
-<td>✅ Full Support</td>
-<td>All functions work</td>
-</tr>
-<tr class="even">
-<td>5.0.x - 5.3.x</td>
-<td>✅ Full Support</td>
-<td>All functions work</td>
-</tr>
-<tr class="odd">
-<td>Future 5.x</td>
-<td>✅ Expected</td>
-<td>Built-in version detection</td>
-</tr>
-</tbody>
-</table>
-</div>
 </div>
 </div>
 <div class="section level1">
