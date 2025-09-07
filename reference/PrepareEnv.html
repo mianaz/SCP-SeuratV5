@@ -44,7 +44,8 @@ using a Conda environment.</p>
 <span>  pip <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  user <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  update <span class="op">=</span> <span class="st">"all"</span></span>
+<span>  update <span class="op">=</span> <span class="st">"all"</span>,</span>
+<span>  python_version <span class="op">=</span> <span class="st">"3.10"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -70,6 +71,10 @@ using a Conda environment.</p>
 
 <dt id="arg-update">update<a class="anchor" aria-label="anchor" href="#arg-update"></a></dt>
 <dd><p>Whether to update packages that already exist within the environment. Note that this parameter is only supported on Conda package manager. The available options are "default", "all", and "selected". "default" only updates the selected packages to the latest versions specified. "all" Update all packages in the environment. An alternative is "selected" to update selected packages to the latest versions while leaving all other packages. within the environment alone.</p></dd>
+
+
+<dt id="arg-python-version">python_version<a class="anchor" aria-label="anchor" href="#arg-python-version"></a></dt>
+<dd><p>Python version to use for the SCP environment. Default is "3.10".</p></dd>
 
 </dl></div>
 

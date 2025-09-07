@@ -1,5 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://zhanghao-njmu.github.io/SCP/404.html</loc></url>
+<url><loc>https://zhanghao-njmu.github.io/SCP/CLAUDE.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/LICENSE.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/authors.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/index.html</loc></url>
@@ -93,6 +94,7 @@
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/SrtReorder.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/Standard_SCP.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/StatPlot.html</loc></url>
+<url><loc>https://zhanghao-njmu.github.io/SCP/reference/TestPythonCompatibility.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/Uncorrected_integrate.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/VelocityPlot.html</loc></url>
 <url><loc>https://zhanghao-njmu.github.io/SCP/reference/VolcanoPlot.html</loc></url>
