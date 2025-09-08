@@ -2,7 +2,7 @@
 #'
 #' @param object An object. This can be a Seurat object, an Assay object, or a matrix-like object.
 #' @param assay A character string specifying the assay to be used for the analysis. Default is NULL.
-#' @param slot A character string specifying the slot name to be used for the analysis. Default is "data".
+#' @param layer A character string specifying the layer name to be used for the analysis. Default is "data".
 #' @param features A character vector specifying the features to be used for the analysis. Default is NULL, which uses all variable features.
 #' @param nbes An integer specifying the number of basis vectors (components) to be computed. Default is 50.
 #' @param nmf.method A character string specifying the NMF algorithm to be used. Currently supported values are "RcppML" and "NMF". Default is "RcppML".
@@ -32,7 +32,7 @@ RunNMF <- function(object, ...) {
 #' @method RunNMF Seurat
 #' @importFrom Seurat LogSeuratCommand VariableFeatures DefaultAssay GetAssay
 #' @export
-RunNMF.Seurat <- function(object, assay = NULL, slot = "data", features = NULL, nbes = 50,
+RunNMF.Seurat <- function(object, assay = NULL, layer = "data", features = NULL, nbes = 50,
                           nmf.method = "RcppML", tol = 1e-5, maxit = 100, rev.nmf = FALSE,
                           ndims.print = 1:5, nfeatures.print = 30,
                           reduction.name = "nmf", reduction.key = "BE_",
@@ -43,7 +43,7 @@ RunNMF.Seurat <- function(object, assay = NULL, slot = "data", features = NULL, 
   reduction.data <- RunNMF(
     object = assay.data,
     assay = assay,
-    slot = slot,
+    layer = layer,
     features = features,
     nbes = nbes,
     nmf.method = nmf.method,
@@ -67,13 +67,13 @@ RunNMF.Seurat <- function(object, assay = NULL, slot = "data", features = NULL, 
 #' @importFrom stats var
 #' @importFrom Seurat VariableFeatures GetAssayData
 #' @export
-RunNMF.Assay <- function(object, assay = NULL, slot = "data", features = NULL, nbes = 50,
+RunNMF.Assay <- function(object, assay = NULL, layer = "data", features = NULL, nbes = 50,
                          nmf.method = "RcppML", tol = 1e-5, maxit = 100, rev.nmf = FALSE,
                          ndims.print = 1:5, nfeatures.print = 30,
                          reduction.key = "BE_", verbose = TRUE, seed.use = 11,
                          ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -83,7 +83,7 @@ RunNMF.Assay <- function(object, assay = NULL, slot = "data", features = NULL, n
   reduction.data <- RunNMF(
     object = data.use,
     assay = assay,
-    slot = slot,
+    layer = layer,
     nbes = nbes,
     nmf.method = nmf.method,
     tol = tol,
@@ -105,7 +105,7 @@ RunNMF.Assay <- function(object, assay = NULL, slot = "data", features = NULL, n
 #' @importFrom Matrix t
 #' @importFrom Seurat CreateDimReducObject
 #' @export
-RunNMF.default <- function(object, assay = NULL, slot = "data", nbes = 50,
+RunNMF.default <- function(object, assay = NULL, layer = "data", nbes = 50,
                            nmf.method = "RcppML", tol = 1e-5, maxit = 100, rev.nmf = FALSE,
                            ndims.print = 1:5, nfeatures.print = 30,
                            reduction.key = "BE_", verbose = TRUE, seed.use = 11, ...) {
@@ -148,7 +148,7 @@ RunNMF.default <- function(object, assay = NULL, slot = "data", nbes = 50,
     loadings = feature.loadings,
     assay = assay,
     key = reduction.key,
-    misc = list(slot = slot, nmf.results = nmf.results)
+    misc = list(layer = layer, nmf.results = nmf.results)
   )
   if (verbose) {
     msg <- capture.output(print(
@@ -165,7 +165,7 @@ RunNMF.default <- function(object, assay = NULL, slot = "data", nbes = 50,
 #'
 #' @param object An object. This can be a Seurat object, an assay object, or a matrix-like object.
 #' @param assay A character string specifying the assay to be used for the analysis. Default is NULL.
-#' @param slot A character string specifying the slot name to be used for the analysis. Default is "data".
+#' @param layer A character string specifying the layer name to be used for the analysis. Default is "data".
 #' @param features A character vector specifying the features to be used for the analysis. Default is NULL, which uses all variable features.
 #' @param nmds An integer specifying the number of dimensions to be computed. Default is 50.
 #' @param dist.method A character string specifying the distance metric to be used. Currently supported values are "euclidean", "chisquared","kullback", "jeffreys", "jensen", "manhattan", "maximum", "canberra", "minkowski", and "hamming". Default is "euclidean".
@@ -192,7 +192,7 @@ RunMDS <- function(object, ...) {
 #' @method RunMDS Seurat
 #' @importFrom Seurat LogSeuratCommand VariableFeatures DefaultAssay GetAssay
 #' @export
-RunMDS.Seurat <- function(object, assay = NULL, slot = "data",
+RunMDS.Seurat <- function(object, assay = NULL, layer = "data",
                           features = NULL, nmds = 50, dist.method = "euclidean", mds.method = "cmdscale",
                           rev.mds = FALSE,
                           reduction.name = "mds", reduction.key = "MDS_",
@@ -203,7 +203,7 @@ RunMDS.Seurat <- function(object, assay = NULL, slot = "data",
   reduction.data <- RunMDS(
     object = assay.data,
     assay = assay,
-    slot = slot,
+    layer = layer,
     features = features,
     nmds = nmds,
     dist.method = dist.method,
@@ -224,12 +224,12 @@ RunMDS.Seurat <- function(object, assay = NULL, slot = "data",
 #' @importFrom stats var
 #' @importFrom Seurat VariableFeatures GetAssayData
 #' @export
-RunMDS.Assay <- function(object, assay = NULL, slot = "data",
+RunMDS.Assay <- function(object, assay = NULL, layer = "data",
                          features = NULL, nmds = 50, dist.method = "euclidean", mds.method = "cmdscale",
                          rev.mds = FALSE,
                          reduction.key = "MDS_", verbose = TRUE, seed.use = 11, ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -239,7 +239,7 @@ RunMDS.Assay <- function(object, assay = NULL, slot = "data",
   reduction.data <- RunMDS(
     object = data.use,
     assay = assay,
-    slot = slot,
+    layer = layer,
     nmds = nmds,
     dist.method = dist.method,
     mds.method = mds.method,
@@ -260,7 +260,7 @@ RunMDS.Assay <- function(object, assay = NULL, slot = "data",
 #' @importFrom stats cmdscale as.dist
 #' @importFrom Seurat CreateDimReducObject
 #' @export
-RunMDS.default <- function(object, assay = NULL, slot = "data",
+RunMDS.default <- function(object, assay = NULL, layer = "data",
                            nmds = 50, dist.method = "euclidean", mds.method = "cmdscale",
                            rev.mds = FALSE,
                            reduction.key = "MDS_", verbose = TRUE, seed.use = 11, ...) {
@@ -292,7 +292,7 @@ RunMDS.default <- function(object, assay = NULL, slot = "data",
     embeddings = cell.embeddings,
     assay = assay,
     key = reduction.key,
-    misc = list(slot = slot, mds.results = mds.results)
+    misc = list(layer = layer, mds.results = mds.results)
   )
   return(reduction.data)
 }
@@ -301,7 +301,7 @@ RunMDS.default <- function(object, assay = NULL, slot = "data",
 #'
 #' @param object An object. This can be a Seurat object, an assay object, or a matrix-like object.
 #' @param assay A character string specifying the assay to be used for the analysis. Default is NULL.
-#' @param slot A character string specifying the slot name to be used for the analysis. Default is "counts".
+#' @param layer A character string specifying the layer name to be used for the analysis. Default is "counts".
 #' @param features A character vector specifying the features to be used for the analysis. Default is NULL, which uses all variable features.
 #' @param L An integer specifying the number of components to be computed. Default is 5.
 #' @param fam A character string specifying the family of the generalized linear model to be used. Currently supported values are "poi", "nb", "nb2", "binom", "mult", and "bern". Default is "poi".
@@ -328,7 +328,7 @@ RunGLMPCA <- function(object, ...) {
 #' @method RunGLMPCA Seurat
 #' @importFrom Seurat LogSeuratCommand DefaultAssay GetAssayData Embeddings
 #' @export
-RunGLMPCA.Seurat <- function(object, assay = NULL, slot = "counts",
+RunGLMPCA.Seurat <- function(object, assay = NULL, layer = "counts",
                              features = NULL, L = 5, fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
                              rev.gmlpca = FALSE, ndims.print = 1:5, nfeatures.print = 30,
                              reduction.name = "glmpca", reduction.key = "GLMPC_",
@@ -339,7 +339,7 @@ RunGLMPCA.Seurat <- function(object, assay = NULL, slot = "counts",
   reduction.data <- RunGLMPCA(
     object = assay.data,
     assay = assay,
-    slot = slot,
+    layer = layer,
     L = L,
     fam = fam,
     rev.gmlpca = rev.gmlpca,
@@ -359,12 +359,12 @@ RunGLMPCA.Seurat <- function(object, assay = NULL, slot = "counts",
 #' @importFrom stats var
 #' @importFrom Seurat VariableFeatures GetAssayData
 #' @export
-RunGLMPCA.Assay <- function(object, assay = NULL, slot = "counts",
+RunGLMPCA.Assay <- function(object, assay = NULL, layer = "counts",
                             features = NULL, L = 5, fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
                             rev.gmlpca = FALSE, ndims.print = 1:5, nfeatures.print = 30,
                             reduction.key = "GLMPC_", verbose = TRUE, seed.use = 11, ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, slot = slot)
+  data.use <- GetAssayData(object = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -374,7 +374,7 @@ RunGLMPCA.Assay <- function(object, assay = NULL, slot = "counts",
   reduction.data <- RunGLMPCA(
     object = data.use,
     assay = assay,
-    slot = slot,
+    layer = layer,
     L = L,
     fam = fam,
     rev.gmlpca = rev.gmlpca,
@@ -391,7 +391,7 @@ RunGLMPCA.Assay <- function(object, assay = NULL, slot = "counts",
 #' @method RunGLMPCA default
 #' @importFrom Seurat DefaultAssay DefaultAssay<- CreateDimReducObject Tool<- LogSeuratCommand
 #' @export
-RunGLMPCA.default <- function(object, assay = NULL, slot = "counts",
+RunGLMPCA.default <- function(object, assay = NULL, layer = "counts",
                               features = NULL, L = 5, fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
                               rev.gmlpca = FALSE, ndims.print = 1:5, nfeatures.print = 30,
                               reduction.key = "GLMPC_", verbose = TRUE, seed.use = 11, ...) {
@@ -416,7 +416,7 @@ RunGLMPCA.default <- function(object, assay = NULL, slot = "counts",
     stdev = factors_l2_norm,
     assay = assay,
     global = TRUE,
-    misc = list(slot = slot, glmpca.results = glmpca_results)
+    misc = list(layer = layer, glmpca.results = glmpca_results)
   )
   if (verbose) {
     msg <- capture.output(print(
@@ -436,7 +436,7 @@ RunGLMPCA.default <- function(object, assay = NULL, slot = "counts",
 #' @param dims An integer vector specifying the dimensions to be used. Default is 1:30.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param ndcs An integer specifying the number of diffusion components (dimensions) to be computed. Default is 2.
 #' @param sigma A character string specifying the diffusion scale parameter of the Gaussian kernel. Currently supported values are "local" (default) and "global".
 #' @param k An integer specifying the number of nearest neighbors to be used for the construction of the graph. Default is 30.
@@ -465,13 +465,13 @@ RunDM <- function(object, ...) {
 #' @export
 RunDM.Seurat <- function(object,
                          reduction = "pca", dims = 1:30,
-                         features = NULL, assay = NULL, slot = "data",
+                         features = NULL, assay = NULL, layer = "data",
                          ndcs = 2, sigma = "local", k = 30, dist.method = "euclidean",
                          reduction.name = "dm", reduction.key = "DM_",
                          verbose = TRUE, seed.use = 11, ...) {
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < ndcs) {
       stop("Please provide as many or more features than ndcs: ",
         length(x = features), " features provided, ",
@@ -495,7 +495,7 @@ RunDM.Seurat <- function(object,
   reduction.data <- RunDM(
     object = data.use,
     assay = assay,
-    slot = slot,
+    layer = layer,
     ndcs = ndcs,
     sigma = sigma,
     k = k,
@@ -515,7 +515,7 @@ RunDM.Seurat <- function(object,
 #' @importFrom utils capture.output
 #' @importFrom Seurat CreateDimReducObject
 #' @export
-RunDM.default <- function(object, assay = NULL, slot = "data",
+RunDM.default <- function(object, assay = NULL, layer = "data",
                           ndcs = 2, sigma = "local", k = 30, dist.method = "euclidean",
                           reduction.key = "DM_", verbose = TRUE, seed.use = 11, ...) {
   check_R("destiny")
@@ -532,7 +532,7 @@ RunDM.default <- function(object, assay = NULL, slot = "data",
     embeddings = cell.embeddings,
     assay = assay,
     key = reduction.key,
-    misc = list(slot = slot, dm.results = dm.results)
+    misc = list(layer = layer, dm.results = dm.results)
   )
   return(reduction)
 }
@@ -546,7 +546,7 @@ RunDM.default <- function(object, assay = NULL, slot = "data",
 #' @param neighbor A character string specifying the name of the Neighbor object to be used. Default is NULL.
 #' @param graph A character string specifying the name of the Graph object to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param umap.method A character string specifying the UMAP method to be used. Options are "naive" and uwot". Default is "uwot".
 #' @param reduction.model A DimReduc object containing a pre-trained UMAP model. Default is NULL.
 #' @param return.model A logical value indicating whether to return the UMAP model. Default is FALSE.
@@ -586,7 +586,7 @@ RunUMAP2 <- function(object, ...) {
 #' @export
 RunUMAP2.Seurat <- function(object,
                             reduction = "pca", dims = NULL, features = NULL, neighbor = NULL, graph = NULL,
-                            assay = NULL, slot = "data",
+                            assay = NULL, layer = "data",
                             umap.method = "uwot", reduction.model = NULL, n_threads = NULL,
                             return.model = FALSE, n.neighbors = 30L, n.components = 2L,
                             metric = "cosine", n.epochs = 200L, spread = 1, min.dist = 0.3,
@@ -599,7 +599,7 @@ RunUMAP2.Seurat <- function(object,
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -1125,7 +1125,7 @@ RunUMAP2.default <- function(object, assay = NULL,
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param n_components An integer specifying the number of PaCMAP components. Default is 2.
 #' @param n.neighbors An integer specifying the number of neighbors considered in the k-Nearest Neighbor graph. Default to 10 for dataset whose sample size is smaller than 10000. For large dataset whose sample size (n) is larger than 10000, the default value is: 10 + 15 * (log10(n) - 4).
 #' @param MN_ratio A numeric value specifying the ratio of the ratio of the number of mid-near pairs to the number of neighbors. Default is 0.5.
@@ -1157,7 +1157,7 @@ RunPaCMAP <- function(object, ...) {
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
-                             assay = NULL, slot = "data",
+                             assay = NULL, layer = "data",
                              n_components = 2, n.neighbors = NULL, MN_ratio = 0.5, FP_ratio = 2,
                              distance_method = "euclidean",
                              lr = 1, num_iters = 450L, apply_pca = TRUE, init = "random",
@@ -1168,7 +1168,7 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1250,7 +1250,7 @@ RunPaCMAP.default <- function(object, assay = NULL,
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param n_components An integer specifying the number of PHATE components. Default is 2.
 #' @param knn An integer specifying the number of nearest neighbors on which to build kernel. Default is 5.
 #' @param decay An integer specifying the sets decay rate of kernel tails. Default is 40.
@@ -1286,7 +1286,7 @@ RunPHATE <- function(object, ...) {
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunPHATE.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
-                            assay = NULL, slot = "data",
+                            assay = NULL, layer = "data",
                             n_components = 2, knn = 5, decay = 40, n_landmark = 2000, t = "auto", gamma = 1,
                             n_pca = 100, knn_dist = "euclidean", knn_max = NULL, t_max = 100,
                             do_cluster = FALSE, n_clusters = "auto", max_clusters = 100,
@@ -1297,7 +1297,7 @@ RunPHATE.Seurat <- function(object, reduction = "pca", dims = NULL, features = N
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1393,7 +1393,7 @@ RunPHATE.default <- function(object, assay = NULL,
     clusters <- clusters + 1
     clusters <- factor(clusters, levels = sort(unique(clusters)))
     names(clusters) <- rownames(embedding)
-    Misc(reduction, slot = "clusters") <- clusters
+    Misc(reduction, layer = "clusters") <- clusters
   }
   return(reduction)
 }
@@ -1405,7 +1405,7 @@ RunPHATE.default <- function(object, assay = NULL,
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param n_components An integer specifying the number of TriMap components. Default is 2.
 #' @param n_inliers An integer specifying the number of nearest neighbors for forming the nearest neighbor triplets. Default is 12.
 #' @param n_outliers An integer specifying the number of outliers for forming the nearest neighbor triplets. Default is 4.
@@ -1437,7 +1437,7 @@ RunTriMap <- function(object, ...) {
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunTriMap.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
-                             assay = NULL, slot = "data",
+                             assay = NULL, layer = "data",
                              n_components = 2, n_inliers = 12, n_outliers = 4, n_random = 3, distance_method = "euclidean",
                              lr = 0.1, n_iters = 400,
                              apply_pca = TRUE, opt_method = "dbd",
@@ -1448,7 +1448,7 @@ RunTriMap.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1530,7 +1530,7 @@ RunTriMap.default <- function(object, assay = NULL,
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param n_components An integer specifying the number of LargeVis components. Default is 2.
 #' @param pca_method Method to carry out any PCA dimensionality reduction when the pca parameter is specified. Allowed values are: "irlba", "rsvd", "bigstatsr", "svd", "auto"(the default. Uses "irlba", unless more than 50 case "svd" is used.)
 #' @param reduction.name A character string specifying the name of the reduction to be stored in the Seurat object. Default is "largevis".
@@ -1556,7 +1556,7 @@ RunLargeVis <- function(object, ...) {
 #' @importFrom Seurat LogSeuratCommand
 #' @export
 RunLargeVis.Seurat <- function(object, reduction = "pca", dims = NULL, features = NULL,
-                               assay = NULL, slot = "data",
+                               assay = NULL, layer = "data",
                                perplexity = 50, n_neighbors = perplexity * 3, n_components = 2, metric = "euclidean",
                                n_epochs = -1, learning_rate = 1, scale = "maxabs", init = "lvrandom", init_sdev = NULL,
                                repulsion_strength = 7, negative_sample_rate = 5, nn_method = NULL, n_trees = 50,
@@ -1570,7 +1570,7 @@ RunLargeVis.Seurat <- function(object, reduction = "pca", dims = NULL, features 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, slot = slot, assay = assay)[features, , drop = FALSE]))
+    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1656,7 +1656,7 @@ RunLargeVis.default <- function(object, assay = NULL,
 #' @param dims An integer vector specifying the dimensions to be used. Default is NULL.
 #' @param features A character vector specifying the features to be used. Default is NULL.
 #' @param assay A character string specifying the assay to be used. Default is NULL.
-#' @param slot A character string specifying the slot name to be used. Default is "data".
+#' @param layer A character string specifying the layer name to be used. Default is "data".
 #' @param graph A character string specifying the name of the Graph object to be used. Default is NULL.
 #' @param neighbor A character string specifying the name of the Neighbor object to be used. Default is NULL.
 #' @param k.param An integer specifying the number of nearest neighbors to consider. Default is 20.
@@ -1684,7 +1684,7 @@ RunFR <- function(object, ...) {
 #' @importFrom Seurat LogSeuratCommand DefaultAssay
 #' @export
 RunFR.Seurat <- function(object, reduction = NULL, dims = NULL, features = NULL,
-                         assay = NULL, slot = "data",
+                         assay = NULL, layer = "data",
                          graph = NULL, neighbor = NULL,
                          k.param = 20, ndim = 2, niter = 500,
                          reduction.name = "FR", reduction.key = "FR_",
@@ -1716,7 +1716,7 @@ RunFR.Seurat <- function(object, reduction = NULL, dims = NULL, features = NULL,
     data.use <- object[[neighbor]]
   } else if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- t(GetAssayData(object = object, slot = slot, assay = assay)[features, ])
+    data.use <- t(GetAssayData(object = object, layer = layer, assay = assay)[features, ])
     data.use <- FindNeighbors(data.use, k.param = k.param)[["snn"]]
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object = object[[reduction]])
@@ -1791,7 +1791,6 @@ RunHarmony2 <- function(object, ...) {
 #' @rdname RunHarmony2
 #' @method RunHarmony2 Seurat
 #' @importFrom Seurat Embeddings RunPCA FetchData CreateDimReducObject ProjectDim LogSeuratCommand
-#' @importFrom methods slot
 #' @importFrom stats sd
 #' @export
 RunHarmony2.Seurat <- function(object, group.by.vars,

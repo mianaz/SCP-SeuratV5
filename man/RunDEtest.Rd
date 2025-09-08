@@ -29,7 +29,7 @@ RunDEtest(
   min.cells.group = 3,
   norm.method = "LogNormalize",
   p.adjust.method = "bonferroni",
-  slot = "data",
+  layer = "data",
   assay = NULL,
   BPPARAM = BiocParallel::bpparam(),
   seed = 11,
@@ -61,7 +61,11 @@ RunDEtest(
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
  \item{"wilcox"} : Identifies differentially expressed genes between two
- groups of cells using a Wilcoxon Rank Sum test (default)
+ groups of cells using a Wilcoxon Rank Sum test (default); will use a fast
+ implementation by Presto if installed
+ \item{"wilcox_limma"} : Identifies differentially expressed genes between two
+ groups of cells using the limma implementation of the Wilcoxon Rank Sum test;
+ set this option to reproduce results from Seurat v4
  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
@@ -109,11 +113,18 @@ RunDEtest(
 calculating logFC. 1 by default.}
 
 \item{mean.fxn}{Function to use for fold change or average difference calculation.
-If NULL, the appropriate function will be chose according to the slot used}
+The default depends on the the value of \code{fc.slot}:
+\itemize{
+ \item{"counts"} : difference in the log of the mean counts, with pseudocount.
+ \item{"data"} : difference in the log of the average exponentiated data, with pseudocount.
+ This adjusts for differences in sequencing depth between cells, and assumes that "data"
+ has been log-normalized.
+ \item{"scale.data"} : difference in the means of scale.data.
+}}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
 min.pct cells in either of the two populations. Meant to speed up the function
-by not testing genes that are very infrequently expressed. Default is 0.1}
+by not testing genes that are very infrequently expressed. Default is 0.01}
 
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
@@ -132,9 +143,6 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{norm.method}{Normalization method for fold change calculation when slot is 'data'. Default is "LogNormalize".}
 
 \item{p.adjust.method}{A character value specifying the method to use for adjusting p-values. Default is "bonferroni".}
-
-\item{slot}{Slot to pull data from; note that if \code{test.use} is "negbinom", "poisson", or "DESeq2",
-\code{slot} will be set to "counts"}
 
 \item{assay}{Assay to use in differential expression testing}
 

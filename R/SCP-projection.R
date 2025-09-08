@@ -35,6 +35,7 @@ NULL
 #' ProjectionPlot(srt_query = srt_query, srt_ref = srt_ref, query_group = "celltype", ref_group = "celltype")
 #'
 #' @importFrom Seurat Reductions Embeddings FindVariableFeatures VariableFeatures GetAssayData FindNeighbors CreateDimReducObject DefaultAssay
+#' @importFrom SeuratObject LayerData
 #' @importFrom SeuratObject as.sparse
 #' @importFrom Matrix t
 #' @importFrom dplyr bind_rows
@@ -112,9 +113,9 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
     }
   } else {
     message("Use the features to calculate distance metric.")
-    status_query <- check_DataType(data = GetAssayData(srt_query, slot = "data", assay = query_assay))
+    status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
     message("Detected srt_query data type: ", status_query)
-    status_ref <- check_DataType(data = GetAssayData(srt_ref, slot = "data", assay = ref_assay))
+    status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
     message("Detected srt_ref data type: ", status_ref)
     if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
       warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -130,8 +131,8 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
     }
     features_common <- Reduce(intersect, list(features, rownames(srt_query[[query_assay]]), rownames(srt_ref[[ref_assay]])))
     message("Use ", length(features_common), " features to calculate distance.")
-    query <- t(GetAssayData(srt_query, slot = "data", assay = query_assay)[features_common, ])
-    ref <- t(GetAssayData(srt_ref, slot = "data", assay = ref_assay)[features_common, ])
+    query <- t(get_seurat_data(srt_query, layer = "data", assay = query_assay)[features_common, ])
+    ref <- t(get_seurat_data(srt_ref, layer = "data", assay = ref_assay)[features_common, ])
   }
 
   if (projection_method == "model" && "layout" %in% names(model) && is.null(ref_group)) {
@@ -277,6 +278,7 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
 #' ProjectionPlot(srt_query = srt_query, srt_ref = srt_ref, query_group = "celltype", ref_group = "celltype")
 #'
 #' @importFrom Seurat Reductions GetAssayData CreateDimReducObject ProjectUMAP
+#' @importFrom SeuratObject LayerData
 #' @export
 RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
                       ref_pca = NULL, ref_dims = 1:30, ref_umap = NULL, ref_group = NULL,
@@ -323,9 +325,9 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
   }
 
   pca.out <- srt_ref[[ref_pca]]
-  status_query <- check_DataType(data = GetAssayData(srt_query, slot = "data", assay = query_assay))
+  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = GetAssayData(srt_ref, slot = "data", assay = ref_assay))
+  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -333,15 +335,15 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 
   message("Run PCA projection")
   features <- rownames(pca.out@feature.loadings)
-  center <- apply(GetAssayData(object = srt_ref, slot = "data", assay = ref_assay)[features, ], 1, mean)
+  center <- apply(get_seurat_data(srt_ref, layer = "data", assay = ref_assay)[features, ], 1, mean)
   names(center) <- features
-  sds <- apply(GetAssayData(object = srt_ref, slot = "data", assay = ref_assay)[features, ], 1, sd)
+  sds <- apply(get_seurat_data(srt_ref, layer = "data", assay = ref_assay)[features, ], 1, sd)
   names(sds) <- features
   rotation <- pca.out@feature.loadings
 
   features_common <- Reduce(intersect, list(features, rownames(srt_query[[query_assay]]), rownames(srt_ref[[ref_assay]])))
   message("Use ", length(features_common), " features to calculate PC.")
-  query_data <- t(GetAssayData(srt_query, slot = "data", assay = query_assay)[features_common, ])
+  query_data <- t(get_seurat_data(srt_query, layer = "data", assay = query_assay)[features_common, ])
   query_pca <- scale(query_data[, features_common], center[features_common], sds[features_common]) %*% rotation[features_common, ]
   # ggplot(data = as.data.frame(pca.out@cell.embeddings))+geom_point(aes(x=StandardPC_1,y=StandardPC_2 ))+geom_point(data = as.data.frame(query_pca),mapping = aes(x=StandardPC_1,y=StandardPC_2),color="red")
   srt_query[["ref.pca"]] <- CreateDimReducObject(embeddings = query_pca, key = pca.out@key, assay = query_assay)
@@ -419,9 +421,9 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  status_query <- check_DataType(data = GetAssayData(srt_query, slot = "data", assay = query_assay))
+  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = GetAssayData(srt_ref, slot = "data", assay = ref_assay))
+  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -517,9 +519,9 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
   }
 
   ref_assay <- srt_ref[[ref_css]]@assay.used
-  status_query <- check_DataType(data = GetAssayData(srt_query, slot = "data", assay = query_assay))
+  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = GetAssayData(srt_ref, slot = "data", assay = ref_assay))
+  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -560,6 +562,7 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 #' ProjectionPlot(srt_query = srt_query, srt_ref = srt_ref, query_group = "celltype", ref_group = "celltype")
 #'
 #' @importFrom Seurat Reductions GetAssayData DefaultAssay ProjectUMAP
+#' @importFrom SeuratObject LayerData
 #' @importFrom stats sd
 #' @export
 RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
@@ -617,9 +620,9 @@ RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = s
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  status_query <- check_DataType(data = GetAssayData(srt_query, slot = "data", assay = query_assay))
+  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = GetAssayData(srt_ref, slot = "data", assay = ref_assay))
+  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -636,7 +639,7 @@ RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = s
   )
   message("Run mapQuery")
   res <- mapQuery(
-    exp_query = GetAssayData(srt_query, slot = "data", assay = query_assay),
+    exp_query = get_seurat_data(srt_query, layer = "data", assay = query_assay),
     metadata_query = srt_query@meta.data,
     ref_obj = ref,
     vars = NULL,
@@ -693,20 +696,22 @@ buildReferenceFromSeurat <- function(obj, assay = "RNA", pca = "pca", pca_dims =
   message("Saved soft cluster assignments")
 
   if (assay == "RNA") {
+    var_features <- get_var_features(obj, assay = assay)
     vargenes_means_sds <- data.frame(
-      symbol = obj@assays[[assay]]@var.features,
-      mean = rowMeans(obj@assays[[assay]]@data[obj@assays[[assay]]@var.features, ])
+      symbol = var_features,
+      mean = rowMeans(get_seurat_data(obj, layer = "data", assay = assay)[var_features, ])
     )
     vargenes_means_sds$stddev <- symphony::rowSDs(
-      A = obj@assays[[assay]]@data[obj@assays[[assay]]@var.features, ],
+      A = get_seurat_data(obj, layer = "data", assay = assay)[var_features, ],
       row_means = vargenes_means_sds$mean
     )
   } else if (assay == "SCT") {
+    var_features <- get_var_features(obj, assay = assay)
     vargenes_means_sds <- data.frame(
-      symbol = obj@assays[[assay]]@var.features,
-      mean = rowMeans(obj@assays[[assay]]@scale.data[obj@assays[[assay]]@var.features, ])
+      symbol = var_features,
+      mean = rowMeans(get_seurat_data(obj, layer = "scale.data", assay = assay)[var_features, ])
     )
-    asdgc <- Matrix(obj@assays[[assay]]@scale.data[obj@assays[[assay]]@var.features, ], sparse = TRUE)
+    asdgc <- Matrix(get_seurat_data(obj, layer = "scale.data", assay = assay)[var_features, ], sparse = TRUE)
     vargenes_means_sds$stddev <- symphony::rowSDs(
       asdgc,
       vargenes_means_sds$mean

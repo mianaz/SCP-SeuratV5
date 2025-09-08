@@ -24,7 +24,7 @@ RunDoubletCalling(
 \item{...}{Arguments passed to the corresponding doublet-calling method.}
 }
 \value{
-Returns Seurat object with the doublet prediction results and prediction scores stored in the meta.data slot.
+Returns Seurat object with the doublet prediction results and prediction scores stored in the meta.data layer.
 }
 \description{
 Identification of heterotypic (or neotypic) doublets in single-cell RNAseq data.

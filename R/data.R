@@ -1,10 +1,10 @@
 #' A subsetted version of mouse 'pancreas' datasets
 #'
-#' Mouse pancreatic endocrinogenesis dataset from \href{https://doi.org/10.1242/dev.173849}{Bastidas-Ponce et al. (2019)}. A total of 1000 cells were downsampled to form the \code{pancreas_sub} dataset.
+#' Mouse pancreatic endocrinogenesis dataset from \doi{10.1242/dev.173849}. A total of 1000 cells were downsampled to form the \code{pancreas_sub} dataset.
 #'
 #' @format A \code{Seurat} object.
 #' @concept data
-#' @source \url{https://scvelo.readthedocs.io/scvelo.datasets.pancreas/} \url{https://github.com/theislab/scvelo_notebooks/raw/master/data/Pancreas/endocrinogenesis_day15.h5ad}
+#' @source \url{https://github.com/theislab/scvelo_notebooks/raw/master/data/Pancreas/endocrinogenesis_day15.h5ad}
 #' @examples
 #' \dontrun{
 #' if (interactive()) {
@@ -16,7 +16,7 @@
 #'   pancreas <- adata_to_srt(adata)
 #'   set.seed(11)
 #'   pancreas_sub <- subset(pancreas, cells = sample(colnames(pancreas), size = 1000))
-#'   pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA@counts) > 0, ]
+#'   pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA$counts) > 0, ]
 #'   pancreas_sub[["CellType"]] <- pancreas_sub[["clusters_coarse"]]
 #'   pancreas_sub[["SubCellType"]] <- pancreas_sub[["clusters"]]
 #'   pancreas_sub[["clusters_coarse"]] <- pancreas_sub[["clusters"]] <- NULL
@@ -27,6 +27,7 @@
 #'   pancreas_sub[["UMAP"]] <- pancreas_sub[["X_umap"]]
 #'   pancreas_sub[["X_umap"]] <- pancreas_sub[["X_pca"]] <- NULL
 #'   VariableFeatures(pancreas_sub) <- rownames(pancreas_sub[["RNA"]])[which(pancreas_sub[["RNA"]]@meta.features$highly_variable_genes == "True")]
+#'   pancreas_sub <- UpdateSeuratObject(pancreas_sub)
 #'   # usethis::use_data(pancreas_sub, compress = "xz")
 #' }
 #' }
@@ -54,7 +55,7 @@ NULL
 #'   set.seed(11)
 #'   cells_sub <- unlist(lapply(split(colnames(panc8), panc8$dataset), function(x) sample(x, size = 200)))
 #'   panc8_sub <- subset(panc8, cells = cells_sub)
-#'   panc8_sub <- panc8_sub[rowSums(panc8_sub@assays$RNA@counts) > 0, ]
+#'   panc8_sub <- panc8_sub[rowSums(panc8_sub@assays$RNA$counts) > 0, ]
 #'   panc8_sub <- panc8_sub[toupper(rownames(panc8_sub)) %in% toupper(rownames(pancreas_sub)), ]
 #'   panc8_sub <- UpdateSeuratObject(panc8_sub)
 #'   # usethis::use_data(panc8_sub, compress = "xz")
@@ -83,7 +84,7 @@ NULL
 #'   set.seed(11)
 #'   cells_sub <- unlist(lapply(split(colnames(ifnb), ifnb$stim), function(x) sample(x, size = 1000)))
 #'   ifnb_sub <- subset(ifnb, cells = cells_sub)
-#'   ifnb_sub <- ifnb_sub[rowSums(ifnb_sub@assays$RNA@counts) > 0, ]
+#'   ifnb_sub <- ifnb_sub[rowSums(ifnb_sub@assays$RNA$counts) > 0, ]
 #'   ifnb_sub <- UpdateSeuratObject(ifnb_sub)
 #'   # usethis::use_data(ifnb_sub, compress = "xz")
 #' }
@@ -274,6 +275,9 @@ NULL
 #'   # usethis::use_data(ref_scHCL, compress = "xz")
 #'   # usethis::use_data(ref_scMCA, compress = "xz")
 #'   # usethis::use_data(ref_scZCL, compress = "xz")
+#'   ref_scHCL <- UpdateSeuratObject(ref_scHCL)
+#'   ref_scMCA <- UpdateSeuratObject(ref_scMCA)
+#'   ref_scZCL <- UpdateSeuratObject(ref_scZCL)
 #' }
 #' }
 #' @usage ref_scHCL
@@ -285,7 +289,7 @@ NULL
 
 #' Embryonic Development Database from LifeMap Discovery
 #' @concept data
-#' @source \url{https://discovery.lifemapsc.com/in-vivo-development/cellular}
+#' @source \url{https://www.lifemapsc.com/}
 #' @usage lifemap_cell
 #' @usage lifemap_compartment
 #' @usage lifemap_organ

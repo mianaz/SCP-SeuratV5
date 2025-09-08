@@ -7,7 +7,7 @@
 SrtAppend(
   srt_raw,
   srt_append,
-  slots = slotNames(srt_append),
+  layers = layerNames(srt_append),
   pattern = NULL,
   overwrite = FALSE,
   verbose = TRUE
@@ -18,7 +18,7 @@ SrtAppend(
 
 \item{srt_append}{New Seurat object to append.}
 
-\item{slots}{slots names.}
+\item{layers}{layers names.}
 
 \item{pattern}{A character string containing a regular expression. All data with matching names will be considered for appending.}
 

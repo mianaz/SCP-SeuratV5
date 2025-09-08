@@ -7,10 +7,10 @@
 A \code{Seurat} object.
 }
 \source{
-\url{https://scvelo.readthedocs.io/scvelo.datasets.pancreas/} \url{https://github.com/theislab/scvelo_notebooks/raw/master/data/Pancreas/endocrinogenesis_day15.h5ad}
+\url{https://github.com/theislab/scvelo_notebooks/raw/master/data/Pancreas/endocrinogenesis_day15.h5ad}
 }
 \description{
-Mouse pancreatic endocrinogenesis dataset from \href{https://doi.org/10.1242/dev.173849}{Bastidas-Ponce et al. (2019)}. A total of 1000 cells were downsampled to form the \code{pancreas_sub} dataset.
+Mouse pancreatic endocrinogenesis dataset from \doi{10.1242/dev.173849}. A total of 1000 cells were downsampled to form the \code{pancreas_sub} dataset.
 }
 \examples{
 \dontrun{
@@ -23,7 +23,7 @@ if (interactive()) {
   pancreas <- adata_to_srt(adata)
   set.seed(11)
   pancreas_sub <- subset(pancreas, cells = sample(colnames(pancreas), size = 1000))
-  pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA@counts) > 0, ]
+  pancreas_sub <- pancreas_sub[rowSums(pancreas_sub@assays$RNA$counts) > 0, ]
   pancreas_sub[["CellType"]] <- pancreas_sub[["clusters_coarse"]]
   pancreas_sub[["SubCellType"]] <- pancreas_sub[["clusters"]]
   pancreas_sub[["clusters_coarse"]] <- pancreas_sub[["clusters"]] <- NULL
@@ -34,6 +34,7 @@ if (interactive()) {
   pancreas_sub[["UMAP"]] <- pancreas_sub[["X_umap"]]
   pancreas_sub[["X_umap"]] <- pancreas_sub[["X_pca"]] <- NULL
   VariableFeatures(pancreas_sub) <- rownames(pancreas_sub[["RNA"]])[which(pancreas_sub[["RNA"]]@meta.features$highly_variable_genes == "True")]
+  pancreas_sub <- UpdateSeuratObject(pancreas_sub)
   # usethis::use_data(pancreas_sub, compress = "xz")
 }
 }

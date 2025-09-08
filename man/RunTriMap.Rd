@@ -14,7 +14,7 @@ RunTriMap(object, ...)
   dims = NULL,
   features = NULL,
   assay = NULL,
-  slot = "data",
+  layer = "data",
   n_components = 2,
   n_inliers = 12,
   n_outliers = 4,
@@ -62,7 +62,7 @@ RunTriMap(object, ...)
 
 \item{assay}{A character string specifying the assay to be used. Default is NULL.}
 
-\item{slot}{A character string specifying the slot name to be used. Default is "data".}
+\item{layer}{A character string specifying the layer name to be used. Default is "data".}
 
 \item{n_components}{An integer specifying the number of TriMap components. Default is 2.}
 

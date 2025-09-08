@@ -4,14 +4,7 @@
 \alias{show_palettes}
 \title{Show the color palettes}
 \usage{
-show_palettes(
-  palettes = NULL,
-  type = c("discrete", "continuous"),
-  index = NULL,
-  palette_names = NULL,
-  return_names = TRUE,
-  return_palettes = FALSE
-)
+show_palettes(palettes = NULL, label = TRUE, palettes_label = TRUE)
 }
 \arguments{
 \item{palettes}{A list of color palettes. If `NULL`, uses default palettes.}

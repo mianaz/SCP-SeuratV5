@@ -36,7 +36,7 @@
 #'
 #' # Convert the human genes to mouse homologs and replace the raw counts in a Seurat object.
 #' data("pancreas_sub")
-#' counts <- pancreas_sub@assays$RNA@counts
+#' counts <- get_seurat_data(pancreas_sub, slot = "counts", assay = "RNA")
 #' res <- GeneConvert(
 #'   geneID = rownames(counts),
 #'   geneID_from_IDtype = "symbol",
@@ -511,6 +511,7 @@ LengthCheck <- function(values, cutoff = 0) {
 
 #' @importFrom Seurat UpdateSymbolList CaseMatch
 #' @importFrom SeuratObject DefaultAssay GetAssayData CheckGC
+#' @importFrom SeuratObject LayerData
 #' @importFrom BiocParallel bplapply bpaggregate
 #' @importFrom stats rnorm
 #' @importFrom Matrix rowMeans colMeans
@@ -524,7 +525,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
   assay.old <- DefaultAssay(object = object)
   assay <- assay %||% assay.old
   DefaultAssay(object = object) <- assay
-  assay.data <- GetAssayData(object = object, slot = slot)
+  assay.data <- get_seurat_data(object, layer = slot, assay = assay)
   features.old <- features
   if (k) {
     .NotYetUsed(arg = "k")
@@ -653,7 +654,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
 #' @inheritParams RunEnrichment
 #' @param srt A Seurat object
 #' @param features A named list of feature lists for scoring. If NULLL, \code{db} will be used to create features sets.
-#' @param slot The slot of the Seurat object to use for scoring. Defaults to "data".
+#' @param slot The slot(layer) of the Seurat object to use for scoring. Defaults to "data".
 #' @param assay The assay of the Seurat object to use for scoring. Defaults to NULL, in which case the default assay of the object is used.
 #' @param split.by A cell metadata variable used for splitting the Seurat object into subsets and performing scoring on each subset. Defaults to NULL.
 #' @param termnames A vector of term names to be used from the database. Defaults to NULL, in which case all features from the database are used.
@@ -727,6 +728,7 @@ AddModuleScore2 <- function(object, slot = "data", features, pool = NULL, nbin =
 #'
 #' @importFrom BiocParallel bpprogressbar<- bpRNGseed<- bpworkers
 #' @importFrom Seurat AddModuleScore AddMetaData
+#' @importFrom SeuratObject LayerData
 #' @export
 CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split.by = NULL,
                         IDtype = "symbol", species = "Homo_sapiens",
@@ -743,13 +745,13 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
   }
   assay <- assay %||% DefaultAssay(srt)
   if (slot == "counts") {
-    status <- check_DataType(srt, slot = "counts", assay = assay)
+    status <- check_DataType(srt, layer = "counts", assay = assay)
     if (status != "raw_counts") {
       warning("Data is not raw counts", immediate. = TRUE)
     }
   }
   if (slot == "data") {
-    status <- check_DataType(srt, slot = "data", assay = assay)
+    status <- check_DataType(srt, layer = "data", assay = assay)
     if (status == "raw_counts") {
       message("Data is raw counts. Perform NormalizeData(LogNormalize) on the data ...")
       srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
@@ -799,7 +801,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
   if (!is.list(features) || length(names(features)) == 0) {
     stop("'features' must be a named list")
   }
-  expressed <- names(which(rowSums(GetAssayData(srt, slot = slot, assay = assay) > 0) > 0))
+  expressed <- names(which(rowSums(get_seurat_data(srt, layer = slot, assay = assay) > 0) > 0))
   features <- lapply(setNames(names(features), names(features)), function(x) features[[x]][features[[x]] %in% expressed])
   filtered_none <- names(which(sapply(features, length) == 0))
   if (length(filtered_none) > 0) {
@@ -862,7 +864,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
       colnames(scores) <- make.names(paste(name, names(features_nm), sep = "_"))
     } else if (method == "AUCell") {
       check_R("AUCell")
-      CellRank <- AUCell::AUCell_buildRankings(as_matrix(GetAssayData(srt_sp, slot = slot, assay = assay)), BPPARAM = BPPARAM, plotStats = FALSE)
+      CellRank <- AUCell::AUCell_buildRankings(as_matrix(get_seurat_data(srt_sp, layer = slot, assay = assau)), BPPARAM = BPPARAM, plotStats = FALSE)
       cells_AUC <- AUCell::AUCell_calcAUC(
         geneSets = features,
         rankings = CellRank,
@@ -1136,15 +1138,28 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
         )
         next
       }
-      marker.test[[level.use]] <- FindMarkers(
-        object = Assays(object, assay), slot = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
-        test.use = test.use, logfc.threshold = logfc.threshold,
-        min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
-        min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
-        norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
-        latent.vars = latent.vars, only.pos = only.pos,
-        verbose = verbose, ...
-      )
+      # Use Seurat object directly for V5, Assays() for V4
+      if (IsSeurat5(object)) {
+        marker.test[[level.use]] <- FindMarkers(
+          object = object, assay = assay, layer = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
+          test.use = test.use, logfc.threshold = logfc.threshold,
+          min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
+          min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
+          norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
+          latent.vars = latent.vars, only.pos = only.pos,
+          verbose = verbose, ...
+        )
+      } else {
+        marker.test[[level.use]] <- FindMarkers(
+          object = Assays(object, assay), layer = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
+          test.use = test.use, logfc.threshold = logfc.threshold,
+          min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
+          min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
+          norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
+          latent.vars = latent.vars, only.pos = only.pos,
+          verbose = verbose, ...
+        )
+      }
     }
   } else {
     for (i in 1:num.groups) {
@@ -1166,15 +1181,28 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
       if (verbose) {
         message("Testing group ", level.use, ": (", paste("cells.1", collapse = ", "), ") vs (", paste("cells.2", collapse = ", "), ")")
       }
-      marker.test[[level.use]] <- FindMarkers(
-        object = Assays(object, assay), slot = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
-        test.use = test.use, logfc.threshold = logfc.threshold,
-        min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
-        min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
-        norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
-        latent.vars = latent.vars, only.pos = only.pos,
-        verbose = verbose, ...
-      )
+      # Use Seurat object directly for V5, Assays() for V4  
+      if (IsSeurat5(object)) {
+        marker.test[[level.use]] <- FindMarkers(
+          object = object, assay = assay, layer = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
+          test.use = test.use, logfc.threshold = logfc.threshold,
+          min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
+          min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
+          norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
+          latent.vars = latent.vars, only.pos = only.pos,
+          verbose = verbose, ...
+        )
+      } else {
+        marker.test[[level.use]] <- FindMarkers(
+          object = Assays(object, assay), layer = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
+          test.use = test.use, logfc.threshold = logfc.threshold,
+          min.pct = min.pct, min.diff.pct = min.diff.pct, max.cells.per.ident = max.cells.per.ident,
+          min.cells.group = min.cells.group, min.cells.feature = min.cells.feature,
+          norm.method = norm.method, base = base, pseudocount.use = pseudocount.use, mean.fxn = mean.fxn,
+          latent.vars = latent.vars, only.pos = only.pos,
+          verbose = verbose, ...
+        )
+      }
     }
   }
   marker.test <- marker.test[!sapply(marker.test, is.null)]
@@ -1217,6 +1245,9 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
   return(markers.combined)
 }
 
+#' Find expressed marker features
+#'
+#' Find features that are expressed in specified groups of cells
 #' @examples
 #' markers <- FindExpressedMarkers(pancreas_sub, cells.1 = WhichCells(pancreas_sub, expression = Phase == "G2M"))
 #' head(markers)
@@ -1265,13 +1296,13 @@ FindExpressedMarkers <- function(object, ident.1 = NULL, ident.2 = NULL, cells.1
     yes = "counts",
     no = slot
   )
-  data.use <- GetAssayData(object = object, slot = data.slot)
+  data.use <- get_seurat_data(object, layer = data.slot, assay = DefaultAssay(object))
   data.use <- data.use[rowSums(data.use) > 0, ]
   data.use <- as_matrix(data.use)
   data.use[data.use <= min.expression] <- NA
   counts <- switch(
     EXPR = data.slot,
-    "scale.data" = GetAssayData(object = object, slot = "counts"),
+    "scale.data" = get_seurat_data(object, layer = "counts", assay = DefaultAssay(object)),
     numeric()
   )
 
@@ -1430,6 +1461,7 @@ FindExpressedMarkers <- function(object, ident.1 = NULL, ident.2 = NULL, cells.1
   return(de.results)
 }
 
+#' @export
 FoldChange.default <- function(object, cells.1, cells.2, mean.fxn, fc.name, features = NULL, ...) {
   features <- features %||% rownames(x = object)
   # Calculate percent expressed
@@ -1674,7 +1706,7 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
                       test.use = "wilcox", only.pos = TRUE, fc.threshold = 1.5, base = 2, pseudocount.use = 1, mean.fxn = NULL,
                       min.pct = 0.1, min.diff.pct = -Inf, max.cells.per.ident = Inf, latent.vars = NULL,
                       min.cells.feature = 3, min.cells.group = 3,
-                      norm.method = "LogNormalize", p.adjust.method = "bonferroni", slot = "data", assay = NULL,
+                      norm.method = "LogNormalize", p.adjust.method = "bonferroni", layer = "data", assay = NULL,
                       BPPARAM = BiocParallel::bpparam(), seed = 11, verbose = TRUE, ...) {
   set.seed(seed)
   markers_type <- match.arg(markers_type)
@@ -1686,21 +1718,46 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
   }
   assay <- assay %||% DefaultAssay(srt)
 
-  status <- check_DataType(srt, slot = slot, assay = assay)
-  if (slot == "counts" && status != "raw_counts") {
-    stop("Data in the 'counts' slot is not raw counts.")
-  }
-  if (slot == "data" && status != "log_normalized_counts") {
-    if (status == "raw_counts") {
-      warning("Data in the 'data' slot is raw counts. Perform NormalizeData(LogNormalize) on the data.", immediate. = TRUE)
-      srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+  # For Seurat V5, ensure proper normalization for DE testing
+  if (IsSeurat5(srt)) {
+    # V5 objects require normalization for proper FindMarkers functionality
+    available_layers <- names(srt[[assay]]@layers)
+    
+    # Always ensure data layer exists for V5 DE testing, regardless of requested layer
+    if (!"data" %in% available_layers && "counts" %in% available_layers) {
+      if (verbose) {
+        message("Normalizing V5 object for differential expression testing...")
+      }
+      tryCatch({
+        srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+      }, error = function(e) {
+        stop("Failed to normalize data for V5 object: ", conditionMessage(e))
+      })
     }
-    if (status == "raw_normalized_counts") {
-      warning("Data in the 'data' slot is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data.", immediate. = TRUE)
-      srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+    
+    # Validate requested layer exists
+    available_layers <- names(srt[[assay]]@layers)  # Refresh after potential normalization
+    if (!layer %in% available_layers) {
+      stop("Requested layer '", layer, "' not found in assay. Available layers: ", paste(available_layers, collapse = ", "))
     }
-    if (status == "unknown") {
-      warning("Data in the 'data' slot is unknown. Please check the data type.")
+  } else {
+    # V4 compatibility: use original data type checking
+    status <- check_DataType(srt, layer = layer, assay = assay)
+    if (layer == "counts" && status != "raw_counts") {
+      stop("Data in the 'counts' layer is not raw counts.")
+    }
+    if (layer == "data" && status != "log_normalized_counts") {
+      if (status == "raw_counts") {
+        warning("Data in the 'data' layer is raw counts. Perform NormalizeData(LogNormalize) on the data.", immediate. = TRUE)
+        srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+      }
+      if (status == "raw_normalized_counts") {
+        warning("Data in the 'data' layer is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data.", immediate. = TRUE)
+        srt <- NormalizeData(object = srt, assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+      }
+      if (status == "unknown") {
+        warning("Data in the 'data' layer is unknown. Please check the data type.")
+      }
     }
   }
   bpprogressbar(BPPARAM) <- TRUE
@@ -1744,27 +1801,68 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
     }
 
     if (markers_type == "all") {
-      markers <- FindMarkers(
-        object = Assays(srt, assay), slot = slot,
-        cells.1 = cells1,
-        cells.2 = cells2,
-        features = features,
-        test.use = test.use,
-        logfc.threshold = log(fc.threshold, base = base),
-        base = base,
-        min.pct = min.pct,
-        min.diff.pct = min.diff.pct,
-        max.cells.per.ident = max.cells.per.ident,
-        min.cells.feature = min.cells.feature,
-        min.cells.group = min.cells.group,
-        latent.vars = latent.vars,
-        only.pos = only.pos,
-        norm.method = norm.method,
-        pseudocount.use = pseudocount.use,
-        mean.fxn = mean.fxn,
-        verbose = FALSE,
-        ...
-      )
+      # For V5, use temporary identities; for V4, use Assays() approach
+      if (IsSeurat5(srt)) {
+        # Save original identities
+        original_idents <- Idents(srt)
+        
+        # Create temporary identities
+        temp_idents <- rep("other", ncol(srt))
+        temp_idents[match(cells1, colnames(srt))] <- "group1"
+        temp_idents[match(cells2, colnames(srt))] <- "group2"
+        names(temp_idents) <- colnames(srt)
+        
+        # Set temporary identities
+        Idents(srt) <- factor(temp_idents, levels = c("group1", "group2", "other"))
+        
+        # Call FindMarkers with ident.1/ident.2
+        markers <- FindMarkers(
+          object = srt, assay = assay, layer = layer,
+          ident.1 = "group1",
+          ident.2 = "group2",
+          features = features,
+          test.use = test.use,
+          logfc.threshold = log(fc.threshold, base = base),
+          base = base,
+          min.pct = min.pct,
+          min.diff.pct = min.diff.pct,
+          max.cells.per.ident = max.cells.per.ident,
+          min.cells.feature = min.cells.feature,
+          min.cells.group = min.cells.group,
+          latent.vars = latent.vars,
+          only.pos = only.pos,
+          norm.method = norm.method,
+          pseudocount.use = pseudocount.use,
+          mean.fxn = mean.fxn,
+          verbose = FALSE,
+          ...
+        )
+        
+        # Restore original identities
+        Idents(srt) <- original_idents
+      } else {
+        markers <- FindMarkers(
+          object = Assays(srt, assay), layer = layer,
+          cells.1 = cells1,
+          cells.2 = cells2,
+          features = features,
+          test.use = test.use,
+          logfc.threshold = log(fc.threshold, base = base),
+          base = base,
+          min.pct = min.pct,
+          min.diff.pct = min.diff.pct,
+          max.cells.per.ident = max.cells.per.ident,
+          min.cells.feature = min.cells.feature,
+          min.cells.group = min.cells.group,
+          latent.vars = latent.vars,
+          only.pos = only.pos,
+          norm.method = norm.method,
+          pseudocount.use = pseudocount.use,
+          mean.fxn = mean.fxn,
+          verbose = FALSE,
+          ...
+        )
+      }
       if (!is.null(markers) && nrow(markers) > 0) {
         markers[, "gene"] <- rownames(markers)
         markers[, "group1"] <- group1 %||% "group1"
@@ -1788,7 +1886,7 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
     }
     if (markers_type == "conserved") {
       markers <- FindConservedMarkers2(
-        object = srt, assay = assay, slot = slot,
+        object = srt, assay = assay, layer = layer,
         cells.1 = cells1,
         cells.2 = cells2,
         features = features,
@@ -1836,7 +1934,7 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
       srt_tmp[[grouping.var, drop = TRUE]][setdiff(colnames(srt_tmp), cells1)] <- NA
       bpprogressbar(BPPARAM) <- FALSE
       srt_tmp <- RunDEtest(
-        srt = srt_tmp, assay = assay, slot = slot,
+        srt = srt_tmp, assay = assay, layer = layer,
         group_by = grouping.var,
         markers_type = "all",
         features = features,
@@ -1888,7 +1986,7 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
 
     args1 <- list(
       object = Assays(srt, assay),
-      slot = slot,
+      layer = layer,
       features = features,
       test.use = test.use,
       logfc.threshold = log(fc.threshold, base = base),
@@ -2048,7 +2146,7 @@ RunDEtest <- function(srt, group_by = NULL, group1 = NULL, group2 = NULL, cells1
           return(NULL)
         } else {
           srt_tmp <- RunDEtest(
-            srt = srt_tmp, assay = assay, slot = slot,
+            srt = srt_tmp, assay = assay, layer = layer,
             group_by = grouping.var,
             markers_type = "all",
             features = features,
@@ -4402,6 +4500,7 @@ RunSlingshot <- function(srt, group.by, reduction = NULL, dims = NULL, start = N
 #'   FeatureDimPlot(pancreas_sub, features = "Monocle2_Pseudotime", reduction = "UMAP", theme_use = "theme_blank")
 #' }
 #' @importFrom Seurat DefaultAssay CreateDimReducObject GetAssayData VariableFeatures FindVariableFeatures
+#' @importFrom SeuratObject LayerData
 #' @importFrom SeuratObject as.sparse
 #' @importFrom igraph as_data_frame
 #' @importFrom ggplot2 geom_segment
@@ -4419,7 +4518,7 @@ RunMonocle2 <- function(srt, assay = NULL, slot = "counts", expressionFamily = "
   }
 
   assay <- assay %||% DefaultAssay(srt)
-  expr_matrix <- as.sparse(GetAssayData(srt, assay = assay, slot = slot))
+  expr_matrix <- as.sparse(get_seurat_data(srt, layer = slot, assay = assay))
   p_data <- srt@meta.data
   f_data <- data.frame(gene_short_name = row.names(expr_matrix), row.names = row.names(expr_matrix))
   pd <- new("AnnotatedDataFrame", data = p_data)
@@ -4736,6 +4835,7 @@ extract_ddrtree_ordering <- function(cds, root_cell, verbose = TRUE) {
 #' }
 #' @importFrom SeuratObject as.sparse Embeddings Loadings Stdev
 #' @importFrom Seurat DefaultAssay GetAssayData
+#' @importFrom SeuratObject LayerData
 #' @importFrom igraph as_data_frame
 #' @importFrom ggplot2 geom_segment
 #' @importFrom ggrepel geom_text_repel
@@ -4752,7 +4852,7 @@ RunMonocle3 <- function(srt, assay = NULL, slot = "counts",
     check_R("cole-trapnell-lab/monocle3", force = TRUE)
   }
   assay <- assay %||% DefaultAssay(srt)
-  expr_matrix <- as.sparse(GetAssayData(srt, assay = assay, slot = slot))
+  expr_matrix <- as.sparse(get_seurat_data(srt, layer = slot, assay = assay))
   p_data <- srt@meta.data
   f_data <- data.frame(gene_short_name = row.names(expr_matrix), row.names = row.names(expr_matrix))
   cds <- monocle3::new_cell_data_set(
@@ -4976,13 +5076,13 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
     }
   }
 
-  Y <- GetAssayData(srt, slot = slot, assay = assay)
+  Y <- get_seurat_data(srt, layer = slot, assay = assay)
   if (is.null(libsize)) {
-    status <- check_DataType(srt, assay = assay, slot = "counts")
+    status <- check_DataType(srt, assay = assay, layer = "counts")
     if (status != "raw_counts") {
       Y_libsize <- setNames(rep(1, ncol(srt)), colnames(srt))
     } else {
-      Y_libsize <- colSums(GetAssayData(srt, slot = "counts", assay = assay))
+      Y_libsize <- colSums(get_seurat_data(srt, layer = "counts", assay = assay))
     }
   } else {
     if (length(libsize) == 1) {
@@ -5007,7 +5107,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
         stop("'features' or 'n_candidates' must provided at least one.")
       }
       HVF <- VariableFeatures(FindVariableFeatures(srt_sub, nfeatures = n_candidates, assay = assay), assay = assay)
-      HVF_counts <- srt_sub[[assay]]@counts[HVF, , drop = FALSE]
+      HVF_counts <- srt_sub[[assay]]$counts[HVF, , drop = FALSE]
       HVF <- HVF[apply(HVF_counts, 1, function(x) {
         length(unique(x))
       }) >= minfreq]
@@ -5025,7 +5125,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
   if (slot == "counts") {
     gene_status <- status
   }
-  gene_status <- status <- check_DataType(srt, assay = assay, slot = slot)
+  gene_status <- status <- check_DataType(srt, assay = assay, layer = slot)
   meta_status <- sapply(meta, function(x) {
     check_DataType(data = srt[[x]])
   })
@@ -5104,7 +5204,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
 
         # ggplot(data = data.frame(
         #   x = t_ordered,
-        #   raw = FetchData(srt_sub, vars = feature_nm, slot = "counts")[names(t_ordered), feature_nm, drop = TRUE],
+        #   raw = FetchData(srt_sub, vars = feature_nm, layer = "counts")[names(t_ordered), feature_nm, drop = TRUE],
         #   fitted = fitted.values,
         #   upr.values = upr.values,
         #   lwr.values = lwr.values,
@@ -5297,7 +5397,7 @@ RunDynamicEnrichment <- function(srt, lineages,
     srt <- RunDynamicFeatures(
       srt = srt,
       lineages = lineages,
-      features = rownames(srt[[term]]@counts),
+      features = rownames(srt[[term]]$counts),
       suffix = paste(lineages, term, sep = "_"),
       assay = term
     )
@@ -5346,6 +5446,7 @@ py_to_r_auto <- function(x) {
 #'
 #' @importFrom reticulate import np_array
 #' @importFrom Seurat GetAssayData
+#' @importFrom SeuratObject LayerData
 #' @importFrom Matrix t
 #' @export
 srt_to_adata <- function(srt, features = NULL,
@@ -5395,8 +5496,7 @@ srt_to_adata <- function(srt, features = NULL,
     var[["highly_variable"]] <- features %in% VariableFeatures(srt, assay = assay_X)
   }
 
-  # X <- t(as_matrix(slot(srt@assays[[assay_X]], slot_X)[features, , drop = FALSE]))
-  X <- t(GetAssayData(srt, assay = assay_X, slot = slot_X)[features, , drop = FALSE])
+  X <- t(get_seurat_data(srt, layer = slot_X, assay = assay_X)[features, , drop = FALSE])
   adata <- sc$AnnData(
     X = np_array(X, dtype = np$float32),
     obs = obs,
@@ -5407,7 +5507,7 @@ srt_to_adata <- function(srt, features = NULL,
   layer_list <- list()
   for (assay in names(srt@assays)[names(srt@assays) != assay_X]) {
     if (assay %in% assay_layers) {
-      layer <- t(GetAssayData(srt, assay = assay, slot = slot_layers[assay]))
+      layer <- t(get_seurat_data(srt, layer = slot_layers[assay], assay = assay))
       if (!identical(dim(layer), dim(X))) {
         if (all(colnames(X) %in% colnames(layer))) {
           layer <- layer[, colnames(X)]
@@ -5744,7 +5844,7 @@ check_python_element <- function(x, depth = maxDepth(x)) {
 #' @param use_rna_velocity Whether to use RNA velocity for PAGA analysis. Default is FALSE.
 #' @param vkey The name of the RNA velocity data to use if \code{use_rna_velocity} is TRUE. Default is "stochastic".
 #' @param embedded_with_PAGA Whether to embed data using PAGA layout. Default is FALSE.
-#' @param paga_layout The layout for plotting PAGA graph. See See \href{https://scanpy.readthedocs.io/en/stable/generated/scanpy.pl.paga.html}{layout} param in scanpy.pl.paga function.
+#' @param paga_layout The layout for plotting PAGA graph. See \href{https://scanpy.readthedocs.io/en/stable/api/scanpy.pl.paga.html}{layout} param in scanpy.pl.paga function.
 #' @param threshold The threshold for plotting PAGA graph. Edges for weights below this threshold will not draw.
 #' @param point_size The point size for plotting.
 #' @param infer_pseudotime Whether to infer pseudotime.
@@ -5905,9 +6005,33 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
                       palette = "Paired", palcolor = NULL,
                       show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                       return_seurat = !is.null(srt)) {
-  check_Python("scvelo")
+  # Check for required Python modules with robust error handling
+  result <- tryCatch({
+    check_Python("scvelo")
+    NULL
+  }, error = function(e) {
+    message("Python module 'scvelo' is required for velocity analysis but is not installed.")
+    message("To install, run: PrepareEnv() and then check_Python('scvelo')")
+    return(e)
+  })
+  
+  if (!is.null(result)) {
+    stop("Required Python module 'scvelo' is not available. Please install it first.")
+  }
+  
   if (isTRUE(magic_impute)) {
-    check_Python("magic-impute")
+    result <- tryCatch({
+      check_Python("magic-impute")
+      NULL
+    }, error = function(e) {
+      message("Python module 'magic-impute' is required for imputation but is not installed.")
+      message("To install, run: PrepareEnv() and then check_Python('magic-impute')")
+      return(e)
+    })
+    
+    if (!is.null(result)) {
+      stop("Required Python module 'magic-impute' is not available. Please install it first.")
+    }
   }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
@@ -5949,8 +6073,22 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
-  adata <- do.call(SCP_analysis$SCVELO, args)
+  # Import Python module with better error handling
+  SCP_analysis <- tryCatch({
+    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  }, error = function(e) {
+    message("Failed to import SCP_analysis Python module: ", e$message)
+    message("This may indicate an issue with your Python environment setup.")
+    stop("Python module import failed. Please run PrepareEnv() to set up the environment correctly.")
+  })
+  
+  # Wrap the Python call in a tryCatch for better error handling
+  adata <- tryCatch({
+    do.call(SCP_analysis$SCVELO, args)
+  }, error = function(e) {
+    message("Error running velocity analysis: ", e$message)
+    stop("Velocity analysis failed. Check your input parameters and Python environment.")
+  })
 
   if (isTRUE(return_seurat)) {
     srt_out <- adata_to_srt(adata)

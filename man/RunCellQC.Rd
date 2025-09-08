@@ -83,7 +83,7 @@ RunCellQC(
 \item{seed}{Set a random seed. Default is 11.}
 }
 \value{
-Returns Seurat object with the QC results stored in the meta.data slot.
+Returns Seurat object with the QC results stored in the meta.data layer.
 }
 \description{
 This function handles multiple quality control methods for single-cell RNA-seq data.

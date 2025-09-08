@@ -17,7 +17,8 @@ check_srtMerge(
   HVF_min_intersection = 1,
   HVF = NULL,
   vars_to_regress = NULL,
-  seed = 11
+  seed = 11,
+  check_v5 = TRUE
 )
 }
 \arguments{

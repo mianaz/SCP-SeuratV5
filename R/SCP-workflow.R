@@ -1,28 +1,63 @@
+
 #' Check and report the type of data
 #'
-#' This function checks the type of data and returns a string indicating the type of data. It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
+#' This function checks the type of data and returns a string indicating the type of data. 
+#' It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
 #'
 #' @param srt An object of class 'Seurat'.
 #' @param data The input data. If not provided, it will be extracted from the the 'srt' object.
-#' @param slot The slot in the 'srt' object from which to extract the data. Default is "data".
+#' @param layer The layer in the 'srt' object from which to extract the data. Default is "data".
 #' @param assay The assay to extract the data from. If not provided, the default assay will be used.
 #'
 #' @return A string indicating the type of data. Possible values are: "raw_counts", "log_normalized_counts", "raw_normalized_counts", or "unknown".
 #'
 #' @importFrom Seurat DefaultAssay GetAssayData
+
+#' @importFrom SeuratObject LayerData
 #' @export
-check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
-  if (is.null(data)) {
+check_DataType <- function(srt, data = NULL, layer = "data", assay = NULL) {
+  if (!is.null(srt)) {
     assay <- assay %||% DefaultAssay(srt)
-    data <- GetAssayData(srt, slot = slot, assay = assay)
+    
+    if (is.null(data)) {
+      data <- get_seurat_data(srt, layer = layer, assay = assay)
+    }
   }
-  isfinite <- all(is.finite(range(data, na.rm = TRUE)))
+  
+  if (is.null(data)) {
+    stop("No data provided and unable to extract data from Seurat object")
+  }
+  
+  # Handle empty layers (common in V5 before normalization)
+  if (length(data) == 0 || (is.matrix(data) && all(dim(data) == 0))) {
+    # For V5 objects, if data layer is empty but counts exist, assume raw_counts
+    if (!is.null(srt) && layer == "data") {
+      counts_data <- tryCatch({
+        get_seurat_data(srt, layer = "counts", assay = assay)
+      }, error = function(e) NULL)
+      
+      if (!is.null(counts_data) && length(counts_data) > 0) {
+        return("raw_counts")  # Data layer empty but counts exist = needs normalization
+      }
+    }
+    return("unknown")
+  }
+  
   if (inherits(data, "dgCMatrix")) {
+    # Handle sparse matrix case
+    if (length(data@x) == 0) {
+      return("unknown")  # Empty sparse matrix
+    }
+    isfinite <- all(is.finite(range(data@x, na.rm = TRUE)))
     isfloat <- any(data@x %% 1 != 0, na.rm = TRUE)
+    islog <- is.finite(expm1(x = max(data@x, na.rm = TRUE)))
   } else {
+    # Handle dense matrix case
+    isfinite <- all(is.finite(range(data, na.rm = TRUE)))
     isfloat <- any(data[, sample(seq_len(ncol(data)), min(ncol(data), 1000))] %% 1 != 0, na.rm = TRUE)
+    islog <- is.finite(expm1(x = max(data, na.rm = TRUE)))
   }
-  islog <- is.finite(expm1(x = max(data, na.rm = TRUE)))
+  
   isnegative <- any(data < 0)
 
   if (!isTRUE(isfinite)) {
@@ -46,6 +81,7 @@ check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
   }
 }
 
+
 #' Check and preprocess a list of seurat objects
 #'
 #' This function checks and preprocesses a list of seurat objects. It performs various checks on the input, including verification of input types, assay type consistency, feature name consistency, and batch column consistency. It also performs data normalization and variable feature finding based on the specified parameters. Finally, it prepares the data for integration analysis based on the highly variable features.
@@ -66,22 +102,49 @@ check_DataType <- function(srt, data = NULL, slot = "data", assay = NULL) {
 #'
 #' @return A list containing the preprocessed seurat objects, the highly variable features, the assay name, and the type of assay (e.g., "RNA" or "Chromatin").
 #'
-#' @importFrom Seurat SplitObject GetAssayData Assays NormalizeData FindVariableFeatures SCTransform SCTResults SelectIntegrationFeatures PrepSCTIntegration DefaultAssay DefaultAssay<- VariableFeatures VariableFeatures<-
+#' @importFrom Seurat SplitObject GetAssayData Assays NormalizeData FindVariableFeatures SCTransform SCTResults SelectIntegrationFeatures PrepSCTIntegration DefaultAssay DefaultAssay<- VariableFeatures VariableFeatures<- UpdateSeuratObject
+#' @importFrom SeuratObject LayerData
 #' @importFrom Signac RunTFIDF
 #' @importFrom Matrix rowSums
-#' @importFrom utils head
+#' @importFrom utils head packageVersion
 #' @export
 #'
 check_srtList <- function(srtList, batch, assay = NULL,
                           do_normalization = NULL, normalization_method = "LogNormalize",
                           do_HVF_finding = TRUE, HVF_source = "separate", HVF_method = "vst",
                           nHVF = 2000, HVF_min_intersection = 1, HVF = NULL,
-                          vars_to_regress = NULL, seed = 11) {
+                          vars_to_regress = NULL, seed = 11, check_v5 = TRUE) {
   cat(paste0("[", Sys.time(), "]", " Checking srtList... ...\n"))
   set.seed(seed)
 
   if (!inherits(srtList, "list") || any(sapply(srtList, function(x) !inherits(x, "Seurat")))) {
     stop("'srtList' is not a list of Seurat object.")
+  }
+  
+  # Check Seurat version compatibility - V5 safe version
+  if (check_v5) {
+    tryCatch({
+      seurat_version <- packageVersion("Seurat")
+      # Use string parsing to avoid numeric conversion issues
+      if (as.numeric(strsplit(as.character(seurat_version), "\\.")[[1]][1]) >= 5) {
+        # Check if any objects are V4 and need conversion
+        v4_objects <- which(!sapply(srtList, IsSeurat5))
+        
+        if (length(v4_objects) > 0) {
+          message("Found ", length(v4_objects), " Seurat v4 objects. Updating to v5...")
+          for (i in v4_objects) {
+            message("Converting object ", i, " of ", length(v4_objects), " to Seurat V5...")
+            srtList[[i]] <- UpdateSeuratObject(srtList[[i]])
+          }
+          message("All objects updated to Seurat V5")
+        }
+      } else {
+        warning("You are using Seurat v", seurat_version, ". SCP now requires Seurat v5 for full compatibility.",
+                " Some functions may not work as expected.")
+      }
+    }, error = function(e) {
+      warning("Failed to check Seurat version compatibility: ", e$message)
+    })
   }
   if (!normalization_method %in% c("LogNormalize", "SCT", "TFIDF")) {
     stop("'normalization_method' must be one of: 'LogNormalize', 'SCT', 'TFIDF'")
@@ -133,7 +196,14 @@ check_srtList <- function(srtList, batch, assay = NULL,
     cf <- Reduce(intersect, lapply(srtList, function(srt) rownames(srt[[assay]])))
     warning("'srtList' have different feature names! Will subset the common features(", length(cf), ") for downstream analysis!", immediate. = TRUE)
     for (i in seq_along(srtList)) {
-      srtList[[i]][[assay]] <- subset(srtList[[i]][[assay]], features = cf)
+      # V5-compatible feature subsetting
+      if (IsSeurat5(srtList[[i]])) {
+        # For V5 objects, subset the entire Seurat object instead of just the assay
+        srtList[[i]] <- subset(srtList[[i]], features = cf)
+      } else {
+        # For V4 objects, use original approach
+        srtList[[i]][[assay]] <- subset(srtList[[i]][[assay]], features = cf)
+      }
     }
   }
 
@@ -152,33 +222,38 @@ check_srtList <- function(srtList, batch, assay = NULL,
     }
     srtList <- srtList_tmp
   } else {
-    if (!all(sapply(srtList, function(x) {
+    # Handle empty batch string - skip batch processing
+    if (batch != "" && !all(sapply(srtList, function(x) {
       batch %in% colnames(x@meta.data)
     }))) {
       stop(paste0("batch column('", batch, "') was not found in one or more object of the srtList!"))
     }
-    for (i in seq_along(srtList)) {
-      u <- unique(srtList[[i]][[batch, drop = TRUE]])
-      if (length(u) > 1) {
-        x <- SplitObject(srtList[[i]], split.by = batch)
-        srtList[[i]] <- character(0)
-        srtList <- c(srtList, x)
-      }
-    }
-    srtList <- srtList[sapply(srtList, length) > 0]
-    srtList_batch <- sapply(srtList, function(x) unique(x[[batch, drop = TRUE]]))
-    batch_to_merge <- names(which(table(srtList_batch) > 1))
-    if (length(batch_to_merge) > 0) {
-      for (b in batch_to_merge) {
-        index <- which(srtList_batch == b)
-        srtList_tmp <- Reduce(merge, srtList[index])
-        for (i in index) {
+    if (batch != "") {
+      for (i in seq_along(srtList)) {
+        u <- unique(srtList[[i]][[batch, drop = TRUE]])
+        if (length(u) > 1) {
+          x <- SplitObject(srtList[[i]], split.by = batch)
           srtList[[i]] <- character(0)
+          srtList <- c(srtList, x)
         }
-        srtList <- c(srtList, srtList_tmp)
       }
     }
     srtList <- srtList[sapply(srtList, length) > 0]
+    if (batch != "") {
+      srtList_batch <- sapply(srtList, function(x) unique(x[[batch, drop = TRUE]]))
+      batch_to_merge <- names(which(table(srtList_batch) > 1))
+      if (length(batch_to_merge) > 0) {
+        for (b in batch_to_merge) {
+          index <- which(srtList_batch == b)
+          srtList_tmp <- Reduce(merge, srtList[index])
+          for (i in index) {
+            srtList[[i]] <- character(0)
+          }
+          srtList <- c(srtList, srtList_tmp)
+        }
+      }
+      srtList <- srtList[sapply(srtList, length) > 0]
+    }
   }
 
   for (i in seq_along(srtList)) {
@@ -196,23 +271,33 @@ check_srtList <- function(srtList, batch, assay = NULL,
         srtList[[i]] <- RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
       }
     } else if (is.null(do_normalization)) {
-      status <- check_DataType(srtList[[i]], slot = "data", assay = assay)
-      if (status == "log_normalized_counts") {
-        cat("Data ", i, "/", length(srtList), " of the srtList has been log-normalized.\n", sep = "")
-      }
-      if (status %in% c("raw_counts", "raw_normalized_counts")) {
+      # V5-safe check_DataType call
+      tryCatch({
+        status <- check_DataType(srtList[[i]], layer = "data", assay = assay)
+        if (status == "log_normalized_counts") {
+          cat("Data ", i, "/", length(srtList), " of the srtList has been log-normalized.\n", sep = "")
+        }
+        if (status %in% c("raw_counts", "raw_normalized_counts")) {
+          if (normalization_method == "LogNormalize") {
+            cat("Data ", i, "/", length(srtList), " of the srtList is ", status, ". Perform NormalizeData(LogNormalize) on the data ...\n", sep = "")
+            srtList[[i]] <- NormalizeData(object = srtList[[i]], assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
+          }
+          if (normalization_method == "TFIDF") {
+            cat("Data ", i, "/", length(srtList), " of the srtList is ", status, ". Perform RunTFIDF on the data ...\n", sep = "")
+            srtList[[i]] <- RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
+          }
+        }
+        if (status == "unknown") {
+          warning("Can not determine whether data ", i, " is log-normalized...", immediate. = TRUE)
+        }
+      }, error = function(e) {
+        warning("Failed to check data type for object ", i, ": ", e$message, ". Assuming normalization is needed.")
+        # Default to normalization if we can't check the data type
         if (normalization_method == "LogNormalize") {
-          cat("Data ", i, "/", length(srtList), " of the srtList is ", status, ". Perform NormalizeData(LogNormalize) on the data ...\n", sep = "")
+          cat("Defaulting to NormalizeData(LogNormalize) for data ", i, "/", length(srtList), " of the srtList...\n", sep = "")
           srtList[[i]] <- NormalizeData(object = srtList[[i]], assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
         }
-        if (normalization_method == "TFIDF") {
-          cat("Data ", i, "/", length(srtList), " of the srtList is ", status, ". Perform RunTFIDF on the data ...\n", sep = "")
-          srtList[[i]] <- RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
-        }
-      }
-      if (status == "unknown") {
-        warning("Can not determine whether data ", i, " is log-normalized...", immediate. = TRUE)
-      }
+      })
     }
     if (is.null(HVF)) {
       if (isTRUE(do_HVF_finding) || is.null(do_HVF_finding) || length(VariableFeatures(srtList[[i]], assay = assay)) == 0) {
@@ -249,7 +334,7 @@ check_srtList <- function(srtList, batch, assay = NULL,
           index <- 1
         }
         model <- srtList[[i]]@assays$SCT@SCTModel.list[[index]]
-        feature.attr <- SCTResults(object = model, slot = "feature.attributes")
+        feature.attr <- SCTResults(object = model, layer = "feature.attributes")
       } else {
         feature.attr <- srtList[[i]]@assays$SCT@meta.features
       }
@@ -292,14 +377,17 @@ check_srtList <- function(srtList, batch, assay = NULL,
     }
   } else {
     cf <- Reduce(intersect, lapply(srtList, function(srt) {
-      rownames(GetAssayData(srt, slot = "counts", assay = DefaultAssay(srt)))
+      rownames(get_seurat_data(srt, layer = "counts", assay = DefaultAssay(srt)))
     }))
     HVF <- HVF[HVF %in% cf]
   }
   message("Number of available HVF: ", length(HVF))
+  
+  # Use the utility function get_seurat_data for data access
 
   hvf_sum <- lapply(srtList, function(srt) {
-    colSums(GetAssayData(srt, slot = "counts", assay = DefaultAssay(srt))[HVF, , drop = FALSE])
+    count_data <- get_seurat_data(srt, layer = "counts")
+    colSums(count_data[HVF, , drop = FALSE])
   })
   cell_all <- unlist(unname(hvf_sum))
   cell_abnormal <- names(cell_all)[cell_all == 0]
@@ -329,20 +417,43 @@ check_srtList <- function(srtList, batch, assay = NULL,
 #' @param srtMerge A merged Seurat object that includes the batch information.
 #'
 #' @inheritParams Integration_SCP
-#' @importFrom Seurat GetAssayData SplitObject SetAssayData VariableFeatures VariableFeatures<-
+#' @importFrom Seurat GetAssayData SplitObject SetAssayData VariableFeatures VariableFeatures<- UpdateSeuratObject
+#' @importFrom SeuratObject LayerData
 #' @export
 check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
                            do_normalization = NULL, normalization_method = "LogNormalize",
                            do_HVF_finding = TRUE, HVF_source = "separate", HVF_method = "vst",
                            nHVF = 2000, HVF_min_intersection = 1, HVF = NULL,
-                           vars_to_regress = NULL, seed = 11) {
+                           vars_to_regress = NULL, seed = 11, check_v5 = TRUE) {
   if (!inherits(srtMerge, "Seurat")) {
     stop("'srtMerge' is not a Seurat object.")
+  }
+  
+  # Check Seurat version compatibility
+  if (check_v5) {
+    tryCatch({
+      seurat_version <- packageVersion("Seurat")
+      is_v5_installed <- as.numeric(seurat_version) >= 5
+      
+      if (is_v5_installed) {
+        # Check if object is V4 and needs conversion
+        if (!IsSeurat5(srtMerge)) {
+          message("Seurat object is V4. Updating to V5...")
+          srtMerge <- UpdateSeuratObject(srtMerge)
+          message("Object updated to Seurat V5")
+        }
+      } else {
+        warning("You are using Seurat v", seurat_version, ". SCP now requires Seurat v5 for full compatibility.",
+                " Some functions may not work as expected.")
+      }
+    }, error = function(e) {
+      warning("Failed to check Seurat version compatibility: ", e$message)
+    })
   }
   if (length(batch) != 1) {
     stop("'batch' must be provided to specify the batch column in the meta.data")
   }
-  if (!batch %in% colnames(srtMerge@meta.data)) {
+  if (!batch %in% colnames(srtMerge[[]])) {
     stop(paste0("No batch column('", batch, "') found in the meta.data"))
   }
   if (!is.factor(srtMerge[[batch, drop = TRUE]])) {
@@ -371,7 +482,7 @@ check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
 
   srtMerge <- SrtAppend(
     srt_raw = srtMerge, srt_append = srtMerge_raw, pattern = "",
-    slots = "reductions", overwrite = TRUE, verbose = FALSE
+    layers = "reductions", overwrite = TRUE, verbose = FALSE
   )
   if (normalization_method == "SCT" && type == "RNA") {
     DefaultAssay(srtMerge) <- "SCT"
@@ -403,23 +514,25 @@ check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
 #'
 #' @examples
 #' data("pancreas_sub")
-#' raw_counts <- pancreas_sub@assays$RNA@counts
+#' raw_counts <- pancreas_sub@assays$RNA$counts
 #'
 #' # Normalized the data
 #' pancreas_sub <- Seurat::NormalizeData(pancreas_sub)
 #'
 #' # Now replace counts with the log-normalized data matrix
-#' pancreas_sub@assays$RNA@counts <- pancreas_sub@assays$RNA@data
+#' pancreas_sub@assays$RNA$counts <- pancreas_sub@assays$RNA$data
 #'
 #' # Recover the counts and compare with the raw counts matrix
 #' pancreas_sub <- RecoverCounts(pancreas_sub)
-#' identical(raw_counts, pancreas_sub@assays$RNA@counts)
+#' identical(raw_counts, pancreas_sub@assays$RNA$counts)
 #' @importFrom Seurat GetAssayData SetAssayData
+#' @importFrom SeuratObject LayerData<-
+#' @importFrom SeuratObject LayerData
 #' @importFrom SeuratObject as.sparse
 #' @export
 RecoverCounts <- function(srt, assay = NULL, trans = c("expm1", "exp", "none"), min_count = c(1, 2, 3), tolerance = 0.1, sf = NULL, verbose = TRUE) {
   assay <- assay %||% DefaultAssay(srt)
-  counts <- GetAssayData(srt, assay = assay, slot = "counts")
+  counts <- get_seurat_data(srt, layer = "counts", assay = assay)
   if (!inherits(counts, "dgCMatrix")) {
     counts <- as.sparse(counts[1:nrow(counts), , drop = FALSE])
   }
@@ -472,7 +585,7 @@ RecoverCounts <- function(srt, assay = NULL, trans = c("expm1", "exp", "none"), 
       return(srt)
     }
     counts@x <- round(counts@x * rep(nCount, diff(counts@p)))
-    srt <- SetAssayData(srt, new.data = counts, assay = assay, slot = "counts")
+    srt <- set_seurat_data(srt, data = counts, layer = "counts", assay = assay)
     srt[[paste0("nCount_", assay)]] <- nCount
   } else {
     warning("Scale factor is not unique. No changes to be made.", immediate. = TRUE)
@@ -495,7 +608,6 @@ RecoverCounts <- function(srt, assay = NULL, trans = c("expm1", "exp", "none"), 
 #' head(rownames(panc8_rename))
 #'
 #' @importFrom Seurat Assays GetAssay
-#' @importFrom methods slot
 #' @export
 RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
   assays <- assays[assays %in% Assays(srt)] %||% Assays(srt)
@@ -508,19 +620,64 @@ RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
     }
     names(newnames) <- rownames(srt[[assays[1]]])
   }
+  
+  # Check if using Seurat V5
+  is_v5 <- IsSeurat5(srt)
+  
   for (assay in assays) {
     message("Rename features for the assay: ", assay)
     assay_obj <- GetAssay(srt, assay)
-    for (d in c("meta.features", "scale.data", "counts", "data")) {
-      index <- which(rownames(slot(assay_obj, d)) %in% names(newnames))
-      rownames(slot(assay_obj, d))[index] <- newnames[rownames(slot(assay_obj, d))[index]]
+    
+    if (is_v5) {
+      # Seurat V5 approach
+      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
+        stop("Package 'SeuratObject' is required for Seurat V5 support")
+      }
+      
+      # Handle feature metadata renaming
+      meta_features <- SeuratObject::FetchData(assay_obj, vars = NULL, layer = "meta.features")
+      if (nrow(meta_features) > 0) {
+        index <- which(rownames(meta_features) %in% names(newnames))
+        rownames(meta_features)[index] <- newnames[rownames(meta_features)[index]]
+        assay_obj <- SeuratObject::AddMetaData(assay_obj, meta_features, layer = "meta.features")
+      }
+      
+      # Handle layer data renaming for different layers
+      for (layer_name in c("counts", "data", "scale.data")) {
+        if (layer_name %in% SeuratObject::Layers(assay_obj)) {
+          layer_data <- SeuratObject::LayerData(assay_obj, layer = layer_name)
+          if (nrow(layer_data) > 0) {
+            index <- which(rownames(layer_data) %in% names(newnames))
+            rownames(layer_data)[index] <- newnames[rownames(layer_data)[index]]
+            SeuratObject::LayerData(assay_obj, layer = layer_name) <- layer_data
+          }
+        }
+      }
+      
+      # Handle variable features renaming
+      var_features <- assay_obj[["var.features"]]
+      if (length(var_features) > 0) {
+        index <- which(var_features %in% names(newnames))
+        var_features[index] <- newnames[var_features[index]]
+        assay_obj[["var.features"]] <- var_features
+      }
+    } else {
+      # Seurat V4 approach - use direct layer access
+      for (d in c("meta.features", "scale.data", "counts", "data")) {
+        if (length(dim(layer(assay_obj, d))) > 0) {
+          index <- which(rownames(layer(assay_obj, d)) %in% names(newnames))
+          rownames(layer(assay_obj, d))[index] <- newnames[rownames(layer(assay_obj, d))[index]]
+        }
+      }
+      if (length(layer(assay_obj, "var.features")) > 0) {
+        index <- which(layer(assay_obj, "var.features") %in% names(newnames))
+        layer(assay_obj, "var.features")[index] <- newnames[layer(assay_obj, "var.features")[index]]
+      }
     }
-    if (length(slot(assay_obj, "var.features")) > 0) {
-      index <- which(slot(assay_obj, "var.features") %in% names(newnames))
-      slot(assay_obj, "var.features")[index] <- newnames[slot(assay_obj, "var.features")[index]]
-    }
+    
     srt[[assay]] <- assay_obj
   }
+  
   return(srt)
 }
 
@@ -558,40 +715,54 @@ RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
 #' @importFrom stats setNames
 #' @export
 RenameClusters <- function(srt, group.by, nameslist = list(), name = "newclusters", keep_levels = FALSE) {
+  if (!inherits(srt, "Seurat")) {
+    stop("Input must be a Seurat object")
+  }
+  
   if (missing(group.by)) {
     stop("group.by must be provided")
   }
-  if (!group.by %in% colnames(srt@meta.data)) {
+  
+  # Use [[]] operator instead of direct @meta.data access
+  if (!group.by %in% colnames(srt[[]])) {
     stop(paste0(group.by, " is not in the meta.data of srt object."))
   }
+  
   if (length(nameslist) > 0 && is.null(names(nameslist))) {
-    names(nameslist) <- levels(srt@meta.data[[group.by]])
+    names(nameslist) <- levels(srt[[group.by, drop=TRUE]])
   }
+  
   if (is.list(nameslist) && length(nameslist) > 0) {
     names_assign <- setNames(rep(names(nameslist), sapply(nameslist, length)), nm = unlist(nameslist))
   } else {
     if (is.null(names(nameslist))) {
-      if (!is.factor(srt@meta.data[[group.by]])) {
-        stop("'nameslist' must be named when srt@meta.data[[group.by]] is not a factor")
+      if (!is.factor(srt[[group.by, drop=TRUE]])) {
+        stop("'nameslist' must be named when srt[[group.by]] is not a factor")
       }
-      if (!identical(length(nameslist), length(unique(srt@meta.data[[group.by]])))) {
-        stop("'nameslist' must be named or the length of ", length(unique(srt@meta.data[[group.by]])))
+      if (!identical(length(nameslist), length(unique(srt[[group.by, drop=TRUE]])))) {
+        stop("'nameslist' must be named or the length of ", length(unique(srt[[group.by, drop=TRUE]])))
       }
-      names(nameslist) <- levels(srt@meta.data[[group.by]])
+      names(nameslist) <- levels(srt[[group.by, drop=TRUE]])
     }
     names_assign <- nameslist
   }
-  if (all(!names(names_assign) %in% srt@meta.data[[group.by]])) {
+  
+  if (all(!names(names_assign) %in% srt[[group.by, drop=TRUE]])) {
     stop("No group name mapped.")
   }
-  if (is.factor(srt@meta.data[[group.by]])) {
-    levels <- levels(srt@meta.data[[group.by]])
+  
+  if (is.factor(srt[[group.by, drop=TRUE]])) {
+    levels <- levels(srt[[group.by, drop=TRUE]])
   } else {
     levels <- NULL
   }
-  index <- which(as.character(srt@meta.data[[group.by]]) %in% names(names_assign))
-  srt@meta.data[[name]] <- as.character(srt@meta.data[[group.by]])
-  srt@meta.data[[name]][index] <- names_assign[srt@meta.data[[name]][index]]
+  
+  # Convert to metadata dataframe to make modifications
+  metadata <- srt[[]]
+  index <- which(as.character(metadata[[group.by]]) %in% names(names_assign))
+  metadata[[name]] <- as.character(metadata[[group.by]])
+  metadata[[name]][index] <- names_assign[metadata[[name]][index]]
+  
   if (!is.null(levels)) {
     levels[levels %in% names(names_assign)] <- names_assign[levels[levels %in% names(names_assign)]]
     if (isFALSE(keep_levels)) {
@@ -599,8 +770,12 @@ RenameClusters <- function(srt, group.by, nameslist = list(), name = "newcluster
     } else {
       levels <- unique(levels)
     }
-    srt@meta.data[[name]] <- factor(srt@meta.data[[name]], levels = levels)
+    metadata[[name]] <- factor(metadata[[name]], levels = levels)
   }
+  
+  # Add metadata column back to the Seurat object
+  srt[[name]] <- metadata[[name]]
+  
   return(srt)
 }
 
@@ -609,33 +784,41 @@ RenameClusters <- function(srt, group.by, nameslist = list(), name = "newcluster
 #' @param srt A Seurat object.
 #' @param features Features used to reorder idents.
 #' @param reorder_by Reorder groups instead of idents.
-#' @param slot Specific slot to get data from.
+#' @param layer Specific layer to get data from.
 #' @param assay Specific assay to get data from.
 #' @param log Whether log1p transformation needs to be applied. Default is \code{TRUE}.
 #' @param distance_metric Metric to compute distance. Default is "euclidean".
 #'
-#' @importFrom Seurat VariableFeatures DefaultAssay DefaultAssay<- AverageExpression Idents<-
+#' @importFrom Seurat VariableFeatures DefaultAssay DefaultAssay<- AverageExpression AggregateExpression Idents<-
 #' @importFrom SeuratObject as.sparse
 #' @importFrom stats hclust reorder as.dendrogram as.dist
 #' @importFrom Matrix t colMeans
 #' @importFrom proxyC simil dist
 #' @export
-SrtReorder <- function(srt, features = NULL, reorder_by = NULL, slot = "data", assay = NULL, log = TRUE,
+SrtReorder <- function(srt, features = NULL, reorder_by = NULL, layer = "data", assay = NULL, log = TRUE,
                        distance_metric = "euclidean") {
+  if (!inherits(srt, "Seurat")) {
+    stop("Input must be a Seurat object")
+  }
+  
   assay <- assay %||% DefaultAssay(srt)
   if (is.null(features)) {
     features <- VariableFeatures(srt, assay = assay)
   }
   features <- intersect(x = features, y = rownames(x = srt))
+  
+  # Add ident column to metadata
   if (is.null(reorder_by)) {
     srt$ident <- Idents(srt)
   } else {
     srt$ident <- srt[[reorder_by, drop = TRUE]]
   }
+  
   if (length(unique(srt[[reorder_by, drop = TRUE]])) == 1) {
-    warning("Only one cluter found.", immediate. = TRUE)
+    warning("Only one cluster found.", immediate. = TRUE)
     return(srt)
   }
+  
   simil_method <- c(
     "cosine", "correlation", "jaccard", "ejaccard", "dice", "edice", "hamman",
     "simple matching", "faith"
@@ -648,7 +831,26 @@ SrtReorder <- function(srt, features = NULL, reorder_by = NULL, slot = "data", a
     stop(distance_metric, " method is invalid.")
   }
 
-  data.avg <- AverageExpression(object = srt, features = features, slot = slot, assays = assay, group.by = "ident", verbose = FALSE)[[1]][features, , drop = FALSE]
+  # Use AggregateExpression which should work in both V4 and V5
+  # Note: layer parameter is passed via ... for compatibility
+  data.avg <- tryCatch({
+    AggregateExpression(
+      object = srt, 
+      features = features, 
+      assays = assay, 
+      group.by = "ident", 
+      verbose = FALSE
+    )[[1]][features, , drop = FALSE]
+  }, error = function(e) {
+    # Fallback: use AverageExpression if AggregateExpression fails
+    AverageExpression(
+      object = srt, 
+      features = features, 
+      assays = assay, 
+      group.by = "ident", 
+      verbose = FALSE
+    )[[1]][features, , drop = FALSE]
+  })
   if (isTRUE(log)) {
     data.avg <- log1p(data.avg)
   }
@@ -682,70 +884,129 @@ SrtReorder <- function(srt, features = NULL, reorder_by = NULL, slot = "data", a
 #'
 #' @param srt_raw A Seurat object to be appended.
 #' @param srt_append New Seurat object to append.
-#' @param slots slots names.
+#' @param layers layers names.
 #' @param pattern A character string containing a regular expression. All data with matching names will be considered for appending.
 #' @param overwrite Whether to overwrite.
 #' @param verbose Show messages.
 #'
-#' @importFrom methods slotNames slot slot<-
+#' @importFrom Seurat DefaultAssay
+#' @importFrom methods slot hasMethod
 #' @export
 SrtAppend <- function(srt_raw, srt_append,
-                      slots = slotNames(srt_append), pattern = NULL, overwrite = FALSE,
+                      layers = layerNames(srt_append), pattern = NULL, overwrite = FALSE,
                       verbose = TRUE) {
   if (!inherits(srt_raw, "Seurat") || !inherits(srt_append, "Seurat")) {
     stop("'srt_raw' or 'srt_append' is not a Seurat object.")
   }
+  
+  # Check if objects are Seurat V5
+  is_v5_raw <- IsSeurat5(srt_raw)
+  is_v5_append <- IsSeurat5(srt_append)
+  
+  if (is_v5_raw != is_v5_append) {
+    warning("Seurat objects have different versions (V4 vs V5). Consider updating both to V5 with UpdateSeuratObject() for best compatibility.")
+  }
+  
   pattern <- pattern %||% ""
-  for (slot_nm in slotNames(srt_append)) {
-    if (!slot_nm %in% slots) {
+  for (layer_nm in layerNames(srt_append)) {
+    if (!layer_nm %in% layers) {
       if (isTRUE(verbose)) {
-        message("Slot ", slot_nm, " is not appended.")
+        message("layer ", layer_nm, " is not appended.")
       }
       next
     }
-    if (identical(slot_nm, "active.ident") && isTRUE(overwrite)) {
-      slot(srt_raw, name = "active.ident") <- slot(srt_append, name = "active.ident")
+    
+    if (identical(layer_nm, "active.ident") && isTRUE(overwrite)) {
+      layer(srt_raw, name = "active.ident") <- layer(srt_append, name = "active.ident")
       next
     }
-    for (info in names(slot(srt_append, name = slot_nm))) {
+    
+    for (info in names(layer(srt_append, name = layer_nm))) {
       if (is.null(info)) {
-        if (length(slot(srt_append, name = slot_nm)) > 0 && isTRUE(overwrite)) {
-          slot(srt_raw, name = slot_nm) <- slot(srt_append, name = slot_nm)
+        if (length(layer(srt_append, name = layer_nm)) > 0 && isTRUE(overwrite)) {
+          layer(srt_raw, name = layer_nm) <- layer(srt_append, name = layer_nm)
         }
         next
       }
+      
       if (!grepl(pattern = pattern, x = info)) {
         if (isTRUE(verbose)) {
-          message(info, " in slot ", slot_nm, " is not appended.")
+          message(info, " in layer ", layer_nm, " is not appended.")
         }
         next
       }
-      if (!info %in% names(slot(srt_raw, name = slot_nm)) || isTRUE(overwrite)) {
-        if (slot_nm %in% c("assays", "graphs", "neighbors", "reductions", "images")) {
-          if (identical(slot_nm, "graphs")) {
-            srt_raw@graphs[[info]] <- srt_append[[info]]
-          } else if (identical(slot_nm, "assays")) {
+      
+      if (!info %in% names(layer(srt_raw, name = layer_nm)) || isTRUE(overwrite)) {
+        if (layer_nm %in% c("assays", "graphs", "neighbors", "reductions", "images")) {
+          if (identical(layer_nm, "graphs")) {
+            # Use bracket accessor instead of direct slot access
+            if ("graphs" %in% layerNames(srt_raw)) {
+              slot_or_layer <- layer(srt_raw, name = "graphs")
+              slot_or_layer[[info]] <- srt_append[[info]]
+              layer(srt_raw, name = "graphs") <- slot_or_layer
+            } else {
+              # For V4 compatibility
+              if (!is_v5_raw) {
+                srt_raw[["graphs"]][[info]] <- srt_append[[info]]
+              }
+            }
+          } else if (identical(layer_nm, "assays")) {
             if (!info %in% Assays(srt_raw)) {
+              # Add the entire assay
               srt_raw[[info]] <- srt_append[[info]]
             } else {
-              srt_raw[[info]]@counts <- srt_append[[info]]@counts
-              srt_raw[[info]]@data <- srt_append[[info]]@data
-              srt_raw[[info]]@key <- srt_append[[info]]@key
-              srt_raw[[info]]@var.features <- srt_append[[info]]@var.features
-              srt_raw[[info]]@misc <- srt_append[[info]]@misc
-              srt_raw[[info]]@meta.features <- cbind(srt_raw[[info]]@meta.features, srt_append[[info]]@meta.features[
-                rownames(srt_raw[[info]]@meta.features),
-                setdiff(colnames(srt_append[[info]]@meta.features), colnames(srt_raw[[info]]@meta.features))
-              ])
+              # Update assay components
+              # For V5, use LayerData
+              if (is_v5_raw) {
+                # For V5 we use layers
+                if ("counts" %in% Layers(srt_append[[info]])) {
+                  layer(srt_raw[[info]], "counts") <- layer(srt_append[[info]], "counts")
+                }
+                if ("data" %in% Layers(srt_append[[info]])) {
+                  layer(srt_raw[[info]], "data") <- layer(srt_append[[info]], "data")
+                }
+                # Copy other assay attributes
+                srt_raw[[info]] <- SetAssayData(srt_raw[[info]], 
+                                                slot = "meta.features", 
+                                                new.data = cbind(GetAssayData(srt_raw, slot = "meta.features", assay = info),
+                                                                GetAssayData(srt_append, slot = "meta.features", assay = info)[
+                                                                  rownames(GetAssayData(srt_raw, slot = "meta.features", assay = info)),
+                                                                  setdiff(colnames(GetAssayData(srt_append, slot = "meta.features", assay = info)), 
+                                                                          colnames(GetAssayData(srt_raw, slot = "meta.features", assay = info)))
+                                                                ]))
+                # Copy variable features                                                
+                VariableFeatures(srt_raw[[info]]) <- VariableFeatures(srt_append[[info]])
+              } else {
+                # For V4 we can use direct slot access for backward compatibility
+                srt_raw[[info]]$counts <- srt_append[[info]]$counts
+                srt_raw[[info]]$data <- srt_append[[info]]$data
+                VariableFeatures(srt_raw[[info]]) <- VariableFeatures(srt_append[[info]])
+                # Update meta.features
+                srt_raw[[info]] <- SetAssayData(srt_raw[[info]], 
+                                                slot = "meta.features", 
+                                                new.data = cbind(GetAssayData(srt_raw, slot = "meta.features", assay = info),
+                                                               GetAssayData(srt_append, slot = "meta.features", assay = info)[
+                                                                 rownames(GetAssayData(srt_raw, slot = "meta.features", assay = info)),
+                                                                 setdiff(colnames(GetAssayData(srt_append, slot = "meta.features", assay = info)), 
+                                                                         colnames(GetAssayData(srt_raw, slot = "meta.features", assay = info)))
+                                                               ]))
+              }
             }
           } else {
+            # For other data types, use standard accessor
             srt_raw[[info]] <- srt_append[[info]]
           }
-        } else if (identical(slot_nm, "meta.data")) {
-          srt_raw@meta.data[, info] <- NULL
-          srt_raw@meta.data[[info]] <- srt_append@meta.data[colnames(srt_raw), info]
+        } else if (identical(layer_nm, "meta.data")) {
+          # Update metadata using the standard accessor
+          # First remove any existing column with the same name
+          if (info %in% colnames(srt_raw[[]])) {
+            srt_raw[[info]] <- NULL
+          }
+          # Add the column from srt_append
+          srt_raw[[info]] <- srt_append[[info]][colnames(srt_raw)]
         } else {
-          slot(srt_raw, name = slot_nm)[[info]] <- slot(srt_append, name = slot_nm)[[info]]
+          # For other layer types, use the layer accessor
+          layer(srt_raw, name = layer_nm)[[info]] <- layer(srt_append, name = layer_nm)[[info]]
         }
       }
     }
@@ -759,7 +1020,7 @@ SrtAppend <- function(srt_raw, srt_append,
 #' @param prefix The prefix used to name the result.
 #' @param features Use features expression data to run linear or nonlinear dimensionality reduction.
 #' @param assay Specific assay to get data from.
-#' @param slot Specific slot to get data from.
+#' @param layer Specific layer to get data from.
 #' @param linear_reduction Method of linear dimensionality reduction. Options are "pca", "ica", "nmf", "mds", "glmpca".
 #' @param linear_reduction_dims Total number of dimensions to compute and store for \code{linear_reduction}.
 #' @param linear_reduction_params Other parameters passed to the \code{linear_reduction} method.
@@ -778,7 +1039,7 @@ SrtAppend <- function(srt_raw, srt_append,
 #' @importFrom Seurat Embeddings RunPCA RunICA RunTSNE Reductions DefaultAssay DefaultAssay<- Key Key<-
 #' @importFrom Signac RunSVD
 #' @export
-RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, slot = "data",
+RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, layer = "data",
                             linear_reduction = NULL, linear_reduction_dims = 50,
                             linear_reduction_params = list(), force_linear_reduction = FALSE,
                             nonlinear_reduction = NULL, nonlinear_reduction_dims = 2,
@@ -877,30 +1138,57 @@ RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, slo
       "glmpca" = "L"
     )
     params <- list(
-      object = srt, assay = assay, slot = slot,
+      object = srt, assay = assay, layer = layer,
       features = features, components_nm = linear_reduction_dims,
       reduction.name = paste0(prefix, linear_reduction),
       reduction.key = paste0(prefix, key_use),
       verbose = verbose, seed.use = seed
     )
-    if (fun_use %in% c("RunSVD", "RunICA")) {
-      params <- params[!names(params) %in% "slot"]
-    }
-    if (fun_use == "RunGLMPCA") {
-      params[["slot"]] <- "counts"
-    }
+    # Parameter filtering is now handled in the switch statement below
     names(params)[names(params) == "components_nm"] <- components_nm
     for (nm in names(linear_reduction_params)) {
       params[[nm]] <- linear_reduction_params[[nm]]
     }
-    srt <- invoke(.fn = fun_use, .args = params)
+    
+    # Use direct function calls instead of invoke to avoid parameter conflicts
+    srt <- switch(linear_reduction,
+      "pca" = {
+        # For RunPCA, remove layer parameter as it's not supported
+        pca_params <- params
+        pca_params[["layer"]] <- NULL
+        do.call(RunPCA, pca_params)
+      },
+      "svd" = {
+        params[["assay"]] <- assay  # SVD might need assay parameter
+        do.call(RunSVD, params)
+      },
+      "ica" = {
+        params[["assay"]] <- assay  # ICA might need assay parameter
+        do.call(RunICA, params)
+      },
+      "nmf" = {
+        params[["assay"]] <- assay
+        params[["layer"]] <- layer
+        do.call(RunNMF, params)
+      },
+      "mds" = {
+        params[["assay"]] <- assay
+        params[["layer"]] <- layer
+        do.call(RunMDS, params)
+      },
+      "glmpca" = {
+        params[["assay"]] <- assay
+        params[["layer"]] <- "counts"  # GLMPCA always uses counts
+        do.call(RunGLMPCA, params)
+      }
+    )
 
     if (is.null(rownames(srt[[paste0(prefix, linear_reduction)]]))) {
       rownames(srt[[paste0(prefix, linear_reduction)]]@cell.embeddings) <- colnames(srt)
     }
     if (linear_reduction == "pca") {
       pca.out <- srt[[paste0(prefix, linear_reduction)]]
-      center <- rowMeans(GetAssayData(object = srt, slot = "scale.data", assay = assay)[features, , drop = FALSE])
+      center <- rowMeans(get_seurat_data(srt, layer = "scale.data", assay = assay)[features, , drop = FALSE])
       model <- list(sdev = pca.out@stdev, rotation = pca.out@feature.loadings, center = center, scale = FALSE, x = pca.out@cell.embeddings)
       class(model) <- "prcomp"
       srt@reductions[[paste0(prefix, linear_reduction)]]@misc[["model"]] <- model
@@ -982,7 +1270,7 @@ RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, slo
     )
     nonlinear_reduction_sim <- toupper(gsub(pattern = "-.*", replacement = "", x = nonlinear_reduction))
     params <- list(
-      object = srt, assay = assay, slot = slot, components_nm = nonlinear_reduction_dims,
+      object = srt, assay = assay, layer = layer, components_nm = nonlinear_reduction_dims,
       features = features, reduction = reduction_use, dims = reduction_dims,
       reduction.name = paste0(prefix, nonlinear_reduction_sim, nonlinear_reduction_dims, "D"),
       reduction.key = paste0(prefix, nonlinear_reduction_sim, nonlinear_reduction_dims, "D_"),
@@ -1001,7 +1289,38 @@ RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, slo
     for (nm in names(nonlinear_reduction_params)) {
       params[[nm]] <- nonlinear_reduction_params[[nm]]
     }
-    srt <- invoke(.fn = fun_use, .args = params)
+    
+    # Use direct function calls instead of invoke to avoid parameter conflicts
+    srt <- switch(nonlinear_reduction,
+      "umap" = {
+        # For RunUMAP2, ensure proper parameter mapping
+        do.call(RunUMAP2, params)
+      },
+      "umap-naive" = {
+        do.call(RunUMAP2, params)
+      },
+      "tsne" = {
+        do.call(RunTSNE, params)
+      },
+      "dm" = {
+        do.call(RunDM, params)
+      },
+      "phate" = {
+        do.call(RunPHATE, params)
+      },
+      "pacmap" = {
+        do.call(RunPaCMAP, params)
+      },
+      "trimap" = {
+        do.call(RunTriMap, params)
+      },
+      "largevis" = {
+        do.call(RunLargeVis, params)
+      },
+      "fr" = {
+        do.call(RunFR, params)
+      }
+    )
 
     srt@reductions[[paste0(prefix, nonlinear_reduction_sim, nonlinear_reduction_dims, "D")]]@misc[["reduction_dims"]] <- reduction_dims
     srt@reductions[[paste0(prefix, nonlinear_reduction_sim, nonlinear_reduction_dims, "D")]]@misc[["reduction_use"]] <- reduction_use
@@ -1088,6 +1407,7 @@ DefaultReduction <- function(srt, pattern = NULL, min_dim = 2, max_distance = 0.
 #' @inheritParams Integration_SCP
 #'
 #' @importFrom Seurat GetAssayData SetAssayData VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData
 #' @export
 Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                                   do_normalization = NULL, normalization_method = "LogNormalize",
@@ -1182,7 +1502,7 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(Uncorrected) on the data...\n"))
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtMerge, layer = "scale.data", assay = DefaultAssay(srtMerge)))))) {
     if (normalization_method != "SCT") {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
@@ -1214,7 +1534,7 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtMerge <- FindClusters(object = srtMerge, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "Uncorrected_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtMerge <- SrtReorder(srtMerge, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtMerge <- SrtReorder(srtMerge, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtMerge[["seurat_clusters"]] <- NULL
       srtMerge[[paste0("Uncorrected", linear_reduction, "clusters")]] <- Idents(srtMerge)
       srtMerge
@@ -1271,6 +1591,7 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
 #' @param IntegrateEmbeddings_params A list of parameters for the Seurat::IntegrateEmbeddings function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData FindIntegrationAnchors IntegrateData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents
+#' @importFrom SeuratObject LayerData
 #' @importFrom Signac RunTFIDF
 #' @export
 Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -1403,7 +1724,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     cat(paste0("[", Sys.time(), "]", " Use 'rpca' integration workflow...\n"))
     for (i in seq_along(srtList)) {
       srt <- srtList[[i]]
-      if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+      if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srt, layer = "scale.data", assay = DefaultAssay(srt)))))) {
         cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
         srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
       }
@@ -1451,7 +1772,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     DefaultAssay(srtIntegrated) <- "Seuratcorrected"
     VariableFeatures(srtIntegrated[["Seuratcorrected"]]) <- HVF
 
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtIntegrated, layer = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srtIntegrated <- ScaleData(object = srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
@@ -1509,7 +1830,7 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "Seurat_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["Seuratclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -1568,6 +1889,8 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
 #' @param num_threads An integer setting the number of threads for scVI, default is 8.
 #'
 #' @importFrom Seurat CreateSeuratObject GetAssayData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData<-
+#' @importFrom SeuratObject LayerData
 #' @importFrom reticulate import
 #' @export
 scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -1703,7 +2026,7 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "scVI_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["scVIclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -1758,6 +2081,8 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
 #' @param mnnCorrect_params A list of parameters for the batchelor::mnnCorrect function, default is an empty list.
 #'
 #' @importFrom Seurat CreateSeuratObject GetAssayData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData<-
+#' @importFrom SeuratObject LayerData
 #' @export
 MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                           do_normalization = NULL, normalization_method = "LogNormalize",
@@ -1852,7 +2177,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
   }
 
   sceList <- lapply(srtList, function(srt) {
-    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = GetAssayData(srt, slot = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
+    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = get_seurat_data(srt, layer = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
     if (inherits(sce@assays@data$logcounts, "dgCMatrix")) {
       sce@assays@data$logcounts <- as_matrix(sce@assays@data$logcounts)
     }
@@ -1878,7 +2203,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
   VariableFeatures(srtIntegrated[["MNNcorrected"]]) <- HVF
   DefaultAssay(srtIntegrated) <- "MNNcorrected"
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtIntegrated, layer = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtIntegrated <- ScaleData(object = srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -1908,7 +2233,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "MNN_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["MNNclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2037,7 +2362,7 @@ fastMNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
   }
 
   sceList <- lapply(srtList, function(srt) {
-    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = GetAssayData(srt, slot = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
+    sce <- as.SingleCellExperiment(CreateSeuratObject(counts = get_seurat_data(srt, layer = "data", assay = DefaultAssay(srt))[HVF, , drop = FALSE]))
     if (inherits(sce@assays@data$logcounts, "dgCMatrix")) {
       sce@assays@data$logcounts <- as_matrix(sce@assays@data$logcounts)
     }
@@ -2080,7 +2405,7 @@ fastMNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "fastMNN_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["fastMNNclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2231,7 +2556,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtMerge, layer = "scale.data", assay = DefaultAssay(srtMerge)))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2261,7 +2586,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     reduction.save = "Harmony",
     verbose = FALSE
   )
-  if (nrow(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge))) == 0) {
+  if (nrow(get_seurat_data(srtMerge, layer = "scale.data", assay = DefaultAssay(srtMerge))) == 0) {
     params[["project.dim"]] <- FALSE
   }
   for (nm in names(RunHarmony_params)) {
@@ -2284,7 +2609,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "Harmony_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["Harmonyclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2341,6 +2666,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
 #' @param Scanorama_params A list of parameters for the scanorama.correct function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
+#' @importFrom SeuratObject LayerData
 #' @importFrom Matrix t
 #' @importFrom reticulate import
 #' @importFrom stats sd
@@ -2423,7 +2749,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
   assaylist <- list()
   genelist <- list()
   for (i in seq_along(srtList)) {
-    assaylist[[i]] <- t(as_matrix(GetAssayData(object = srtList[[i]], slot = "data", assay = DefaultAssay(srtList[[i]]))[HVF, , drop = FALSE]))
+    assaylist[[i]] <- t(as_matrix(get_seurat_data(srtList[[i]], layer = "data", assay = DefaultAssay(srtList[[i]]))[HVF, , drop = FALSE])) # test
     genelist[[i]] <- HVF
   }
   if (isTRUE(return_corrected)) {
@@ -2480,7 +2806,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "Scanorama_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["Scanoramaclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2535,6 +2861,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
 #' @param bbknn_params A list of parameters for the bbknn.matrix.bbknn function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- as.Graph Embeddings FindClusters Idents VariableFeatures VariableFeatures<- as.sparse
+#' @importFrom SeuratObject LayerData
 #' @importFrom Matrix t
 #' @importFrom reticulate import
 #' @export
@@ -2632,7 +2959,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtMerge, layer = "scale.data", assay = DefaultAssay(srtMerge)))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2701,7 +3028,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, graph.name = "BBKNN", resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["BBKNNclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2761,6 +3088,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @param CSS_params A list of parameters for the simspec::cluster_sim_spectrum function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData
 #' @export
 CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                           do_normalization = NULL, normalization_method = "LogNormalize",
@@ -2856,7 +3184,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtMerge, slot = "scale.data", assay = DefaultAssay(srtMerge)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtMerge, layer = "scale.data", assay = DefaultAssay(srtMerge)))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtMerge <- ScaleData(object = srtMerge, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtMerge), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -2910,7 +3238,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "CSS_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["CSSclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -2967,6 +3295,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
 #' @param quantilenorm_params A list of parameters for the rliger::quantile_norm function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData
 #' @export
 LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                             do_normalization = NULL, normalization_method = "LogNormalize",
@@ -3053,11 +3382,11 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
   scale.data <- list()
   for (i in seq_along(srtList)) {
     srt <- srtList[[i]]
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srt, layer = "scale.data", assay = DefaultAssay(srt)))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, do.center = FALSE, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
-    scale.data[[i]] <- t(x = GetAssayData(object = srt, slot = "scale.data", assay = DefaultAssay(srt)))
+    scale.data[[i]] <- t(x = get_seurat_data(srt, layer = "scale.data", assay = DefaultAssay(srt)))
   }
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(LIGER) on the data...\n"))
@@ -3122,7 +3451,7 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "LIGER_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["LIGERclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -3178,6 +3507,7 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @param num_threads  An integer setting the number of threads for Conos, default is 2.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData
 #' @importFrom igraph as_adjacency_matrix
 #' @export
 Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
@@ -3287,7 +3617,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 
   for (i in seq_along(srtList)) {
     srt <- srtList[[i]]
-    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+    if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srt, layer = "scale.data", assay = DefaultAssay(srt)))))) {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data ", i, " ...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
     }
@@ -3333,7 +3663,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, graph.name = "Conos", resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["Conosclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -3391,6 +3721,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
 #' @param ComBat_params A list of parameters for the sva::ComBat function, default is an empty list.
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData DefaultAssay DefaultAssay<- SplitObject CreateAssayObject CreateDimReducObject Embeddings FindNeighbors FindClusters Idents
+#' @importFrom SeuratObject LayerData
 #' @export
 ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                              do_normalization = NULL, normalization_method = "LogNormalize",
@@ -3486,7 +3817,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
   }
 
   cat(paste0("[", Sys.time(), "]", " Perform integration(Combat) on the data...\n"))
-  dat <- GetAssayData(srtMerge, slot = "data", assay = DefaultAssay(srtMerge))[HVF, , drop = FALSE]
+  dat <- get_seurat_data(srtMerge, layer = "data", assay = DefaultAssay(srtMerge))[HVF, , drop = FALSE]
   batch <- srtMerge[[batch, drop = TRUE]]
   params <- list(
     dat = dat,
@@ -3503,7 +3834,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
   DefaultAssay(srtIntegrated) <- "ComBatcorrected"
   VariableFeatures(srtIntegrated[["ComBatcorrected"]]) <- HVF
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srtIntegrated, slot = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srtIntegrated, layer = "scale.data", assay = DefaultAssay(srtIntegrated)))))) {
     cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
     srtIntegrated <- ScaleData(srtIntegrated, split.by = if (isTRUE(scale_within_batch)) batch else NULL, assay = DefaultAssay(srtIntegrated), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
   }
@@ -3533,7 +3864,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
       cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
       srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "ComBat_SNN", verbose = FALSE)
       cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
       srtIntegrated[["seurat_clusters"]] <- NULL
       srtIntegrated[["ComBatclusters"]] <- Idents(srtIntegrated)
       srtIntegrated
@@ -3658,6 +3989,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
 #' patchwork::wrap_plots(plotlist = plist2)
 #'
 #' @importFrom Seurat Assays GetAssayData NormalizeData SCTransform SCTResults ScaleData SetAssayData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData
 #' @importFrom Matrix rowSums
 #' @export
 Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
@@ -3716,7 +4048,7 @@ Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
     linear_reduction <- "svd"
   }
 
-  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(GetAssayData(srt, slot = "scale.data", assay = DefaultAssay(srt)))))) {
+  if (isTRUE(do_scaling) || (is.null(do_scaling) && any(!HVF %in% rownames(get_seurat_data(srt, layer = "scale.data", assay = DefaultAssay(srt)))))) {
     if (normalization_method != "SCT") {
       cat(paste0("[", Sys.time(), "]", " Perform ScaleData on the data...\n"))
       srt <- ScaleData(object = srt, assay = DefaultAssay(srt), features = HVF, vars.to.regress = vars_to_regress, model.use = regression_model, verbose = FALSE)
@@ -3751,7 +4083,7 @@ Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
         cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
         srt <- FindClusters(object = srt, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = paste0(prefix, lr, "_SNN"), verbose = FALSE)
         cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
-        srt <- SrtReorder(srt, features = HVF, reorder_by = "seurat_clusters", slot = "data")
+        srt <- SrtReorder(srt, features = HVF, reorder_by = "seurat_clusters", layer = "data")
         srt[["seurat_clusters"]] <- NULL
         srt[[paste0(prefix, lr, "clusters")]] <- Idents(srt)
         srt

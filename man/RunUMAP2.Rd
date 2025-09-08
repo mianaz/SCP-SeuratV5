@@ -16,7 +16,7 @@ RunUMAP2(object, ...)
   neighbor = NULL,
   graph = NULL,
   assay = NULL,
-  slot = "data",
+  layer = "data",
   umap.method = "uwot",
   reduction.model = NULL,
   n_threads = NULL,
@@ -84,7 +84,7 @@ RunUMAP2(object, ...)
 
 \item{assay}{A character string specifying the assay to be used. Default is NULL.}
 
-\item{slot}{A character string specifying the slot name to be used. Default is "data".}
+\item{layer}{A character string specifying the layer name to be used. Default is "data".}
 
 \item{umap.method}{A character string specifying the UMAP method to be used. Options are "naive" and uwot". Default is "uwot".}
 

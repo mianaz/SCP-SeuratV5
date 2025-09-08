@@ -6,7 +6,7 @@
 \alias{lifemap_organ}
 \title{Embryonic Development Database from LifeMap Discovery}
 \source{
-\url{https://discovery.lifemapsc.com/in-vivo-development/cellular}
+\url{https://www.lifemapsc.com/}
 }
 \usage{
 lifemap_cell

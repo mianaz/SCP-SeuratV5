@@ -70,7 +70,7 @@ RunPAGA(
 
 \item{embedded_with_PAGA}{Whether to embed data using PAGA layout. Default is FALSE.}
 
-\item{paga_layout}{The layout for plotting PAGA graph. See See \href{https://scanpy.readthedocs.io/en/stable/generated/scanpy.pl.paga.html}{layout} param in scanpy.pl.paga function.}
+\item{paga_layout}{The layout for plotting PAGA graph. See \href{https://scanpy.readthedocs.io/en/stable/api/scanpy.pl.paga.html}{layout} param in scanpy.pl.paga function.}
 
 \item{threshold}{The threshold for plotting PAGA graph. Edges for weights below this threshold will not draw.}
 

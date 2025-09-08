@@ -2,36 +2,31 @@
 % Please edit documentation in R/utils.R
 \name{PrepareEnv}
 \alias{PrepareEnv}
-\title{This function prepares the SCP Python environment by installing the required dependencies and setting up the environment.}
+\title{Install the SCP python environment}
 \usage{
 PrepareEnv(
-  conda = "auto",
-  miniconda_repo = "https://repo.anaconda.com/miniconda",
-  envname = NULL,
-  version = "3.8-1",
+  method = "auto",
+  pip = FALSE,
+  user = FALSE,
   force = FALSE,
-  ...
+  update = "all",
+  python_version = "3.10"
 )
 }
 \arguments{
-\item{conda}{The path to a conda executable. Use \code{"auto"} to allow SCP to automatically find an appropriate conda binary.}
+\item{method}{Installation method. By default, "auto" automatically find a method that will work in the local environment. Change the default to force a specific installation method. Note that the "virtualenv" method is not available on Windows.}
 
-\item{miniconda_repo}{Repositories for miniconda. Default is \code{https://repo.anaconda.com/miniconda}}
+\item{pip}{Whether to use pip for installing packages. This is only relevant when `conda = "auto".}
 
-\item{envname}{The name of a conda environment.}
+\item{user}{Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager. This is only relevant when `pip = TRUE`.}
 
-\item{version}{A character vector specifying the version of the environment (default is "3.8-1").}
+\item{force}{Force reinstall the SCP python environment.}
 
-\item{force}{Whether to force a new environment to be created. If \code{TRUE}, the existing environment will be recreated. Default is \code{FALSE}}
+\item{update}{Whether to update packages that already exist within the environment. Note that this parameter is only supported on Conda package manager. The available options are "default", "all", and "selected". "default" only updates the selected packages to the latest versions specified. "all" Update all packages in the environment. An alternative is "selected" to update selected packages to the latest versions while leaving all other packages. within the environment alone.}
 
-\item{...}{Other arguments passed to \code{\link[reticulate]{conda_install}}}
+\item{python_version}{Python version to use for the SCP environment. Default is "3.10".}
 }
 \description{
-This function prepares the SCP Python environment by installing the required dependencies and setting up the environment.
-}
-\details{
-This function prepares the SCP Python environment by checking if conda is installed, creating a new conda environment if needed, installing the required packages, and setting up the Python environment for use with SCP.
-In order to create the environment, this function requires the path to the conda binary. If \code{conda} is set to \code{"auto"}, it will attempt to automatically find the conda binary.
-If a conda environment with the specified name already exists and \code{force} is set to \code{FALSE}, the function will use the existing environment. If \code{force} set to \code{TRUE}, the existing environment will be recreated. Note that recreating the environment will remove any existing data in the environment.
-The function also checks if the package versions in the environment meet the requirements specified by the \code{version} parameter. The default is \code{3.8-1}.
+Install all python packages in the SCP environment automatically. The environment will be created
+using a Conda environment.
 }

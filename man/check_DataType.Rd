@@ -4,14 +4,14 @@
 \alias{check_DataType}
 \title{Check and report the type of data}
 \usage{
-check_DataType(srt, data = NULL, slot = "data", assay = NULL)
+check_DataType(srt, data = NULL, layer = "data", assay = NULL)
 }
 \arguments{
 \item{srt}{An object of class 'Seurat'.}
 
 \item{data}{The input data. If not provided, it will be extracted from the the 'srt' object.}
 
-\item{slot}{The slot in the 'srt' object from which to extract the data. Default is "data".}
+\item{layer}{The layer in the 'srt' object from which to extract the data. Default is "data".}
 
 \item{assay}{The assay to extract the data from. If not provided, the default assay will be used.}
 }
@@ -19,5 +19,6 @@ check_DataType(srt, data = NULL, slot = "data", assay = NULL)
 A string indicating the type of data. Possible values are: "raw_counts", "log_normalized_counts", "raw_normalized_counts", or "unknown".
 }
 \description{
-This function checks the type of data and returns a string indicating the type of data. It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
+This function checks the type of data and returns a string indicating the type of data. 
+It checks for the presence of infinite values, negative values, and whether the values are floats or integers.
 }

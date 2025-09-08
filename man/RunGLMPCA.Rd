@@ -12,7 +12,7 @@ RunGLMPCA(object, ...)
 \method{RunGLMPCA}{Seurat}(
   object,
   assay = NULL,
-  slot = "counts",
+  layer = "counts",
   features = NULL,
   L = 5,
   fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
@@ -29,7 +29,7 @@ RunGLMPCA(object, ...)
 \method{RunGLMPCA}{Assay}(
   object,
   assay = NULL,
-  slot = "counts",
+  layer = "counts",
   features = NULL,
   L = 5,
   fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
@@ -45,7 +45,7 @@ RunGLMPCA(object, ...)
 \method{RunGLMPCA}{default}(
   object,
   assay = NULL,
-  slot = "counts",
+  layer = "counts",
   features = NULL,
   L = 5,
   fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
@@ -65,7 +65,7 @@ RunGLMPCA(object, ...)
 
 \item{assay}{A character string specifying the assay to be used for the analysis. Default is NULL.}
 
-\item{slot}{A character string specifying the slot name to be used for the analysis. Default is "counts".}
+\item{layer}{A character string specifying the layer name to be used for the analysis. Default is "counts".}
 
 \item{features}{A character vector specifying the features to be used for the analysis. Default is NULL, which uses all variable features.}
 
