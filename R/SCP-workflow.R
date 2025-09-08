@@ -433,7 +433,7 @@ check_srtMerge <- function(srtMerge, batch = NULL, assay = NULL,
   if (check_v5) {
     tryCatch({
       seurat_version <- packageVersion("Seurat")
-      is_v5_installed <- as.numeric(seurat_version) >= 5
+      is_v5_installed <- as.numeric(strsplit(as.character(seurat_version), "\\.")[[1]][1]) >= 5
       
       if (is_v5_installed) {
         # Check if object is V4 and needs conversion

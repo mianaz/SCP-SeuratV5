@@ -112,7 +112,7 @@ check_critical_dependencies <- function() {
     if (requireNamespace("Seurat", quietly = TRUE)) {
       # Verify the Seurat version
       seurat_version <- packageVersion("Seurat")
-      is_v5 <- as.numeric(seurat_version) >= 5
+      is_v5 <- as.numeric(strsplit(as.character(seurat_version), "\\.")[[1]][1]) >= 5
       
       if (!is_v5) {
         packageStartupMessage(

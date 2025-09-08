@@ -438,6 +438,24 @@ replicate_n <- function(x, n) {
   }
 }
 
+#' Invoke a function with a list of arguments
+#'
+#' This is a utility function to call a function with arguments provided as a list.
+#' Similar to do.call but with more flexibility for parameter handling.
+#'
+#' @param .fn Function to call, can be a function object or function name as string
+#' @param .args List of arguments to pass to the function
+#' @param ... Additional arguments passed to the function
+#' @return Result of the function call
+#' @export
+invoke <- function(.fn, .args = list(), ...) {
+  if (is.character(.fn)) {
+    .fn <- get(.fn)
+  }
+  args <- modifyList(.args, list(...))
+  do.call(.fn, args)
+}
+
 
 SCP_present <- function() {
   envs <- conda_list()
