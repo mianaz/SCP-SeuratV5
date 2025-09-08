@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,103 +111,14 @@
 <span class="r-in"><span><span class="va">srt_ref</span> <span class="op">&lt;-</span> <span class="va">panc8_sub</span><span class="op">[</span>, <span class="va">panc8_sub</span><span class="op">$</span><span class="va">tech</span> <span class="op">!=</span> <span class="st">"fluidigmc1"</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">srt_query</span> <span class="op">&lt;-</span> <span class="va">panc8_sub</span><span class="op">[</span>, <span class="va">panc8_sub</span><span class="op">$</span><span class="va">tech</span> <span class="op">==</span> <span class="st">"fluidigmc1"</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">srt_ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="Integration_SCP.html">Integration_SCP</a></span><span class="op">(</span><span class="va">srt_ref</span>, batch <span class="op">=</span> <span class="st">"tech"</span>, integration_method <span class="op">=</span> <span class="st">"CSS"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:00:42.539613] Start CSS_integrate</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Install package: "simspec" ...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 'getOption("repos")' replaces Bioconductor standard repositories, see 'help("repositories", package = "BiocManager")'</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Replacement repositories:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     CRAN: https://cran.rstudio.com</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Bioconductor version 3.21 (BiocManager 1.30.26), R 4.5.1 (2025-06-13)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Installing package(s) 'BiocVersion'</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Installing github package(s) 'quadbiolab/simspec'</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>package ‘quadbiolab/simspec’ is not available for this version of R</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> A version of this package for your version of R might be available elsewhere,</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> see the ideas at</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://cran.r-project.org/doc/manuals/r-patched/R-admin.html#Installing-packages</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Using github PAT from envvar GITHUB_PAT. Use `gitcreds::gitcreds_set()` and unset GITHUB_PAT in .Renviron (or elsewhere) if you want to use the more secure git credential store instead.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Downloading GitHub repo quadbiolab/simspec@HEAD</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="color: #00BBBB;">R CMD build</span> <span style="color: #00BBBB;">─────────────────────────────────────────────────────────────────────────────────────────────────────────</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * checking for file ‘/tmp/Rtmpwn9T6U/remotes25a06a12d44b/quadbio-simspec-f4c87bf/DESCRIPTION’ ... OK</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * preparing ‘simspec’:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * checking DESCRIPTION meta-information ... OK</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * checking for LF line-endings in source and make files and shell scripts</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * checking for empty or unneeded directories</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Omitted ‘LazyData’ from DESCRIPTION</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> * building ‘simspec_0.0.0.9000.tar.gz’</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Installing package into ‘/home/runner/work/_temp/Library’</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> (as ‘lib’ is unspecified)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Install package: "qlcMatrix" ...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 'getOption("repos")' replaces Bioconductor standard repositories, see 'help("repositories", package = "BiocManager")'</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> for details.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Replacement repositories:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     CRAN: https://cran.rstudio.com</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Bioconductor version 3.21 (BiocManager 1.30.26), R 4.5.1 (2025-06-13)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Installing package(s) 'qlcMatrix'</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> also installing the dependencies ‘sparsesvd’, ‘docopt’</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:00.433363] Spliting srtMerge into srtList by column tech... ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:00.61851] Checking srtList... ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/4 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/4 of the srtList...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/4 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/4 of the srtList...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/4 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/4 of the srtList...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/4 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/4 of the srtList...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:03.051851] Finished checking.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:03.617427] Perform ScaleData on the data...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:03.799389] Perform linear dimension reduction (pca) on the data...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:04.174068] Perform integration(CSS) on the data...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> CSS integration using Reduction(CSSpca, dims:1-10) as input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: Seurat</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: SeuratObject</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: sp</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘sp’</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following object is masked from ‘package:IRanges’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     %over%</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> ‘SeuratObject’ was built under R 4.5.0 but the current version is 4.5.1; it is recomended that you</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> reinstall ‘SeuratObject’ as the ABI for R may have changed</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘SeuratObject’</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following object is masked from ‘package:IRanges’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following object is masked from ‘package:S4Vectors’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following object is masked from ‘package:BiocGenerics’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:base’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, t</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:07.150628] Perform FindClusters (louvain) on the data...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:07.255629] Reorder clusters...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Perform nonlinear dimension reduction (umap) on the data...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(CSS, dims:1-22) as input</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(CSS, dims:1-22) as input</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:01:16.092589] CSS_integrate done</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 33.55 secs </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 16:13:30.775428] Start CSS_integrate</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">srt_ref</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"celltype"</span>, <span class="st">"tech"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
-<span class="r-plt img"><img src="RunCSSMap-1.png" alt="" width="700" height="433"></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Projection</span></span></span>
 <span class="r-in"><span><span class="va">srt_query</span> <span class="op">&lt;-</span> <span class="fu">RunCSSMap</span><span class="op">(</span>srt_query <span class="op">=</span> <span class="va">srt_query</span>, srt_ref <span class="op">=</span> <span class="va">srt_ref</span>, ref_css <span class="op">=</span> <span class="st">"CSS"</span>, ref_umap <span class="op">=</span> <span class="st">"CSSUMAP2D"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_query data type: raw_normalized_counts</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_ref data type: log_normalized_counts</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Data type is unknown or different between srt_query and srt_ref.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Run CSS projection</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in validObject(.Object):</span> invalid class “DimReduc” object: dimension names for ‘cell.embeddings’ must be positive integers</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("quadbiolab/simspec"):</span> could not find function "check_R"</span>
 <span class="r-in"><span><span class="fu"><a href="ProjectionPlot.html">ProjectionPlot</a></span><span class="op">(</span>srt_query <span class="op">=</span> <span class="va">srt_query</span>, srt_ref <span class="op">=</span> <span class="va">srt_ref</span>, query_group <span class="op">=</span> <span class="st">"celltype"</span>, ref_group <span class="op">=</span> <span class="st">"celltype"</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in srt_query[[query_reduction]]:</span> ‘ref.embeddings’ not found in this Seurat object</span>
 <span class="r-err co"><span class="r-pr">#&gt;</span>  </span>

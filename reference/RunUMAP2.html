@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,7 @@
 <span>  neighbor <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  graph <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assay <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slot <span class="op">=</span> <span class="st">"data"</span>,</span>
+<span>  layer <span class="op">=</span> <span class="st">"data"</span>,</span>
 <span>  umap.method <span class="op">=</span> <span class="st">"uwot"</span>,</span>
 <span>  reduction.model <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_threads <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -136,8 +136,8 @@
 <dd><p>A character string specifying the assay to be used. Default is NULL.</p></dd>
 
 
-<dt id="arg-slot">slot<a class="anchor" aria-label="anchor" href="#arg-slot"></a></dt>
-<dd><p>A character string specifying the slot name to be used. Default is "data".</p></dd>
+<dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>
+<dd><p>A character string specifying the layer name to be used. Default is "data".</p></dd>
 
 
 <dt id="arg-umap-method">umap.method<a class="anchor" aria-label="anchor" href="#arg-umap-method"></a></dt>
@@ -225,10 +225,10 @@
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">RunUMAP2</span><span class="op">(</span>object <span class="op">=</span> <span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 UMAP embedding parameters a = 0.9922 b = 1.112</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 Read 1000 rows and found 2000 numeric columns</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 Using Annoy for neighbor search, n_neighbors = 30</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 Building Annoy index with metric = cosine, n_trees = 50</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 UMAP embedding parameters a = 0.9922 b = 1.112</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 Read 1000 rows and found 2000 numeric columns</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 Using Annoy for neighbor search, n_neighbors = 30</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 Building Annoy index with metric = cosine, n_trees = 50</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> 0%   10   20   30   40   50   60   70   80   90   100%</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> [----|----|----|----|----|----|----|----|----|----|</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> *</span>
@@ -282,15 +282,15 @@
 <span class="r-msg co"><span class="r-pr">#&gt;</span> *</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> *</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> |</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 Writing NN index file to temp file /tmp/Rtmpwn9T6U/file25a01cbc276d</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:49 Searching Annoy index using 2 threads, search_k = 3000</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:50 Annoy recall = 100%</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:52 Commencing smooth kNN distance calibration using 2 threads</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 Writing NN index file to temp file /tmp/RtmpE0ON2N/file25d342ce429d</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:32 Searching Annoy index using 2 threads, search_k = 3000</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:33 Annoy recall = 100%</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:35 Commencing smooth kNN distance calibration using 2 threads</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>  with target n_neighbors = 30</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:55 Initializing from normalized Laplacian + noise (using RSpectra)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:55 Commencing optimization for 200 epochs, with 40796 positive edges</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:55 Using rng type: pcg</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:49:56 Optimization finished</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:37 Initializing from normalized Laplacian + noise (using RSpectra)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:37 Commencing optimization for 200 epochs, with 40796 positive edges</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:37 Using rng type: pcg</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:17:38 Optimization finished</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"CellType"</span>, reduction <span class="op">=</span> <span class="st">"umap"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
 <span class="r-plt img"><img src="RunUMAP2-1.png" alt="" width="700" height="433"></span>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,7 @@
 <span><span class="fu">RunGLMPCA</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  assay <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slot <span class="op">=</span> <span class="st">"counts"</span>,</span>
+<span>  layer <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  L <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  fam <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"poi"</span>, <span class="st">"nb"</span>, <span class="st">"nb2"</span>, <span class="st">"binom"</span>, <span class="st">"mult"</span>, <span class="st">"bern"</span><span class="op">)</span>,</span>
@@ -60,7 +60,7 @@
 <span><span class="fu">RunGLMPCA</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  assay <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slot <span class="op">=</span> <span class="st">"counts"</span>,</span>
+<span>  layer <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  L <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  fam <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"poi"</span>, <span class="st">"nb"</span>, <span class="st">"nb2"</span>, <span class="st">"binom"</span>, <span class="st">"mult"</span>, <span class="st">"bern"</span><span class="op">)</span>,</span>
@@ -77,7 +77,7 @@
 <span><span class="fu">RunGLMPCA</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  assay <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slot <span class="op">=</span> <span class="st">"counts"</span>,</span>
+<span>  layer <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  L <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  fam <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"poi"</span>, <span class="st">"nb"</span>, <span class="st">"nb2"</span>, <span class="st">"binom"</span>, <span class="st">"mult"</span>, <span class="st">"bern"</span><span class="op">)</span>,</span>
@@ -107,8 +107,8 @@
 <dd><p>A character string specifying the assay to be used for the analysis. Default is NULL.</p></dd>
 
 
-<dt id="arg-slot">slot<a class="anchor" aria-label="anchor" href="#arg-slot"></a></dt>
-<dd><p>A character string specifying the slot name to be used for the analysis. Default is "counts".</p></dd>
+<dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>
+<dd><p>A character string specifying the layer name to be used for the analysis. Default is "counts".</p></dd>
 
 
 <dt id="arg-features">features<a class="anchor" aria-label="anchor" href="#arg-features"></a></dt>
@@ -155,41 +155,7 @@
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">RunGLMPCA</span><span class="op">(</span>object <span class="op">=</span> <span class="va">pancreas_sub</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> GLMPC_ 1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Positive:  Cd44, Aard, Arx, Ppy, Epha3, Gm2109, Spock1, Lhfpl5, Stard5, Fst </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Cidea, Lrpprc, Samd5, Cldn5, Gpr6, Ppp1r14c, Avp, Prss50, Hoxb2, Prl </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Steap3, St6galnac5, Scn9a, Gm16006, Filip1, Pyy, Kcna5, Arhgef6, Pdcl2, Pou3f4 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Negative:  Sds, Isg15, Grin3a, Tmem178, 8430408G22Rik, Ctgf, Cxcl12, Col5a1, S100b, Xaf1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Ppp1r1b, Fmod, Akr1cl, Smoc2, Upk3b, Serpinb6b, Dcdc2a, 1700011H14Rik, Gsta3, Atp1a2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Aqp1, Adamts16, Adgrg6, Cryab, Reg4, Tmem171, Anxa3, Scx, Rtp4, Pdpn </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> GLMPC_ 2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Positive:  Siglech, Ppp1r16b, 2010110K18Rik, Gm26839, Trem2, Jakmip3, Sval1, Milr1, Klk11, Bhlhe22 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Fibcd1, Prrx2, Gpr153, Usp44, Csf2rb, Cd4, Fabp1, Krtap17-1, Tril, Piezo2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Tmc3, Tmem114, Apba2, Cyp21a1, Ankrd2, Sema3g, 5031425F14Rik, Hist1h2ah, Prdm8, Stom </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Negative:  Npy, Ins1, Sparcl1, Ins2, Syndig1l, Tmem215, Gad2, F13a1, Pde7b, Lpl </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Gm10273, Trh, Iapp, Cntfr, Fcrls, Ms4a6d, Tnfaip8l2, Arhgap36, RP24-143K11.1, Gna15 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   P2ry1, Napsa, Gip, Mapt, G6pc2, Ppp1r1a, Gm36937, Adamtsl5, Nnat, Ctss </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> GLMPC_ 3 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Positive:  Sst, Stmn2, Msx1, Ptprz1, Cldn5, Entpd8, Col14a1, Hs6st3, Ddr2, Gip </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Sbpl, Slamf9, Pde3a, Pdcl2, Fermt3, Depdc1b, Prl, Ptgs2, Cbln1, Krtap31-1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Nell1, Apobec4, Npy, Tcte3, Pde7b, Cyp2c70, Aqp3, Gp9, Fxyd5, Pou2f2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Negative:  Ccl2, Gp2, Gm5786, Ms4a15, Gm6741, Fbn2, Gm38150, Foxq1, Reg1, Noxa1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Clca3a1, Guca2b, Fam181b, Dse, Igf1, P2rx1, Gc, Adamts2, Bok, Fmo1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Lgals3, Btbd19, Pfkp, Uap1l1, Fam129a, Gm11837, Cpa1, Cd83, Cpa2, Nupr1 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> GLMPC_ 4 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Positive:  Depdc1b, Cbln1, Ptprc, Parpbp, Troap, Kif14, Fam64a, Aif1, Acap1, Iqgap3 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Ube2c, Lrp1b, 4931429I11Rik, Gprasp1, Cdkn2a, Ckap2l, Stil, Gm4950, Cenpf, Gabrg2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Hist2h2ac, Hist1h2af, Nid2, Pif1, Dock2, Cxcl1, Sapcd2, Ankle1, Hist1h2bn, Aurka </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Negative:  Sst, Slamf9, Krtap31-1, Ngf, Ddr2, Irs4, Entpd8, Ghrl, Olfml3, Ptgs2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Medag, Avpr1b, Pde3a, Kdr, Arsi, Fcrls, Sds, R3hdml, Hoxb4, AI849053 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Gm12688, Tmem151a, Ccr1, Barx1, Stmn4, Cd177, Krtap3-2, Phf21b, Dok3, Irx3 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> GLMPC_ 5 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Positive:  Col1a2, Gcg, Casp1, AW112010, Lrrc17, Dkk2, Dusp2, Tcerg1l, Clec3b, Cd300lf </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Ssu2, Mthfd1l, Fgb, Ublcp1, Fabp1, Srpx, H2-Ab1, Lpl, Igsf6, Gm2788 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Calcr, Trpv2, Sval1, Disp2, Dclk1, Fanci, Kcng2, Pde3a, Hist1h2ao, Kng2 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Negative:  Gp9, Fxyd5, Kcnc1, Coro1a, Atp2a1, Gm17552, Nr2f2, Fcgr3, Spi1, Gm9767 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Gm13373, Bnc2, Sulf1, Glod5, Ascl1, Msx1, Clic3, Cyp2c70, Cbln1, Bhlhe41 </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 	   Gm2694, Dgkb, Ncf2, Stab1, Ifi27l2b, Hic1, Syndig1, Nol9, Ccdc80, Serpinb12 </span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("glmpca"):</span> could not find function "check_R"</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"CellType"</span>, reduction <span class="op">=</span> <span class="st">"glmpca"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
 <span class="r-plt img"><img src="RunGLMPCA-1.png" alt="" width="700" height="433"></span>

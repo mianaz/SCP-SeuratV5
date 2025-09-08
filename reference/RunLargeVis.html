@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,7 +45,7 @@
 <span>  dims <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  assay <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slot <span class="op">=</span> <span class="st">"data"</span>,</span>
+<span>  layer <span class="op">=</span> <span class="st">"data"</span>,</span>
 <span>  perplexity <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  n_neighbors <span class="op">=</span> <span class="va">perplexity</span> <span class="op">*</span> <span class="fl">3</span>,</span>
 <span>  n_components <span class="op">=</span> <span class="fl">2</span>,</span>
@@ -144,8 +144,8 @@
 <dd><p>A character string specifying the assay to be used. Default is NULL.</p></dd>
 
 
-<dt id="arg-slot">slot<a class="anchor" aria-label="anchor" href="#arg-slot"></a></dt>
-<dd><p>A character string specifying the slot name to be used. Default is "data".</p></dd>
+<dt id="arg-layer">layer<a class="anchor" aria-label="anchor" href="#arg-layer"></a></dt>
+<dd><p>A character string specifying the layer name to be used. Default is "data".</p></dd>
 
 
 <dt id="arg-perplexity">perplexity<a class="anchor" aria-label="anchor" href="#arg-perplexity"></a></dt>
@@ -165,15 +165,37 @@ manifold approximation. This is the analogous to <code>n_neighbors</code> in
 
 
 <dt id="arg-metric">metric<a class="anchor" aria-label="anchor" href="#arg-metric"></a></dt>
-<dd><p>Type of distance metric to use to find nearest neighbors. One
-  of:</p><ul><li><p><code>"euclidean"</code> (the default)</p></li>
+<dd><p>Type of distance metric to use to find nearest neighbors. For
+ <code>nn_method = "annoy"</code> this can be one of:</p><ul><li><p><code>"euclidean"</code> (the default)</p></li>
 <li><p><code>"cosine"</code></p></li>
 <li><p><code>"manhattan"</code></p></li>
 <li><p><code>"hamming"</code></p></li>
 <li><p><code>"correlation"</code> (a distance based on the Pearson correlation)</p></li>
 <li><p><code>"categorical"</code> (see below)</p></li>
-</ul><p>Only applies if <code>nn_method = "annoy"</code> (for <code>nn_method = "fnn"</code>, the
-distance metric is always "euclidean").</p>
+</ul><p>For <code>nn_method = "hnsw"</code> this can be one of:</p><ul><li><p><code>"euclidean"</code></p></li>
+<li><p><code>"cosine"</code></p></li>
+<li><p><code>"correlation"</code></p></li>
+</ul><p>If <a href="https://cran.r-project.org/package=rnndescent" class="external-link">rnndescent</a> is
+installed and <code>nn_method = "nndescent"</code> is specified then many more
+metrics are avaiable, including:</p><ul><li><p><code>"braycurtis"</code></p></li>
+<li><p><code>"canberra"</code></p></li>
+<li><p><code>"chebyshev"</code></p></li>
+<li><p><code>"dice"</code></p></li>
+<li><p><code>"hamming"</code></p></li>
+<li><p><code>"hellinger"</code></p></li>
+<li><p><code>"jaccard"</code></p></li>
+<li><p><code>"jensenshannon"</code></p></li>
+<li><p><code>"kulsinski"</code></p></li>
+<li><p><code>"rogerstanimoto"</code></p></li>
+<li><p><code>"russellrao"</code></p></li>
+<li><p><code>"sokalmichener"</code></p></li>
+<li><p><code>"sokalsneath"</code></p></li>
+<li><p><code>"spearmanr"</code></p></li>
+<li><p><code>"symmetrickl"</code></p></li>
+<li><p><code>"tsss"</code></p></li>
+<li><p><code>"yule"</code></p></li>
+</ul><p>For more details see the package documentation of <code>rnndescent</code>.
+For <code>nn_method = "fnn"</code>, the distance metric is always "euclidean".</p>
 <p>If <code>X</code> is a data frame or matrix, then multiple metrics can be
 specified, by passing a list to this argument, where the name of each item in
 the list is one of the metric names above. The value of each list item should
@@ -296,6 +318,20 @@ embedding.</p></dd>
     <a href="https://cran.r-project.org/package=FNN" class="external-link">FNN</a> package.</p></li>
 <li><p><code>"annoy"</code> Use approximate nearest neighbors via the
     <a href="https://cran.r-project.org/package=RcppAnnoy" class="external-link">RcppAnnoy</a> package.</p></li>
+<li><p><code>"hnsw"</code> Use approximate nearest neighbors with the
+    Hierarchical Navigable Small World (HNSW) method (Malkov and Yashunin,
+    2018) via the
+    <a href="https://cran.r-project.org/package=RcppHNSW" class="external-link">RcppHNSW</a> package.
+    <code>RcppHNSW</code> is not a dependency of this package: this option is
+    only available if you have installed <code>RcppHNSW</code> yourself. Also,
+    HNSW only supports the following arguments for <code>metric</code>:
+    <code>"euclidean"</code>, <code>"cosine"</code> and <code>"correlation"</code>.</p></li>
+<li><p><code>"nndescent"</code> Use approximate nearest neighbors with the
+    Nearest Neighbor Descent method (Dong et al., 2011) via the
+    <a href="https://cran.r-project.org/package=rnndescent" class="external-link">rnndescent</a>
+    package. <code>rnndescent</code> is not a dependency of this package: this
+    option is only available if you have installed <code>rnndescent</code>
+    yourself.</p></li>
 </ul><p>By default, if <code>X</code> has less than 4,096 vertices, the exact nearest
 neighbors are found. Otherwise, approximate nearest neighbors are used.
 You may also pass precalculated nearest neighbor data to this argument. It
@@ -386,7 +422,8 @@ carrying out PCA. For binary data, it's recommended to set this to
 <dd><p>If <code>TRUE</code>, use the PCG random number generator (O'Neill,
 2014) during optimization. Otherwise, use the faster (but probably less
 statistically good) Tausworthe "taus88" generator. The default is
-<code>TRUE</code>.</p></dd>
+<code>TRUE</code>. This parameter has been superseded by <code>rng_type</code> – if
+both are set, <code>rng_type</code> takes precedence.</p></dd>
 
 
 <dt id="arg-fast-sgd">fast_sgd<a class="anchor" aria-label="anchor" href="#arg-fast-sgd"></a></dt>
@@ -474,14 +511,14 @@ epoch. Its signature should be: <code>(epoch, n_epochs, coords)</code>, where:</
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/FindVariableFeatures.html" class="external-link">FindVariableFeatures</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">RunLargeVis</span><span class="op">(</span>object <span class="op">=</span> <span class="va">pancreas_sub</span>, features <span class="op">=</span> <span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/VariableFeatures.html" class="external-link">VariableFeatures</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:28 Read 1000 rows and found 2000 numeric columns</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:28 Normalizing by max-abs</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:28 Using FNN for neighbor search, n_neighbors = 150</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:30 Commencing calibration for perplexity = 50 using 2 threads</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:33 Initializing from random Gaussian with sd = 1e-4</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:33 Commencing optimization for 265696 epochs, with 217614 positive edges</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:41:33 Using rng type: pcg</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 15:44:08 Optimization finished</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:18 Read 1000 rows and found 2000 numeric columns</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:18 Normalizing by max-abs</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:19 Using FNN for neighbor search, n_neighbors = 150</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:20 Commencing calibration for perplexity = 50 using 2 threads</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:22 Initializing from random Gaussian with sd = 1e-4</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:22 Commencing optimization for 265696 epochs, with 217614 positive edges</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:14:22 Using rng type: pcg</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 16:16:56 Optimization finished</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"CellType"</span>, reduction <span class="op">=</span> <span class="st">"largevis"</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
 <span class="r-plt img"><img src="RunLargeVis-1.png" alt="" width="700" height="433"></span>
