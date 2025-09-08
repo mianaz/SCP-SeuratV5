@@ -20,7 +20,7 @@ This is a minimal adaptation of the [SCP package](https://github.com/zhanghao-nj
 
 ```r
 # Install from GitHub
-devtools::install_github("your-username/SCP-SeuratV5")
+devtools::install_github("mianaz/SCP-SeuratV5")
 ```
 
 ## Dependencies
