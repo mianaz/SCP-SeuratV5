@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -149,10 +149,10 @@
         <dd>EnrichmentPlot</dd>
       </dl><dl><dt>
 
-          <code><a href="EnsureSeurat5.html">EnsureSeurat5()</a></code>
+          <code><a href="Env_requirements.html">Env_requirements()</a></code>
 
         </dt>
-        <dd>Ensure Seurat object is V5-compatible</dd>
+        <dd>Env_requirements function</dd>
       </dl><dl><dt>
 
           <code><a href="FeatureCorPlot.html">FeatureCorPlot()</a></code>
@@ -227,12 +227,6 @@
         <dd>Integration_SCP</dd>
       </dl><dl><dt>
 
-          <code><a href="IsSeurat5.html">IsSeurat5()</a></code>
-
-        </dt>
-        <dd>Check if object is Seurat V5</dd>
-      </dl><dl><dt>
-
           <code><a href="LIGER_integrate.html">LIGER_integrate()</a></code>
 
         </dt>
@@ -272,7 +266,7 @@
           <code><a href="PrepareEnv.html">PrepareEnv()</a></code>
 
         </dt>
-        <dd>Install the SCP python environment</dd>
+        <dd>This function prepares the SCP Python environment by installing the required dependencies and setting up the environment.</dd>
       </dl><dl><dt>
 
           <code><a href="PrepareSCExplorer.html">PrepareSCExplorer()</a></code>
@@ -293,12 +287,6 @@
         <dd>Attempt to recover raw counts from the normalized matrix.</dd>
       </dl><dl><dt>
 
-          <code><a href="RemoveEnv.html">RemoveEnv()</a></code>
-
-        </dt>
-        <dd>Remove SCP Python environment</dd>
-      </dl><dl><dt>
-
           <code><a href="RenameClusters.html">RenameClusters()</a></code>
 
         </dt>
@@ -309,12 +297,6 @@
 
         </dt>
         <dd>Rename features for the Seurat object</dd>
-      </dl><dl><dt>
-
-          <code><a href="RunALRA.html">RunALRA()</a></code>
-
-        </dt>
-        <dd>Run ALRA imputation</dd>
       </dl><dl><dt>
 
           <code><a href="RunCSSMap.html">RunCSSMap()</a></code>
@@ -395,12 +377,6 @@
         <dd>Run Harmony algorithm</dd>
       </dl><dl><dt>
 
-          <code><a href="RunImputation.html">RunImputation()</a></code>
-
-        </dt>
-        <dd>Run imputation methods on Seurat object</dd>
-      </dl><dl><dt>
-
           <code><a href="RunKNNMap.html">RunKNNMap()</a></code>
 
         </dt>
@@ -413,22 +389,10 @@
         <dd>RunKNNPredict</dd>
       </dl><dl><dt>
 
-          <code><a href="RunKNNSmooth.html">RunKNNSmooth()</a></code>
-
-        </dt>
-        <dd>Run KNN-based smoothing imputation</dd>
-      </dl><dl><dt>
-
           <code><a href="RunLargeVis.html">RunLargeVis()</a></code>
 
         </dt>
         <dd>Run LargeVis (Dimensionality Reduction with a LargeVis-like method)</dd>
-      </dl><dl><dt>
-
-          <code><a href="RunMAGIC.html">RunMAGIC()</a></code>
-
-        </dt>
-        <dd>Run MAGIC imputation</dd>
       </dl><dl><dt>
 
           <code><a href="RunMDS.html">RunMDS()</a></code>
@@ -581,12 +545,6 @@
         <dd>StatPlot</dd>
       </dl><dl><dt>
 
-          <code><a href="TestPythonCompatibility.html">TestPythonCompatibility()</a></code>
-
-        </dt>
-        <dd>Test Python Compatibility</dd>
-      </dl><dl><dt>
-
           <code><a href="Uncorrected_integrate.html">Uncorrected_integrate()</a></code>
 
         </dt>
@@ -617,16 +575,40 @@
         <dd>Convert a color with arbitrary transparency to a fixed color</dd>
       </dl><dl><dt>
 
+          <code><a href="as_matrix.html">as_matrix()</a></code>
+
+        </dt>
+        <dd>Attempts to turn a dgCMatrix into a dense matrix</dd>
+      </dl><dl><dt>
+
           <code><a href="blendcolors.html">blendcolors()</a></code>
 
         </dt>
         <dd>Blend colors</dd>
       </dl><dl><dt>
 
+          <code><a href="capitalize.html">capitalize()</a></code>
+
+        </dt>
+        <dd>Capitalizes the characters Making the first letter uppercase</dd>
+      </dl><dl><dt>
+
           <code><a href="check_DataType.html">check_DataType()</a></code>
 
         </dt>
         <dd>Check and report the type of data</dd>
+      </dl><dl><dt>
+
+          <code><a href="check_Python.html">check_Python()</a></code>
+
+        </dt>
+        <dd>Check and install python packages</dd>
+      </dl><dl><dt>
+
+          <code><a href="check_R.html">check_R()</a></code>
+
+        </dt>
+        <dd>Check and install R packages</dd>
       </dl><dl><dt>
 
           <code><a href="check_srtList.html">check_srtList()</a></code>
@@ -641,16 +623,22 @@
         <dd>Check and preprocess a merged seurat object</dd>
       </dl><dl><dt>
 
-          <code><a href="choose_k.html">choose_k()</a></code>
-
-        </dt>
-        <dd>Helper function to choose optimal k for ALRA</dd>
-      </dl><dl><dt>
-
           <code><a href="compute_velocity_on_grid.html">compute_velocity_on_grid()</a></code>
 
         </dt>
         <dd>Compute velocity on grid The original python code is on https://github.com/theislab/scvelo/blob/master/scvelo/plotting/velocity_embedding_grid.py</dd>
+      </dl><dl><dt>
+
+          <code><a href="conda_install.html">conda_install()</a></code>
+
+        </dt>
+        <dd>Installs a list of packages into a specified conda environment</dd>
+      </dl><dl><dt>
+
+          <code><a href="conda_python.html">conda_python()</a></code>
+
+        </dt>
+        <dd>Find the path to Python associated with a conda environment</dd>
       </dl><dl><dt>
 
           <code><a href="db_DoubletDetection.html">db_DoubletDetection()</a></code>
@@ -677,16 +665,40 @@
         <dd>Run doublet-calling with scds</dd>
       </dl><dl><dt>
 
+          <code><a href="download.html">download()</a></code>
+
+        </dt>
+        <dd>Download File from the Internet</dd>
+      </dl><dl><dt>
+
           <code><a href="drop_data.html">drop_data()</a></code>
 
         </dt>
         <dd>Drop all data in the plot (only one observation is kept)</dd>
       </dl><dl><dt>
 
+          <code><a href="env_exist.html">env_exist()</a></code>
+
+        </dt>
+        <dd>Check if a conda environment exists</dd>
+      </dl><dl><dt>
+
+          <code><a href="exist_Python_pkgs.html">exist_Python_pkgs()</a></code>
+
+        </dt>
+        <dd>Check if the python package exists in the environment</dd>
+      </dl><dl><dt>
+
           <code><a href="fastMNN_integrate.html">fastMNN_integrate()</a></code>
 
         </dt>
         <dd>fastMNN_integrate</dd>
+      </dl><dl><dt>
+
+          <code><a href="find_conda.html">find_conda()</a></code>
+
+        </dt>
+        <dd>Find an appropriate conda binary</dd>
       </dl><dl><dt>
 
           <code><a href="geom_alluvial.html">geom_alluvial()</a></code>
@@ -719,24 +731,6 @@
         <dd>geom_sankey_label</dd>
       </dl><dl><dt>
 
-          <code><a href="get_feature_metadata.html">get_feature_metadata()</a></code>
-
-        </dt>
-        <dd>Get feature metadata from Seurat object in a version-agnostic way</dd>
-      </dl><dl><dt>
-
-          <code><a href="get_seurat_data.html">get_seurat_data()</a></code>
-
-        </dt>
-        <dd>Get data from Seurat object in a version-agnostic way</dd>
-      </dl><dl><dt>
-
-          <code><a href="get_var_features.html">get_var_features()</a></code>
-
-        </dt>
-        <dd>Get variable features from Seurat object in a version-agnostic way</dd>
-      </dl><dl><dt>
-
           <code><a href="get_vars.html">get_vars()</a></code>
 
         </dt>
@@ -749,10 +743,28 @@
         <dd>A subsetted version of 'ifnb' datasets</dd>
       </dl><dl><dt>
 
+          <code><a href="installed_Python_pkgs.html">installed_Python_pkgs()</a></code>
+
+        </dt>
+        <dd>Show all the python packages in the environment</dd>
+      </dl><dl><dt>
+
+          <code><a href="invoke.html">invoke()</a></code>
+
+        </dt>
+        <dd>Invoke a function with a list of arguments</dd>
+      </dl><dl><dt>
+
           <code><a href="isOutlier.html">isOutlier()</a></code>
 
         </dt>
         <dd>Detect outliers using MAD(Median Absolute Deviation) method</dd>
+      </dl><dl><dt>
+
+          <code><a href="iterchunks.html">iterchunks()</a></code>
+
+        </dt>
+        <dd>Generate a iterator along chunks of a vector</dd>
       </dl><dl><dt>
 
           <code><a href="lifemap_cell.html">lifemap_cell</a></code> <code><a href="lifemap_cell.html">lifemap_compartment</a></code> <code><a href="lifemap_cell.html">lifemap_organ</a></code>
@@ -765,12 +777,6 @@
 
         </dt>
         <dd>make_long</dd>
-      </dl><dl><dt>
-
-          <code><a href="matrix_power.html">matrix_power()</a></code>
-
-        </dt>
-        <dd>Helper function for matrix power</dd>
       </dl><dl><dt>
 
           <code><a href="palette_list.html">palette_list</a></code>
@@ -821,18 +827,6 @@
         <dd>Shorten and offset the segment</dd>
       </dl><dl><dt>
 
-          <code><a href="set_feature_metadata.html">set_feature_metadata()</a></code>
-
-        </dt>
-        <dd>Set feature metadata in Seurat object in a version-agnostic way</dd>
-      </dl><dl><dt>
-
-          <code><a href="set_seurat_data.html">set_seurat_data()</a></code>
-
-        </dt>
-        <dd>Set data in Seurat object in a version-agnostic way</dd>
-      </dl><dl><dt>
-
           <code><a href="show_palettes.html">show_palettes()</a></code>
 
         </dt>
@@ -867,6 +861,24 @@
 
         </dt>
         <dd>SCP theme</dd>
+      </dl><dl><dt>
+
+          <code><a href="tochunks.html">tochunks()</a></code>
+
+        </dt>
+        <dd>Split a vector into the chunks</dd>
+      </dl><dl><dt>
+
+          <code><a href="try_get.html">try_get()</a></code>
+
+        </dt>
+        <dd>Try to evaluate an expression a set number of times before failing</dd>
+      </dl><dl><dt>
+
+          <code><a href="unnest.html">unnest()</a></code>
+
+        </dt>
+        <dd>Implement similar functions to the <code>unnest</code> function in the tidyr package</dd>
       </dl><dl><dt>
 
           <code><a href="words_excluded.html">words_excluded</a></code>

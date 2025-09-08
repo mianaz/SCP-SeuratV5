@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -227,49 +227,210 @@ Supported methods are: <code>"Uncorrected"</code>, <code>"Seurat"</code>, <code>
 <span class="r-in"><span>  srtMerge <span class="op">=</span> <span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span>,</span></span>
 <span class="r-in"><span>  integration_method <span class="op">=</span> <span class="st">"Uncorrected"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:33:42.971258] Start Uncorrected_integrate</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:12.041765] Start Uncorrected_integrate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:12.047579] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:12.212747] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:14.596716] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:15.334767] Perform integration(Uncorrected) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:15.334927] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:15.439369] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:16.367379] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:16.45782] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:16.537451] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-10) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-10) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:25.809333] Uncorrected_integrate done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 13.77 secs </span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">panc8_sub</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"celltype"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-plt img"><img src="Integration_SCP-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu">Integration_SCP</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  srtMerge <span class="op">=</span> <span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span>,</span></span>
 <span class="r-in"><span>  integration_method <span class="op">=</span> <span class="st">"Uncorrected"</span>,</span></span>
 <span class="r-in"><span>  HVF_min_intersection <span class="op">=</span> <span class="fl">5</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:33:42.973979] Start Uncorrected_integrate</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:26.166806] Start Uncorrected_integrate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:26.172569] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:26.556028] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 264</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:28.81799] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:30.073276] Perform integration(Uncorrected) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:30.073439] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:30.132337] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:30.852388] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:30.967039] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:31.033047] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-11) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-11) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:40.229873] Uncorrected_integrate done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 14.06 secs </span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">panc8_sub</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"celltype"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-plt img"><img src="Integration_SCP-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu">Integration_SCP</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  srtMerge <span class="op">=</span> <span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span>,</span></span>
 <span class="r-in"><span>  integration_method <span class="op">=</span> <span class="st">"Uncorrected"</span>,</span></span>
 <span class="r-in"><span>  HVF_min_intersection <span class="op">=</span> <span class="fl">5</span>, scale_within_batch <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:33:42.975278] Start Uncorrected_integrate</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:40.597276] Start Uncorrected_integrate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:40.603567] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:40.969003] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 264</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:43.167764] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:44.134744] Perform integration(Uncorrected) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:44.134908] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:44.19821] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:44.921533] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:45.06547] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:45.129377] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-12) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Uncorrectedpca, dims:1-12) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:54.108863] Uncorrected_integrate done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 13.51 secs </span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">panc8_sub</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"celltype"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-plt img"><img src="Integration_SCP-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu">Integration_SCP</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  srtMerge <span class="op">=</span> <span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span>,</span></span>
 <span class="r-in"><span>  integration_method <span class="op">=</span> <span class="st">"Seurat"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:33:42.976604] Start Seurat_integrate</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:54.476335] Start Seurat_integrate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:54.483784] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:54.844791] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:57.038285] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:57:57.887271] Perform FindIntegrationAnchors on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:19.70799] Perform integration(Seurat) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:27.494217] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:27.605964] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:28.582561] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:28.711414] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:28.782225] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Seuratpca, dims:1-12) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Seuratpca, dims:1-12) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:37.986109] Seurat_integrate done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 43.51 secs </span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">panc8_sub</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"celltype"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-plt img"><img src="Integration_SCP-4.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu">Integration_SCP</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  srtMerge <span class="op">=</span> <span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span>,</span></span>
 <span class="r-in"><span>  integration_method <span class="op">=</span> <span class="st">"Seurat"</span>,</span></span>
 <span class="r-in"><span>  FindIntegrationAnchors_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>reduction <span class="op">=</span> <span class="st">"rpca"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:33:42.97822] Start Seurat_integrate</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in invoke(.fn = paste0(integration_method, "_integrate"), .args = args[names(args) %in%     formalArgs(paste0(integration_method, "_integrate"))]):</span> could not find function "invoke"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:38.353782] Start Seurat_integrate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:38.360285] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:39.00338] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList has been log-normalized.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:41.280872] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.378995] Use 'rpca' integration workflow...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.379175] Perform ScaleData on the data 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.436057] Perform linear dimension reduction (pca) on the data 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.594613] Perform ScaleData on the data 2 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.660197] Perform linear dimension reduction (pca) on the data 2 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.798586] Perform ScaleData on the data 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:42.866647] Perform linear dimension reduction (pca) on the data 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:43.003657] Perform ScaleData on the data 4 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:43.087715] Perform linear dimension reduction (pca) on the data 4 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:43.360168] Perform ScaleData on the data 5 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:43.421809] Perform linear dimension reduction (pca) on the data 5 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:43.563237] Perform FindIntegrationAnchors on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:58:53.497015] Perform integration(Seurat) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Layer counts isn't present in the assay object; returning NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:01.007653] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:01.184227] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:02.081347] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:02.200343] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:02.271182] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Seuratpca, dims:1-11) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Seuratpca, dims:1-11) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 14:59:11.847] Seurat_integrate done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 33.49 secs </span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">panc8_sub</span>, group.by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tech"</span>, <span class="st">"celltype"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in DefaultReduction(srt):</span> Unable to find any reductions.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No shared levels found between `names(values)` of the manual scale and the data's <span style="color: #00BB00;">fill</span> values.</span>
+<span class="r-plt img"><img src="Integration_SCP-5.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">integration_methods</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>

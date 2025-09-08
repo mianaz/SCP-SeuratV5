@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,7 +39,7 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">SrtAppend</span><span class="op">(</span></span>
 <span>  <span class="va">srt_raw</span>,</span>
 <span>  <span class="va">srt_append</span>,</span>
-<span>  layers <span class="op">=</span> <span class="fu">layerNames</span><span class="op">(</span><span class="va">srt_append</span><span class="op">)</span>,</span>
+<span>  slots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/methods/slot.html" class="external-link">slotNames</a></span><span class="op">(</span><span class="va">srt_append</span><span class="op">)</span>,</span>
 <span>  pattern <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -58,8 +58,8 @@
 <dd><p>New Seurat object to append.</p></dd>
 
 
-<dt id="arg-layers">layers<a class="anchor" aria-label="anchor" href="#arg-layers"></a></dt>
-<dd><p>layers names.</p></dd>
+<dt id="arg-slots">slots<a class="anchor" aria-label="anchor" href="#arg-slots"></a></dt>
+<dd><p>slots names.</p></dd>
 
 
 <dt id="arg-pattern">pattern<a class="anchor" aria-label="anchor" href="#arg-pattern"></a></dt>

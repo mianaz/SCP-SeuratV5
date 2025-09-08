@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,12 +100,15 @@
 <dt id="arg-de-n">de.n<a class="anchor" aria-label="anchor" href="#arg-de-n"></a></dt>
 <dd><p>An integer scalar specifying the number of DE genes to use when <code>genes="de"</code>.
 If <code>de.method="classic"</code>, defaults to <code>500 * (2/3) ^ log2(N)</code> where <code>N</code> is the number of unique labels.
-Otherwise, defaults to 10.
-Ignored if <code>genes</code> is a list of markers/DE genes.</p></dd>
+Otherwise, defaults to 10.</p></dd>
 
 
 <dt id="arg-aggr-ref-aggr-args">aggr.ref, aggr.args<a class="anchor" aria-label="anchor" href="#arg-aggr-ref-aggr-args"></a></dt>
 <dd><p>Arguments controlling the aggregation of the references prior to annotation, see <code><a href="https://rdrr.io/pkg/SingleR/man/trainSingleR.html" class="external-link">trainSingleR</a></code>.</p></dd>
+
+
+<dt id="arg-quantile-fine-tune-tune-thresh-prune">quantile, fine.tune, tune.thresh, prune<a class="anchor" aria-label="anchor" href="#arg-quantile-fine-tune-tune-thresh-prune"></a></dt>
+<dd><p>Further arguments to pass to <code><a href="https://rdrr.io/pkg/SingleR/man/classifySingleR.html" class="external-link">classifySingleR</a></code>.</p></dd>
 
 
 <dt id="arg-bpparam">BPPARAM<a class="anchor" aria-label="anchor" href="#arg-bpparam"></a></dt>
@@ -118,33 +121,55 @@ see <code>?<a href="https://rdrr.io/pkg/SingleR/man/trainSingleR.html" class="ex
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"panc8_sub"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># Simply convert genes from human to mouse and preprocess the data</span></span></span>
-<span class="r-in"><span><span class="va">genenames</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/make.unique.html" class="external-link">make.unique</a></span><span class="op">(</span><span class="fu">capitalize</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">panc8_sub</span><span class="op">)</span>, force_tolower <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in capitalize(rownames(panc8_sub), force_tolower = TRUE):</span> could not find function "capitalize"</span>
+<span class="r-in"><span><span class="va">genenames</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/make.unique.html" class="external-link">make.unique</a></span><span class="op">(</span><span class="fu"><a href="capitalize.html">capitalize</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">panc8_sub</span><span class="op">)</span>, force_tolower <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="RenameFeatures.html">RenameFeatures</a></span><span class="op">(</span><span class="va">panc8_sub</span>, newnames <span class="op">=</span> <span class="va">genenames</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'genenames' not found</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Rename features for the assay: RNA</span>
 <span class="r-in"><span><span class="va">panc8_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="check_srtMerge.html">check_srtMerge</a></span><span class="op">(</span><span class="va">panc8_sub</span>, batch <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span><span class="op">[[</span><span class="st">"srtMerge"</span><span class="op">]</span><span class="op">]</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Failed to check Seurat version compatibility: 'list' object cannot be coerced to type 'double'</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:37:39.433635] Spliting srtMerge into srtList by column tech... ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:37:39.60897] Checking srtList... ...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Failed to check Seurat version compatibility: 'list' object cannot be coerced to type 'double'</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: drop</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: drop</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in as.vector(data):</span> no method for coercing this S4 class to a vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:37.030626] Spliting srtMerge into srtList by column tech... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:37.199252] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 2/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 2/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 3/5 of the srtList is raw_normalized_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 3/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 4/5 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 4/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 5/5 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 5/5 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:39.743973] Finished checking.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Annotation</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"pancreas_sub"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="Standard_SCP.html">Standard_SCP</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:37:41.631639] Start Standard_SCP</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-07 20:37:41.631825] Checking srtList... ...</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Failed to check Seurat version compatibility: 'list' object cannot be coerced to type 'double'</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: drop</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: drop</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in as.vector(data):</span> no method for coercing this S4 class to a vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:41.527331] Start Standard_SCP</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:41.527603] Checking srtList... ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Data 1/1 of the srtList is raw_counts. Perform NormalizeData(LogNormalize) on the data ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Perform FindVariableFeatures on the data 1/1 of the srtList...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Use the separate HVF from srtList...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Number of available HVF: 2000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:43.850514] Finished checking.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:43.850749] Perform ScaleData on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:43.933466] Perform linear dimension reduction (pca) on the data...</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The following arguments are not used: force.recalc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:44.518852] Perform FindClusters (louvain) on the data...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:44.59577] Reorder clusters...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:44.662209] Perform nonlinear dimension reduction (umap) on the data...</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Standardpca, dims:1-13) as input</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Non-linear dimensionality reduction(umap) using Reduction(Standardpca, dims:1-13) as input</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2025-09-08 15:48:54.28878] Standard_SCP done</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Elapsed time: 12.76 secs </span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">RunSingleR</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  srt_query <span class="op">=</span> <span class="va">pancreas_sub</span>, srt_ref <span class="op">=</span> <span class="va">panc8_sub</span>,</span></span>
 <span class="r-in"><span>  query_group <span class="op">=</span> <span class="st">"Standardclusters"</span>, ref_group <span class="op">=</span> <span class="st">"celltype"</span>,</span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("SingleR"):</span> could not find function "check_R"</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_query data type: log_normalized_counts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_ref data type: log_normalized_counts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Perform SingleRCluster on the data...</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in loadNamespace(x):</span> there is no package called ‘scrapper’</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"singler_annotation"</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in CellDimPlot(pancreas_sub, group.by = "singler_annotation"):</span> singler_annotation is not in the meta.data of srt object.</span>
 <span class="r-in"><span></span></span>
@@ -152,7 +177,10 @@ see <code>?<a href="https://rdrr.io/pkg/SingleR/man/trainSingleR.html" class="ex
 <span class="r-in"><span>  srt_query <span class="op">=</span> <span class="va">pancreas_sub</span>, srt_ref <span class="op">=</span> <span class="va">panc8_sub</span>,</span></span>
 <span class="r-in"><span>  query_group <span class="op">=</span> <span class="cn">NULL</span>, ref_group <span class="op">=</span> <span class="st">"celltype"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("SingleR"):</span> could not find function "check_R"</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_query data type: log_normalized_counts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Detected srt_ref data type: log_normalized_counts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Perform SingleRCell on the data...</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in loadNamespace(x):</span> there is no package called ‘scrapper’</span>
 <span class="r-in"><span><span class="fu"><a href="CellDimPlot.html">CellDimPlot</a></span><span class="op">(</span><span class="va">pancreas_sub</span>, group.by <span class="op">=</span> <span class="st">"singler_annotation"</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in CellDimPlot(pancreas_sub, group.by = "singler_annotation"):</span> singler_annotation is not in the meta.data of srt object.</span>
 <span class="r-in"><span></span></span>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,9 +123,9 @@
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Removed 8 rows containing missing values or values outside the scale range (`geom_path()`).</span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in gtable_add_grob(gtable, grob, t = mean(gtable$layout[grep("panel",     gtable$layout$name), "t"]), l = dim(gtable)[2], clip = clip):</span> `grobs` must be a single grob or a list of grobs, not a list matrix.</span>
 <span class="r-in"><span><span class="va">pancreas_sub</span> <span class="op">&lt;-</span> <span class="fu">RunDynamicFeatures</span><span class="op">(</span><span class="va">pancreas_sub</span>, lineages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Lineage1"</span>, <span class="st">"Lineage2"</span><span class="op">)</span>, n_candidates <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> [2025-09-07 20:34:17.367034] Start RunDynamicFeatures</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [2025-09-08 15:12:59.970701] Start RunDynamicFeatures</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Workers: 2</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("mgcv"):</span> could not find function "check_R"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in subset(srt, cell = rownames(srt@meta.data)[is.finite(srt@meta.data[[l]])]):</span> No cells found</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">@</span><span class="va">tools</span><span class="op">$</span><span class="va">DynamicFeatures_Lineage1</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">pancreas_sub</span><span class="op">@</span><span class="va">tools</span><span class="op">$</span><span class="va">DynamicFeatures_Lineage1</span><span class="op">$</span><span class="va">DynamicFeatures</span><span class="op">)</span></span></span>
@@ -148,7 +148,9 @@
 <span class="r-in"><span>  compare_lineages <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  compare_features <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_R("MatrixGenerics"):</span> could not find function "check_R"</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> [2025-09-08 15:13:00.306257] Start RunDynamicFeatures</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Workers: 2</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in subset(srt, cell = rownames(srt@meta.data)[is.finite(srt@meta.data[[l]])]):</span> No cells found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

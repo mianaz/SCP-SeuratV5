@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">SCP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,14 +155,70 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span>         1         2         3         4         5 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> "#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FDBF6F" </span>
 <span class="r-in"><span><span class="fu"><a href="show_palettes.html">show_palettes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">pal1</span>, <span class="va">pal2</span>, <span class="va">pal3</span>, <span class="va">pal4</span>, <span class="va">pal5</span>, <span class="va">pal6</span>, <span class="va">pal7</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> All available palettes:</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in if (!is.null(names(pal)) &amp;&amp; all(names(pal) != "")) {    graphics::text((j - 1) * show_step + show_rect/2, 0.5, names(pal)[j],         srt = 90, adj = 0.5, cex = 0.5)} else {    graphics::text((j - 1) * show_step + show_rect/2, 0.5, pal[j],         srt = 90, adj = 0.5, cex = 0.5)}:</span> missing value where TRUE/FALSE needed</span>
+<span class="r-plt img"><img src="palette_scp-1.png" alt="" width="700" height="433"></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "1" "2" "3" "4" "5" "6" "7"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">all_palettes</span> <span class="op">&lt;-</span> <span class="fu"><a href="show_palettes.html">show_palettes</a></span><span class="op">(</span>return_palettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="palette_scp-1.png" alt="" width="700" height="433"></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in show_palettes(return_palettes = TRUE):</span> unused argument (return_palettes = TRUE)</span>
+<span class="r-plt img"><img src="palette_scp-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">all_palettes</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'all_palettes' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [1] "BrBG"                   "PiYG"                   "PRGn"                   "PuOr"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [5] "RdBu"                   "RdGy"                   "RdYlBu"                 "RdYlGn"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   [9] "Spectral"               "Accent"                 "Dark2"                  "Paired"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [13] "Pastel1"                "Pastel2"                "Set1"                   "Set2"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [17] "Set3"                   "Blues"                  "BuGn"                   "BuPu"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [21] "GnBu"                   "Greens"                 "Greys"                  "Oranges"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [25] "OrRd"                   "PuBu"                   "PuBuGn"                 "PuRd"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [29] "Purples"                "RdPu"                   "Reds"                   "YlGn"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [33] "YlGnBu"                 "YlOrBr"                 "YlOrRd"                 "npg"                   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [37] "aaas"                   "nejm"                   "lancet"                 "jama"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [41] "jco"                    "ucscgb"                 "d3-category10"          "d3-category20"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [45] "d3-category20b"         "d3-category20c"         "igv"                    "locuszoom"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [49] "uchicago-default"       "uchicago-light"         "uchicago-dark"          "cosmic"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [53] "simpsons"               "futurama"               "rickandmorty"           "startrek"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [57] "tron"                   "frontiers"              "flatui"                 "gsea"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [61] "material-red"           "material-pink"          "material-purple"        "material-deep-purple"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [65] "material-indigo"        "material-blue"          "material-light-blue"    "material-cyan"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [69] "material-teal"          "material-green"         "material-light-green"   "material-lime"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [73] "material-yellow"        "material-amber"         "material-orange"        "material-deep-orange"  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [77] "material-brown"         "material-grey"          "material-blue-grey"     "dPBIYlBu"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [81] "dPBIYlPu"               "dPBIPuGn"               "dPBIPuOr"               "dPBIRdBu"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [85] "dPBIRdGy"               "dPBIRdGn"               "qMSOStd"                "qMSO12"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [89] "qMSO15"                 "qMSOBuWarm"             "qMSOBu"                 "qMSOBu2"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [93] "qMSOBuGn"               "qMSOGn"                 "qMSOGnYl"               "qMSOYl"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [97] "qMSOYlOr"               "qMSOOr"                 "qMSOOrRd"               "qMSORdOr"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [101] "qMSORd"                 "qMSORdPu"               "qMSOPu"                 "qMSOPu2"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [105] "qMSOMed"                "qMSOPap"                "qMSOMrq"                "qMSOSlp"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [109] "qMSOAsp"                "qPBI"                   "sPBIGn"                 "sPBIGy1"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [113] "sPBIRd"                 "sPBIYl"                 "sPBIGy2"                "sPBIBu"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [117] "sPBIOr"                 "sPBIPu"                 "sPBIYlGn"               "sPBIRdPu"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [121] "ag_GrnYl"               "ag_Sunset"              "ArmyRose"               "Earth"                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [125] "Fall"                   "Geyser"                 "TealRose"               "Temps"                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [129] "Tropic"                 "Antique"                "Bold"                   "Pastel"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [133] "Prism"                  "Safe"                   "Vivid"                  "BluGrn"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [137] "BluYl"                  "BrwnYl"                 "Burg"                   "BurgYl"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [141] "DarkMint"               "Emrld"                  "Magenta"                "Mint"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [145] "OrYel"                  "Peach"                  "PinkYl"                 "Purp"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [149] "PurpOr"                 "RedOr"                  "Sunset"                 "SunsetDark"            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [153] "Teal"                   "TealGrn"                "polarnight"             "snowstorm"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [157] "frost"                  "aurora"                 "lumina"                 "mountain_forms"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [161] "silver_mine"            "lake_superior"          "victory_bonds"          "halifax_harbor"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [165] "moose_pond"             "algoma_forest"          "rocky_mountain"         "red_mountain"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [169] "baie_mouton"            "afternoon_prarie"       "magma"                  "inferno"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [173] "plasma"                 "viridis"                "cividis"                "rocket"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [177] "mako"                   "turbo"                  "ocean.algae"            "ocean.deep"            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [181] "ocean.dense"            "ocean.gray"             "ocean.haline"           "ocean.ice"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [185] "ocean.matter"           "ocean.oxy"              "ocean.phase"            "ocean.solar"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [189] "ocean.thermal"          "ocean.turbid"           "ocean.balance"          "ocean.curl"            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [193] "ocean.delta"            "ocean.amp"              "ocean.speed"            "ocean.tempo"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [197] "BrowntoBlue.10"         "BrowntoBlue.12"         "BluetoDarkOrange.12"    "BluetoDarkOrange.18"   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [201] "DarkRedtoBlue.12"       "DarkRedtoBlue.18"       "BluetoGreen.14"         "BluetoGray.8"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [205] "BluetoOrangeRed.14"     "BluetoOrange.10"        "BluetoOrange.12"        "BluetoOrange.8"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [209] "LightBluetoDarkBlue.10" "LightBluetoDarkBlue.7"  "Categorical.12"         "GreentoMagenta.16"     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [213] "SteppedSequential.5"    "jcolors-default"        "jcolors-pal2"           "jcolors-pal3"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [217] "jcolors-pal4"           "jcolors-pal5"           "jcolors-pal6"           "jcolors-pal7"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [221] "jcolors-pal8"           "jcolors-pal9"           "jcolors-pal10"          "jcolors-pal11"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [225] "jcolors-pal12"          "jcolors-rainbow"        "jet"                    "simspec"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [229] "GdRd"                  </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
