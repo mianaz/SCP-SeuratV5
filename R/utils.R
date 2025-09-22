@@ -13,6 +13,49 @@
 #' @import future.apply
 #' @import methods
 
+#' Check if R packages are installed
+#'
+#' This function checks if the specified R packages are installed
+#' and provides installation instructions if they are not.
+#'
+#' @param packages Character vector of R package names to check
+#' @return Invisible NULL
+#' @export
+check_R <- function(packages) {
+  if (length(packages) == 0) {
+    return(invisible(NULL))
+  }
+
+  for (pkg in packages) {
+    # Handle github packages (e.g., "username/repo")
+    if (grepl("/", pkg)) {
+      pkg_name <- basename(pkg)
+    } else if (grepl("@", pkg)) {
+      # Handle version specification (e.g., "package@1.0.0")
+      pkg_name <- sub("@.*", "", pkg)
+    } else {
+      pkg_name <- pkg
+    }
+
+    # Check if package is installed
+    if (!requireNamespace(pkg_name, quietly = TRUE)) {
+      stop(
+        "Package '", pkg_name, "' is required but not installed.\n",
+        "Please install it using:\n",
+        if (grepl("/", pkg)) {
+          paste0("  remotes::install_github('", pkg, "')")
+        } else if (pkg_name %in% rownames(utils::available.packages(repos = "https://cloud.r-project.org"))) {
+          paste0("  install.packages('", pkg_name, "')")
+        } else {
+          paste0("  BiocManager::install('", pkg_name, "')")
+        }
+      )
+    }
+  }
+
+  return(invisible(NULL))
+}
+
 #' @export
 palette_default <- c(
   "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
