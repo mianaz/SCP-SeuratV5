@@ -547,9 +547,9 @@ RunScmap <- function(srt_query, srt_ref, ref_group = NULL, query_assay = "RNA", 
     stop("'ref_group' must be provided.")
   }
 
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = srt_query, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = srt_ref, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between query and ref.", immediate. = TRUE)
@@ -697,9 +697,9 @@ RunSingleR <- function(srt_query, srt_ref, query_group = NULL, ref_group = NULL,
     method <- "SingleRCell"
   }
 
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = srt_query, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = srt_ref, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between query and ref.", immediate. = TRUE)

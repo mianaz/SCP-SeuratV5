@@ -9039,8 +9039,11 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
     p <- wrap_plots(gTree)
   }
 
+  attr(ht_list, "scp_annotation_legend_list") <- lgd
+
   return(list(
-    plot = p,
+    plot = ht_list,
+    grob = p,
     matrix_list = mat_list,
     feature_split = feature_split,
     cell_metadata = cell_metadata,
@@ -14754,6 +14757,19 @@ as_grob <- function(plot, ...) {
     patchworkGrob(plot, ...)
   } else if (inherits(plot, "ggplot")) {
     ggplotGrob(plot)
+  } else if (inherits(plot, c("Heatmap", "HeatmapList"))) {
+    legend_list <- attr(plot, "scp_annotation_legend_list", exact = TRUE)
+    grid.grabExpr(
+      {
+        if (is.null(legend_list)) {
+          draw(plot, newpage = FALSE)
+        } else {
+          draw(plot, annotation_legend_list = legend_list, newpage = FALSE)
+        }
+      },
+      wrap = TRUE,
+      wrap.grobs = TRUE
+    )
   } else {
     warning("Cannot convert object of class ", paste0(class(plot), collapse = ","), " into a grob.")
   }
