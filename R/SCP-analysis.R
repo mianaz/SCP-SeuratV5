@@ -2557,7 +2557,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             file.remove(paste0(tempdir, "/", gmt_files))
           }
           temp <- tempfile()
-          download(url = "https://wikipathways-data.wmcloud.org/current/gmt", destfile = temp)
+          download.file(url ="https://wikipathways-data.wmcloud.org/current/gmt", destfile = temp)
           lines <- paste0(readLines(temp, warn = FALSE), collapse = " ")
           gmtfiles <- unlist(regmatches(lines, m = gregexpr("(?<=>)wikipathways-\\S+\\.gmt\\b", lines, perl = TRUE)))
           wiki_sp <- sps
@@ -2574,7 +2574,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             }
           }
           version <- strsplit(gmtfile, split = "-")[[1]][[2]]
-          download(url = paste0("https://wikipathways-data.wmcloud.org/current/gmt/", gmtfile), destfile = temp)
+          download.file(url =paste0("https://wikipathways-data.wmcloud.org/current/gmt/", gmtfile), destfile = temp)
           wiki_gmt <- read.gmt(temp)
           unlink(temp)
           wiki_gmt <- apply(wiki_gmt, 1, function(x) {
@@ -2654,7 +2654,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: corum")
           url <- "https://maayanlab.cloud/static/hdfs/harmonizome/data/corum/gene_set_library_crisp.gmt.gz"
           temp <- tempfile(fileext = ".gz")
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           R.utils::gunzip(temp)
           TERM2GENE <- read.gmt(gsub(".gz", "", temp))
           version <- "Harmonizome 3.0"
@@ -2687,12 +2687,12 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         #   }
         #   message("Preparing database: DGI")
         #   temp <- tempfile()
-        #   download(url = "https://www.dgidb.org/downloads", destfile = temp)
+        #   download.file(url ="https://www.dgidb.org/downloads", destfile = temp)
         #   lines <- readLines(temp, warn = FALSE)
         #   lines <- lines[grep("data/monthly_tsvs/.*interactions.tsv", lines, perl = TRUE)]
         #   lines <- gsub("(<td><a href=\\\")|(\\\">interactions.tsv</a></td>)", "", lines)
         #   version <- strsplit(lines[1], split = "/")[[1]][3]
-        #   download(url = paste0("https://www.dgidb.org/", lines[1]), destfile = temp)
+        #   download.file(url =paste0("https://www.dgidb.org/", lines[1]), destfile = temp)
         #   dgi <- read.table(temp, header = TRUE, sep = "\t", fill = TRUE, quote = "")
         #   unlink(temp)
         #   dgi <- dgi[!is.na(dgi[["entrez_id"]]), , drop = FALSE]
@@ -2728,28 +2728,28 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           }
           message("Preparing database: MP")
           temp <- tempfile()
-          download(url = "http://www.informatics.jax.org/downloads/reports/", destfile = temp)
+          download.file(url ="http://www.informatics.jax.org/downloads/reports/", destfile = temp)
           version <- readLines(temp, warn = FALSE)
           version <- version[grep("MGI_PhenoGenoMP.rpt", version)]
           version <- strsplit(version, split = "  </td><td align=\"right\">")[[1]][2]
-          download(url = "http://www.informatics.jax.org/downloads/reports/VOC_MammalianPhenotype.rpt", destfile = temp)
+          download.file(url ="http://www.informatics.jax.org/downloads/reports/VOC_MammalianPhenotype.rpt", destfile = temp)
           mp_name <- read.table(temp, header = FALSE, sep = "\t", fill = TRUE, quote = "")
           rownames(mp_name) <- mp_name[, 1]
-          download(url = "http://www.informatics.jax.org/downloads/reports/MGI_Gene_Model_Coord.rpt", destfile = temp)
+          download.file(url ="http://www.informatics.jax.org/downloads/reports/MGI_Gene_Model_Coord.rpt", destfile = temp)
           gene_id <- read.table(temp, header = FALSE, row.names = NULL, sep = "\t", fill = TRUE, quote = "")
           gene_id <- gene_id[, 1:15]
           colnames(gene_id) <- gene_id[1, ]
           gene_id <- gene_id[gene_id[, 2] %in% c("Gene", "Pseudogene"), , drop = FALSE]
           rownames(gene_id) <- gene_id[, 1]
 
-          # download(url = "http://www.informatics.jax.org/downloads/reports/MGI_PhenoGenoMP.rpt", destfile = temp) # 43.0 MB
+          # download.file(url ="http://www.informatics.jax.org/downloads/reports/MGI_PhenoGenoMP.rpt", destfile = temp) # 43.0 MB
           # mp_gene <- read.table(temp, header = FALSE, sep = "\t", fill = TRUE, quote = "")
           # mp_gene[["symbol"]]<- gene_id[mp_gene[["V6"]], "3. marker symbol"]
           # mp_gene[["MP"]] <- mp_name[mp_gene[, "V4"], 2]
           # TERM2GENE <- mp_gene[, c("V4", "symbol")]
           # TERM2NAME <- mp_gene[, c("V4", "MP")]
 
-          download(url = "http://www.informatics.jax.org/downloads/reports/MGI_GenePheno.rpt", destfile = temp) # 32.4 MB
+          download.file(url ="http://www.informatics.jax.org/downloads/reports/MGI_GenePheno.rpt", destfile = temp) # 32.4 MB
           mp_gene <- read.table(temp, header = FALSE, sep = "\t", fill = TRUE, quote = "")
           mp_gene[["symbol"]] <- gene_id[mp_gene[["V7"]], "3. marker symbol"]
           mp_gene[["MP"]] <- mp_name[mp_gene[, "V5"], 2]
@@ -2775,7 +2775,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         if (any(db == "DO") && (!"DO" %in% names(db_list[[sps]]))) {
           message("Preparing database: DO")
           temp <- tempfile(fileext = ".tsv.gz")
-          download(url = "https://fms.alliancegenome.org/download/DISEASE-ALLIANCE_COMBINED.tsv.gz", destfile = temp)
+          download.file(url ="https://fms.alliancegenome.org/download/DISEASE-ALLIANCE_COMBINED.tsv.gz", destfile = temp)
           R.utils::gunzip(temp)
           do_all <- read.table(gsub(".gz", "", temp), header = TRUE, sep = "\t", fill = TRUE, quote = "")
           version <- gsub(pattern = ".*Alliance Database Version: ", replacement = "", x = grep("Alliance Database Version", readLines(gsub(".gz", "", temp), warn = FALSE), perl = TRUE, value = TRUE))
@@ -2822,11 +2822,11 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             }
           }
           temp <- tempfile()
-          download(url = "https://api.github.com/repos/obophenotype/human-phenotype-ontology/releases?per_page=1", destfile = temp)
+          download.file(url ="https://api.github.com/repos/obophenotype/human-phenotype-ontology/releases?per_page=1", destfile = temp)
           release <- readLines(temp, warn = FALSE)
           version <- regmatches(release, m = regexpr("(?<=tag_name\\\":\\\")\\S+(?=\\\",\\\"target_commitish)", release, perl = T))
 
-          download(url = "http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt", destfile = temp)
+          download.file(url ="http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt", destfile = temp)
           hpo <- read.table(temp, header = TRUE, sep = "\t", fill = TRUE, quote = "")
           unlink(temp)
 
@@ -2942,7 +2942,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             bg[, "ENZYME"] <- gsub(pattern = "\\.-$", "", x = bg[, 2])
             bg[, "ENZYME"] <- paste0("ec:", bg[, "ENZYME"])
             temp <- tempfile()
-            download(url = "https://ftp.expasy.org/databases/enzyme/enzclass.txt", destfile = temp)
+            download.file(url ="https://ftp.expasy.org/databases/enzyme/enzclass.txt", destfile = temp)
             enzyme <- read.table(temp, header = FALSE, sep = "\t", fill = TRUE, quote = "")
             enzyme <- enzyme[grep("-.-", enzyme[, 1], fixed = TRUE), , drop = FALSE]
             enzyme <- do.call(rbind, strsplit(enzyme[, 1], split = ". -.-  "))
@@ -2984,20 +2984,20 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             {
               temp <- tempfile()
               url <- paste0("http://bioinfo.life.hust.edu.cn/AnimalTFDB4/static/download/TF_list_final/", sps, "_TF")
-              download(url = url, destfile = temp)
+              download.file(url =url, destfile = temp)
               tf <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
               url <- paste0("http://bioinfo.life.hust.edu.cn/AnimalTFDB4/static/download/Cof_list_final/", sps, "_Cof")
-              download(url = url, destfile = temp)
+              download.file(url =url, destfile = temp)
               tfco <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
               if (!"Symbol" %in% colnames(tf)) {
                 if (isTRUE(convert_species) && db_species["TF"] != "Homo_sapiens") {
                   warning("Use the human annotation to create the TF database for ", sps, immediate. = TRUE)
                   db_species["TF"] <- "Homo_sapiens"
                   url <- paste0("http://bioinfo.life.hust.edu.cn/AnimalTFDB4/static/download/TF_list_final/Homo_sapiens_TF")
-                  download(url = url, destfile = temp)
+                  download.file(url =url, destfile = temp)
                   tf <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
                   url <- paste0("http://bioinfo.life.hust.edu.cn/AnimalTFDB4/static/download/Cof_list_final/Homo_sapiens_Cof")
-                  download(url = url, destfile = temp)
+                  download.file(url =url, destfile = temp)
                   tfco <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
                 } else {
                   stop("Stop the preparation.")
@@ -3013,20 +3013,20 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           if (inherits(status, "error")) {
             temp <- tempfile()
             url <- paste0("https://raw.githubusercontent.com/GuoBioinfoLab/AnimalTFDB3/master/AnimalTFDB3/static/AnimalTFDB3/download/", sps, "_TF")
-            download(url = url, destfile = temp)
+            download.file(url =url, destfile = temp)
             tf <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
             url <- paste0("https://raw.githubusercontent.com/GuoBioinfoLab/AnimalTFDB3/master/AnimalTFDB3/static/AnimalTFDB3/download/", sps, "_TF_cofactors")
-            download(url = url, destfile = temp)
+            download.file(url =url, destfile = temp)
             tfco <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
             if (!"Symbol" %in% colnames(tf)) {
               if (isTRUE(convert_species) && db_species["TF"] != "Homo_sapiens") {
                 warning("Use the human annotation to create the TF database for ", sps, immediate. = TRUE)
                 db_species["TF"] <- "Homo_sapiens"
                 url <- paste0("https://raw.githubusercontent.com/GuoBioinfoLab/AnimalTFDB3/master/AnimalTFDB3/static/AnimalTFDB3/download/Homo_sapiens_TF")
-                download(url = url, destfile = temp)
+                download.file(url =url, destfile = temp)
                 tf <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
                 url <- paste0("https://raw.githubusercontent.com/GuoBioinfoLab/AnimalTFDB3/master/AnimalTFDB3/static/AnimalTFDB3/download/Homo_sapiens_TF_cofactors")
-                download(url = url, destfile = temp)
+                download.file(url =url, destfile = temp)
                 tfco <- read.table(temp, header = TRUE, sep = "\t", stringsAsFactors = FALSE, fill = TRUE, quote = "")
               } else {
                 stop("Stop the preparation.")
@@ -3068,7 +3068,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: CSPA")
           temp <- tempfile(fileext = ".xlsx")
           url <- "https://wlab.ethz.ch/cspa/data/S1_File.xlsx"
-          download(url = url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+          download.file(url =url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
           surfacepro <- openxlsx::read.xlsx(temp, sheet = 1)
           unlink(temp)
           surfacepro <- surfacepro[surfacepro[["organism"]] == switch(db_species["CSPA"],
@@ -3108,7 +3108,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: Surfaceome")
           temp <- tempfile(fileext = ".xlsx")
           url <- "http://wlab.ethz.ch/surfaceome/table_S3_surfaceome.xlsx"
-          download(url = url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+          download.file(url =url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
           surfaceome <- openxlsx::read.xlsx(temp, sheet = 2, colNames = TRUE, startRow = 2)
           unlink(temp)
           TERM2GENE <- data.frame("Term" = "SurfaceProtein", "symbol" = surfaceome[["UniProt.gene"]])
@@ -3143,7 +3143,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: SPRomeDB")
           temp <- tempfile()
           url <- "http://119.3.41.228/SPRomeDB/files/download/secreted_proteins_SPRomeDB.csv"
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           spromedb <- read.csv(temp, header = TRUE)
           unlink(temp)
           TERM2GENE <- data.frame("Term" = "SecretoryProtein", "entrez_id" = unlist(strsplit(spromedb$Gene_ID, ";")))
@@ -3167,7 +3167,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         ## VerSeDa ---------------------------------------------------------------------------
         if (any(db == "VerSeDa") && (!"VerSeDa" %in% names(db_list[[sps]]))) {
           temp <- tempfile()
-          download(url = "http://genomics.cicbiogune.es/VerSeDa/downloads.php", destfile = temp)
+          download.file(url ="http://genomics.cicbiogune.es/VerSeDa/downloads.php", destfile = temp)
           verseda_sps <- readLines(temp)
           verseda_sps <- regmatches(verseda_sps, m = regexpr("(?<=Downloads/)\\S+(?=\\.zip)", verseda_sps, perl = TRUE))
           verseda_sps <- setdiff(verseda_sps, c("NonRefined", "NonRefined_Curated", "Refined", "Refined_Curated"))
@@ -3183,7 +3183,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: VerSeDa")
           temp <- tempfile(fileext = ".zip")
           url <- paste0("http://genomics.cicbiogune.es/VerSeDa/Downloads/", tolower(db_species["VerSeDa"]), ".zip")
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           con <- unz(temp, paste0(tolower(db_species["VerSeDa"]), "/", tolower(db_species["VerSeDa"]), "_Refined.sequences"))
           verseda <- readLines(con)
           close(con)
@@ -3224,7 +3224,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: TFLink")
           url <- paste0("https://cdn.netbiol.org/tflink/download_files/TFLink_", db_species["TFLink"], "_interactions_All_GMT_proteinName_v1.0.gmt")
           temp <- tempfile()
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           TERM2GENE <- read.gmt(temp)
           version <- "v1.0"
           TERM2NAME <- TERM2GENE[, c(1, 1)]
@@ -3257,7 +3257,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: hTFtarget")
           url <- paste0("http://bioinfo.life.hust.edu.cn/static/hTFtarget/file_download/tf-target-infomation.txt")
           temp <- tempfile()
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           TERM2GENE <- read.table(temp, header = TRUE, fill = T, sep = "\t")
           version <- "v1.0"
           TERM2NAME <- TERM2GENE[, c(1, 1)]
@@ -3294,12 +3294,12 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           )
           if (endsWith(url, "gz")) {
             temp <- tempfile(fileext = ".gz")
-            download(url = url, destfile = temp)
+            download.file(url =url, destfile = temp)
             R.utils::gunzip(temp)
             TERM2GENE <- read.table(gsub(".gz$", "", temp), header = FALSE, fill = T, sep = "\t")[, 1:2]
           } else {
             temp <- tempfile()
-            download(url = url, destfile = temp)
+            download.file(url =url, destfile = temp)
             TERM2GENE <- read.table(temp, header = FALSE, fill = T, sep = "\t")[, 1:2]
           }
           version <- "v2.0"
@@ -3333,7 +3333,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: JASPAR")
           url <- "https://maayanlab.cloud/static/hdfs/harmonizome/data/jasparpwm/gene_set_library_crisp.gmt.gz"
           temp <- tempfile(fileext = ".gz")
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           R.utils::gunzip(temp)
           TERM2GENE <- read.gmt(gsub(".gz", "", temp))
           version <- "Harmonizome 3.0"
@@ -3367,7 +3367,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: ENCODE")
           url <- "https://maayanlab.cloud/static/hdfs/harmonizome/data/encodetfppi/gene_set_library_crisp.gmt.gz"
           temp <- tempfile(fileext = ".gz")
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           R.utils::gunzip(temp)
           TERM2GENE <- read.gmt(gsub(".gz", "", temp))
           version <- "Harmonizome 3.0"
@@ -3401,7 +3401,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: MSigDB")
 
           temp <- tempfile()
-          download(url = "https://data.broadinstitute.org/gsea-msigdb/msigdb/release/", destfile = temp)
+          download.file(url ="https://data.broadinstitute.org/gsea-msigdb/msigdb/release/", destfile = temp)
           version <- readLines(temp)
           version <- version[grep("alt=\"\\[DIR\\]\"", version)]
           version <- version[grep(switch(db_species["MSigDB"],
@@ -3413,7 +3413,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           # version="2023.1.Hs" "2023.2.Hs"
 
           url <- paste0("https://data.broadinstitute.org/gsea-msigdb/msigdb/release/", version, "/msigdb.v", version, ".json")
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           lines <- paste0(readLines(temp, warn = FALSE), collapse = "")
           lines <- gsub("\"", "", lines)
           lines <- gsub("^\\{|\\}$", "", lines)
@@ -3484,7 +3484,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           )
 
           temp <- tempfile()
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           lr <- readRDS(temp)
           version <- "v1.0"
 
@@ -3531,14 +3531,14 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
             )
           )
           temp <- tempfile()
-          download(url = url, destfile = temp)
+          download.file(url =url, destfile = temp)
           load(temp)
           lr <- get(paste0("CellChatDB.", switch(db_species["CellChat"],
             "Homo_sapiens" = "human",
             "Mus_musculus" = "mouse",
             "Danio_rerio" = "zebrafish"
           )))[["interaction"]]
-          download(url = "https://raw.githubusercontent.com/sqjin/CellChat/master/DESCRIPTION", destfile = temp)
+          download.file(url ="https://raw.githubusercontent.com/sqjin/CellChat/master/DESCRIPTION", destfile = temp)
           version <- grep(pattern = "Version", x = readLines(temp), value = TRUE)
           version <- gsub(pattern = "(.*Version: )|(</td>)", replacement = "", x = version)
           unlink(temp)

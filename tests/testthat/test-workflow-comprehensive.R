@@ -329,7 +329,6 @@ test_that("Core visualization functions work", {
 # Test 8: Cell annotation functions
 test_that("Cell annotation functions work", {
   skip_on_cran()
-  skip_if_not_installed("SingleR")
   skip("RunSingleR requires curated references and is unstable on synthetic fixtures")
   
   # Create test reference and query data
