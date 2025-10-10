@@ -52,7 +52,7 @@ Integration_SCP(
 \item{assay}{The name of the assay to be used for downstream analysis.}
 
 \item{integration_method}{A character string specifying the integration method to use.
-Supported methods are: \code{"Uncorrected"}, \code{"Seurat"}, \code{"scVI"}, \code{"MNN"}, \code{"fastMNN"}, \code{"Harmony"},
+Supported methods are: \code{"Uncorrected"}, \code{"Seurat"}, \code{"scVI"}, \code{"SCANVI"}, \code{"MNN"}, \code{"fastMNN"}, \code{"Harmony"},
 \code{"Scanorama"}, \code{"BBKNN"}, \code{"CSS"}, \code{"LIGER"}, \code{"Conos"}, \code{"ComBat"}. Default is \code{"Uncorrected"}.}
 
 \item{do_normalization}{A logical value indicating whether data normalization should be performed.}
@@ -152,7 +152,7 @@ CellDimPlot(panc8_sub, group.by = c("tech", "celltype"))
 
 \dontrun{
 integration_methods <- c(
-  "Uncorrected", "Seurat", "scVI", "MNN", "fastMNN", "Harmony",
+  "Uncorrected", "Seurat", "scVI", "SCANVI", "MNN", "fastMNN", "Harmony",
   "Scanorama", "BBKNN", "CSS", "LIGER", "Conos", "ComBat"
 )
 for (method in integration_methods) {
@@ -189,5 +189,5 @@ for (nr in nonlinear_reductions) {
 
 }
 \seealso{
-\code{\link{Seurat_integrate}} \code{\link{scVI_integrate}} \code{\link{MNN_integrate}} \code{\link{fastMNN_integrate}} \code{\link{Harmony_integrate}} \code{\link{Scanorama_integrate}} \code{\link{BBKNN_integrate}} \code{\link{CSS_integrate}} \code{\link{LIGER_integrate}} \code{\link{Conos_integrate}} \code{\link{ComBat_integrate}} \code{\link{Standard_SCP}}
+\code{\link{Seurat_integrate}} \code{\link{scVI_integrate}} \code{\link{SCANVI_integrate}} \code{\link{MNN_integrate}} \code{\link{fastMNN_integrate}} \code{\link{Harmony_integrate}} \code{\link{Scanorama_integrate}} \code{\link{BBKNN_integrate}} \code{\link{CSS_integrate}} \code{\link{LIGER_integrate}} \code{\link{Conos_integrate}} \code{\link{ComBat_integrate}} \code{\link{Standard_SCP}}
 }

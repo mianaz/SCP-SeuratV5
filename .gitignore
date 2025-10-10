@@ -70,3 +70,4 @@ tests/*.rds
 
 # Documentation files
 CLAUDE.md
+agents.md

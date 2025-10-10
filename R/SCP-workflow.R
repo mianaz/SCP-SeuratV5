@@ -1475,7 +1475,6 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -1491,7 +1490,6 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
     srtMerge <- checked[["srtMerge"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
   }
 
   if (normalization_method == "TFIDF") {
@@ -1954,7 +1952,6 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -1970,7 +1967,6 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
     srtMerge <- checked[["srtMerge"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
   }
 
   adata <- srt_to_adata(srtMerge, features = HVF, assay_X = DefaultAssay(srtMerge), assay_layers = NULL, verbose = FALSE)
@@ -2069,6 +2065,211 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
 
   if (isTRUE(append) && !is.null(srtMerge_raw)) {
     srtMerge_raw <- SrtAppend(srt_raw = srtMerge_raw, srt_append = srtIntegrated, pattern = paste0(assay, "|scVI|Default_reduction"), overwrite = TRUE, verbose = FALSE)
+    return(srtMerge_raw)
+  } else {
+    return(srtIntegrated)
+  }
+}
+
+#' SCANVI_integrate
+#'
+#' @inheritParams Integration_SCP
+#' @param SCANVI_dims_use A vector specifying the dimensions returned by scANVI that will be utilized for downstream cell cluster finding and non-linear reduction. If set to NULL, all the returned dimensions will be used by default.
+#' @param labels_key A character string indicating the column name in the metadata that stores cell labels for semi-supervised training. This argument is required.
+#' @param unlabeled_category A string specifying the category in \code{labels_key} that represents unlabeled cells. Default is "Unknown".
+#' @param SCVI_params A list of parameters passed to the \code{SCVI} model used for pretraining, default is an empty list.
+#' @param SCANVI_params A list of parameters passed to \code{SCANVI\$from_scvi_model}, default is an empty list.
+#' @param num_threads An integer setting the number of threads for scvi-tools, default is 8.
+#'
+#' @importFrom Seurat CreateSeuratObject GetAssayData SetAssayData DefaultAssay DefaultAssay<- Embeddings FindNeighbors FindClusters Idents VariableFeatures VariableFeatures<-
+#' @importFrom SeuratObject LayerData<-
+#' @importFrom SeuratObject LayerData
+#' @importFrom reticulate import
+#' @export
+SCANVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
+                             do_normalization = NULL, normalization_method = "LogNormalize",
+                             do_HVF_finding = TRUE, HVF_source = "separate", HVF_method = "vst", nHVF = 2000, HVF_min_intersection = 1, HVF = NULL,
+                             SCANVI_dims_use = NULL,
+                             labels_key = NULL, unlabeled_category = "Unknown",
+                             nonlinear_reduction = "umap", nonlinear_reduction_dims = c(2, 3), nonlinear_reduction_params = list(), force_nonlinear_reduction = TRUE,
+                             neighbor_metric = "euclidean", neighbor_k = 20L, cluster_algorithm = "louvain", cluster_resolution = 0.6,
+                             SCVI_params = list(), SCANVI_params = list(), num_threads = 8, seed = 11) {
+  if (any(!nonlinear_reduction %in% c("umap", "umap-naive", "tsne", "dm", "phate", "pacmap", "trimap", "largevis", "fr"))) {
+    stop("'nonlinear_reduction' must be one of 'umap', 'tsne', 'dm', 'phate', 'pacmap', 'trimap', 'largevis', 'fr'.")
+  }
+  if (!cluster_algorithm %in% c("louvain", "slm", "leiden")) {
+    stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
+  }
+  if (cluster_algorithm == "leiden") {
+    check_Python("leidenalg")
+  }
+  cluster_algorithm_index <- switch(tolower(cluster_algorithm),
+    "louvain" = 1,
+    "louvain_refined" = 2,
+    "slm" = 3,
+    "leiden" = 4
+  )
+
+  if (is.null(labels_key) || length(labels_key) != 1 || !is.character(labels_key)) {
+    stop("'labels_key' must be a single character string specifying the metadata column with labels.")
+  }
+
+  if (.Platform$OS.type == "windows" && !exist_Python_pkgs(packages = "scvi-tools")) {
+    suppressWarnings(system2(command = conda_python(), args = "-m pip install jax[cpu]===0.3.20 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver", stdout = TRUE))
+  }
+
+  check_Python("scvi-tools")
+  scvi <- import("scvi")
+  scipy <- import("scipy")
+  set.seed(seed)
+
+  scvi$settings$num_threads <- as.integer(num_threads)
+
+  if (is.null(srtList) && is.null(srtMerge)) {
+    stop("srtList and srtMerge were all empty.")
+  }
+  if (!is.null(srtList) && !is.null(srtMerge)) {
+    cell1 <- sort(unique(unlist(lapply(srtList, colnames))))
+    cell2 <- sort(unique(colnames(srtMerge)))
+    if (!identical(cell1, cell2)) {
+      stop("srtList and srtMerge have different cells.")
+    }
+  }
+  if (!is.null(srtMerge)) {
+    srtMerge_raw <- srtMerge
+  } else {
+    srtMerge_raw <- NULL
+  }
+  if (!is.null(srtList)) {
+    checked <- check_srtList(
+      srtList = srtList, batch = batch, assay = assay,
+      do_normalization = do_normalization, do_HVF_finding = do_HVF_finding,
+      normalization_method = normalization_method,
+      HVF_source = HVF_source, HVF_method = HVF_method,
+      nHVF = nHVF, HVF_min_intersection = HVF_min_intersection, HVF = HVF,
+      seed = seed
+    )
+    srtList <- checked[["srtList"]]
+    HVF <- checked[["HVF"]]
+    assay <- checked[["assay"]]
+    srtMerge <- Reduce(merge, srtList)
+    VariableFeatures(srtMerge) <- HVF
+  }
+  if (is.null(srtList) && !is.null(srtMerge)) {
+    checked <- check_srtMerge(
+      srtMerge = srtMerge, batch = batch, assay = assay,
+      do_normalization = do_normalization, do_HVF_finding = do_HVF_finding,
+      normalization_method = normalization_method,
+      HVF_source = HVF_source, HVF_method = HVF_method,
+      nHVF = nHVF, HVF_min_intersection = HVF_min_intersection, HVF = HVF,
+      seed = seed
+    )
+    srtMerge <- checked[["srtMerge"]]
+    HVF <- checked[["HVF"]]
+    assay <- checked[["assay"]]
+  }
+
+  if (!labels_key %in% colnames(srtMerge@meta.data)) {
+    stop(paste0("labels_key '", labels_key, "' was not found in the merged object's metadata."))
+  }
+  label_values <- srtMerge@meta.data[[labels_key]]
+  if (!unlabeled_category %in% unique(label_values)) {
+    stop(paste0("unlabeled_category '", unlabeled_category, "' was not found in column '", labels_key, "'."))
+  }
+
+  adata <- srt_to_adata(srtMerge, features = HVF, assay_X = DefaultAssay(srtMerge), assay_layers = NULL, verbose = FALSE)
+  adata[["X"]] <- scipy$sparse$csr_matrix(adata[["X"]])
+
+  scvi$model$SCVI$setup_anndata(adata, batch_key = batch, labels_key = labels_key)
+  scvi_params <- list(
+    adata = adata
+  )
+  for (nm in names(SCVI_params)) {
+    scvi_params[[nm]] <- SCVI_params[[nm]]
+  }
+  scvi_model <- invoke(.fn = scvi$model$SCVI, .args = scvi_params)
+  scvi_model$train()
+
+  scanvi_args <- list(
+    scvi_model = scvi_model,
+    unlabeled_category = unlabeled_category
+  )
+  for (nm in names(SCANVI_params)) {
+    scanvi_args[[nm]] <- SCANVI_params[[nm]]
+  }
+  model <- invoke(.fn = scvi$model$SCANVI$from_scvi_model, .args = scanvi_args)
+  model$train()
+
+  srtIntegrated <- srtMerge
+  srtMerge <- NULL
+
+  corrected <- t(as_matrix(model$get_normalized_expression()))
+  srtIntegrated[["SCANVIcorrected"]] <- CreateAssayObject(counts = corrected)
+  DefaultAssay(srtIntegrated) <- "SCANVIcorrected"
+  VariableFeatures(srtIntegrated[["SCANVIcorrected"]]) <- HVF
+
+  latent <- as_matrix(model$get_latent_representation())
+  rownames(latent) <- colnames(srtIntegrated)
+  colnames(latent) <- paste0("SCANVI_", seq_len(ncol(latent)))
+  srtIntegrated[["SCANVI"]] <- CreateDimReducObject(embeddings = latent, key = "SCANVI_", assay = DefaultAssay(srtIntegrated))
+  if (is.null(SCANVI_dims_use)) {
+    SCANVI_dims_use <- 1:ncol(srtIntegrated[["SCANVI"]]@cell.embeddings)
+  }
+
+  srtIntegrated <- tryCatch(
+    {
+      srtIntegrated <- FindNeighbors(
+        object = srtIntegrated, reduction = "SCANVI", dims = SCANVI_dims_use,
+        annoy.metric = neighbor_metric, k.param = neighbor_k,
+        force.recalc = TRUE, graph.name = paste0("SCANVI_", c("KNN", "SNN")), verbose = FALSE
+      )
+
+      cat(paste0("[", Sys.time(), "]", " Perform FindClusters (", cluster_algorithm, ") on the data...\n"))
+      srtIntegrated <- FindClusters(object = srtIntegrated, resolution = cluster_resolution, algorithm = cluster_algorithm_index, method = "igraph", graph.name = "SCANVI_SNN", verbose = FALSE)
+      cat(paste0("[", Sys.time(), "]", " Reorder clusters...\n"))
+      srtIntegrated <- SrtReorder(srtIntegrated, features = HVF, reorder_by = "seurat_clusters", layer = "data")
+      srtIntegrated[["seurat_clusters"]] <- NULL
+      srtIntegrated[["SCANVIclusters"]] <- Idents(srtIntegrated)
+      srtIntegrated
+    },
+    error = function(error) {
+      message(error)
+      message("Error when performing FindClusters. Skip this step...")
+      return(srtIntegrated)
+    }
+  )
+
+  srtIntegrated <- tryCatch(
+    {
+      for (nr in nonlinear_reduction) {
+        cat(paste0("[", Sys.time(), "]", " Perform nonlinear dimension reduction (", nr, ") on the data...\n"))
+        for (n in nonlinear_reduction_dims) {
+          srtIntegrated <- RunDimReduction(
+            srtIntegrated,
+            prefix = "SCANVI",
+            reduction_use = "SCANVI", reduction_dims = SCANVI_dims_use,
+            graph_use = "SCANVI_SNN",
+            nonlinear_reduction = nr, nonlinear_reduction_dims = n,
+            nonlinear_reduction_params = nonlinear_reduction_params,
+            force_nonlinear_reduction = force_nonlinear_reduction,
+            verbose = FALSE, seed = seed
+          )
+        }
+      }
+      srtIntegrated
+    },
+    error = function(error) {
+      message(error)
+      message("Error when performing nonlinear dimension reduction. Skip this step...")
+      return(srtIntegrated)
+    }
+  )
+
+  DefaultAssay(srtIntegrated) <- assay
+  VariableFeatures(srtIntegrated) <- srtIntegrated@misc[["SCANVI_HVF"]] <- HVF
+
+  if (isTRUE(append) && !is.null(srtMerge_raw)) {
+    srtMerge_raw <- SrtAppend(srt_raw = srtMerge_raw, srt_append = srtIntegrated, pattern = paste0(assay, "|SCANVI|Default_reduction"), overwrite = TRUE, verbose = FALSE)
     return(srtMerge_raw)
   } else {
     return(srtIntegrated)
@@ -2531,7 +2732,6 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -2934,7 +3134,6 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -3159,7 +3358,6 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -3351,7 +3549,6 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -3578,7 +3775,6 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -3791,7 +3987,6 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     srtList <- checked[["srtList"]]
     HVF <- checked[["HVF"]]
     assay <- checked[["assay"]]
-    type <- checked[["type"]]
     srtMerge <- Reduce(merge, srtList)
     VariableFeatures(srtMerge) <- HVF
   }
@@ -4154,14 +4349,14 @@ Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
 #' @inheritParams Standard_SCP
 #' @param scale_within_batch  Whether to scale data within each batch. Only valid when the \code{integration_method} is one of \code{"Uncorrected"}, \code{"Seurat"}, \code{"MNN"}, \code{"Harmony"}, \code{"BBKNN"}, \code{"CSS"}, \code{"ComBat"}.
 #' @param integration_method  A character string specifying the integration method to use.
-#'   Supported methods are: \code{"Uncorrected"}, \code{"Seurat"}, \code{"scVI"}, \code{"MNN"}, \code{"fastMNN"}, \code{"Harmony"},
+#'   Supported methods are: \code{"Uncorrected"}, \code{"Seurat"}, \code{"scVI"}, \code{"SCANVI"}, \code{"MNN"}, \code{"fastMNN"}, \code{"Harmony"},
 #'   \code{"Scanorama"}, \code{"BBKNN"}, \code{"CSS"}, \code{"LIGER"}, \code{"Conos"}, \code{"ComBat"}. Default is \code{"Uncorrected"}.
 #' @param append Logical, if TRUE, the integrated data will be appended to the original Seurat object (srtMerge).
 #' @param ... Additional arguments to be passed to the integration method function.
 #'
 #' @return A \code{Seurat} object.
 #'
-#' @seealso \code{\link{Seurat_integrate}} \code{\link{scVI_integrate}} \code{\link{MNN_integrate}} \code{\link{fastMNN_integrate}} \code{\link{Harmony_integrate}} \code{\link{Scanorama_integrate}} \code{\link{BBKNN_integrate}} \code{\link{CSS_integrate}} \code{\link{LIGER_integrate}} \code{\link{Conos_integrate}} \code{\link{ComBat_integrate}} \code{\link{Standard_SCP}}
+#' @seealso \code{\link{Seurat_integrate}} \code{\link{scVI_integrate}} \code{\link{SCANVI_integrate}} \code{\link{MNN_integrate}} \code{\link{fastMNN_integrate}} \code{\link{Harmony_integrate}} \code{\link{Scanorama_integrate}} \code{\link{BBKNN_integrate}} \code{\link{CSS_integrate}} \code{\link{LIGER_integrate}} \code{\link{Conos_integrate}} \code{\link{ComBat_integrate}} \code{\link{Standard_SCP}}
 #'
 #' @examples
 #' data("panc8_sub")
@@ -4248,7 +4443,7 @@ Integration_SCP <- function(srtMerge = NULL, batch, append = TRUE, srtList = NUL
   if (is.null(srtList) && is.null(srtMerge)) {
     stop("Neither 'srtList' nor 'srtMerge' was found.")
   }
-  if (length(integration_method) == 1 && integration_method %in% c("Uncorrected", "Seurat", "scVI", "MNN", "fastMNN", "Harmony", "Scanorama", "BBKNN", "CSS", "LIGER", "Conos", "ComBat")) {
+  if (length(integration_method) == 1 && integration_method %in% c("Uncorrected", "Seurat", "scVI", "SCANVI", "MNN", "fastMNN", "Harmony", "Scanorama", "BBKNN", "CSS", "LIGER", "Conos", "ComBat")) {
     # Convert the arguments of the function call to a list and remove the function itself
     args <- as.list(match.call())[-1]
 

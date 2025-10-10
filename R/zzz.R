@@ -34,9 +34,9 @@ check_critical_dependencies <- function() {
     
     packageStartupMessage(
       "\n",
-      "╔════════════════════════════════════════════════════════════╗\n",
-      "║                  SCP Dependency Notice                     ║\n",
-      "╚════════════════════════════════════════════════════════════╝\n"
+      "================================================================\n",
+      "                  SCP Dependency Notice                        \n",
+      "================================================================\n"
     )
     
     if (length(missing_deps$cran_imports) > 0) {
@@ -94,9 +94,9 @@ check_critical_dependencies <- function() {
     }
     
     packageStartupMessage(
-      "╔════════════════════════════════════════════════════════════╗\n",
-      "║        Some SCP functionality may be limited                ║\n",
-      "╚════════════════════════════════════════════════════════════╝\n"
+      "================================================================\n",
+      "        Some SCP functionality may be limited                  \n",
+      "================================================================\n"
     )
   }
 }
@@ -116,7 +116,7 @@ check_critical_dependencies <- function() {
       
       if (!is_v5) {
         packageStartupMessage(
-          "\n⚠️ IMPORTANT: You are running Seurat v", seurat_version, 
+          "\n[WARNING] IMPORTANT: You are running Seurat v", seurat_version,
           ". SCP is optimized for Seurat v5+",
           "\nPlease update your Seurat objects using UpdateSeuratObject() before analysis.",
           "\nSee ?UpdateSeuratObject for details."

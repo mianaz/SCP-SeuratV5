@@ -4849,7 +4849,7 @@ RunMonocle3 <- function(srt, assay = NULL, slot = "counts",
                         root_pr_nodes = NULL, root_cells = NULL, seed = 11) {
   set.seed(seed)
   if (!requireNamespace("monocle3", quietly = TRUE) || packageVersion("monocle3") < package_version("1.2.0")) {
-    check_R("cole-trapnell-lab/monocle3", force = TRUE)
+    check_R("cole-trapnell-lab/monocle3")
   }
   assay <- assay %||% DefaultAssay(srt)
   expr_matrix <- as.sparse(get_seurat_data(srt, layer = slot, assay = assay))

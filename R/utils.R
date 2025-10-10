@@ -1154,7 +1154,7 @@ RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
     }
 
     if (success) {
-      message("✓ Successfully removed environment '", envname, "'")
+      message("[v] Successfully removed environment '", envname, "'")
       # Unset Python environment variables to avoid pointing to deleted environment
       Sys.unsetenv("RETICULATE_PYTHON")
       Sys.unsetenv("RETICULATE_PYTHON_ENV")
@@ -1165,7 +1165,7 @@ RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
         .globals$py_config <- NULL
       }
     } else {
-      message("✗ Failed to remove environment '", envname, "'")
+      message("[x] Failed to remove environment '", envname, "'")
       message("You may need to manually delete: ", env_path)
     }
   } else {
