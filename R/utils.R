@@ -13,43 +13,30 @@
 #' @import future.apply
 #' @import methods
 
-#' Check if R packages are installed
+# Declare global variables used in NSE contexts (ggplot, dplyr, etc.)
+utils::globalVariables(c(
+  "x", "y", "z", "value", "variable", "Var1", "Var2",
+  ".", "group", "label", "name", "count", "frequency", "percent",
+  "xend", "yend", "hjust", "vjust", "angle", "color", "fill",
+  "size", "shape", "alpha", "linetype", "linewidth"
+))
+
+#' Check if Python packages are available
 #'
-#' This function checks if the specified R packages are installed
-#' and provides installation instructions if they are not.
+#' This function checks if required Python packages are available in the current Python environment.
 #'
-#' @param packages Character vector of R package names to check
-#' @return Invisible NULL
+#' @param packages Character vector of Python package names to check
+#' @return Invisible NULL. Throws an error if packages are not available.
 #' @export
-check_R <- function(packages) {
-  if (length(packages) == 0) {
-    return(invisible(NULL))
+check_Python <- function(packages) {
+  if (!reticulate::py_available()) {
+    stop("Python is not available. Please set up Python environment with PrepareEnv()")
   }
 
   for (pkg in packages) {
-    # Handle github packages (e.g., "username/repo")
-    if (grepl("/", pkg)) {
-      pkg_name <- basename(pkg)
-    } else if (grepl("@", pkg)) {
-      # Handle version specification (e.g., "package@1.0.0")
-      pkg_name <- sub("@.*", "", pkg)
-    } else {
-      pkg_name <- pkg
-    }
-
-    # Check if package is installed
-    if (!requireNamespace(pkg_name, quietly = TRUE)) {
-      stop(
-        "Package '", pkg_name, "' is required but not installed.\n",
-        "Please install it using:\n",
-        if (grepl("/", pkg)) {
-          paste0("  remotes::install_github('", pkg, "')")
-        } else if (pkg_name %in% rownames(utils::available.packages(repos = "https://cloud.r-project.org"))) {
-          paste0("  install.packages('", pkg_name, "')")
-        } else {
-          paste0("  BiocManager::install('", pkg_name, "')")
-        }
-      )
+    if (!reticulate::py_module_available(pkg)) {
+      stop("Python package '", pkg, "' is required but not installed.\n",
+           "Please install it in your Python environment or run PrepareEnv()")
     }
   }
 
@@ -246,36 +233,6 @@ set_scp_palette <- function(x, palette = "default", palcolor = NULL, matched = F
 # check_DataType function has been moved to SCP-workflow.R to avoid duplication
 # and improve V5 compatibility
 
-check_features <- function(srt, features, return_remove = FALSE, assay = NULL) {
-  assay <- assay %||% DefaultAssay(srt)
-  features[features == ""] <- NA
-  features <- features[!is.na(features)]
-  features_unique <- unique(features)
-  if (any(!features_unique %in% c(rownames(srt@assays[[assay]]), colnames(srt@meta.data)))) {
-    feature_remove <- features_unique[!features_unique %in% c(rownames(srt@assays[[assay]]), colnames(srt@meta.data))]
-    warning(paste0(feature_remove, collapse = ","), " is not in the features of the Seurat object.", immediate. = TRUE)
-    features <- features[!features %in% feature_remove]
-    features_unique <- unique(features)
-  } else {
-    feature_remove <- character()
-  }
-  if (length(features_unique) == 0) {
-    stop("There are no valid features present.")
-  }
-  if (isTRUE(return_remove)) {
-    return(list(features = features, features_unique = features_unique, feature_remove = feature_remove))
-  } else {
-    return(list(features = features, features_unique = features_unique))
-  }
-}
-
-check_colors <- function(colors, n) {
-  if (length(colors) != n) {
-    warning("The length of colors does not match the length of the features. Use default color instead.", immediate. = TRUE)
-    colors <- palette_scp(x = c(1:n), palette = "viridis")
-  }
-  return(colors)
-}
 
 as_matrix <- function(x, ...) {
   UseMethod(generic = "as_matrix", object = x)

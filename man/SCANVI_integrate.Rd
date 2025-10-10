@@ -84,11 +84,11 @@ SCANVI_integrate(
 
 \item{cluster_resolution}{The resolution parameter to use for clustering. Larger values result in fewer clusters (default is 0.6).}
 
-\item{SCVI_params}{A list of parameters passed to the \code{SCVI} model during pretraining. Default is an empty list.}
+\item{SCVI_params}{A list of parameters passed to the \code{SCVI} model used for pretraining, default is an empty list.}
 
-\item{SCANVI_params}{A list of parameters passed to \code{SCANVI\$from_scvi_model}. Default is an empty list.}
+\item{SCANVI_params}{A list of parameters passed to \code{SCANVI\$from_scvi_model}, default is an empty list.}
 
-\item{num_threads}{An integer setting the number of threads for scvi-tools. Default is 8.}
+\item{num_threads}{An integer setting the number of threads for scvi-tools, default is 8.}
 
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
 }

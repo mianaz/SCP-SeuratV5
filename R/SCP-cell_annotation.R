@@ -529,7 +529,7 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
 #' @export
 RunScmap <- function(srt_query, srt_ref, ref_group = NULL, query_assay = "RNA", ref_assay = "RNA",
                      method = "scmapCluster", nfeatures = 500, threshold = 0.5, k = 10) {
-  check_R("scmap")
+  if (!requireNamespace("scmap", quietly = TRUE)) stop("Package 'scmap' is required")
   if (!is.null(ref_group)) {
     if (length(ref_group) == ncol(srt_ref)) {
       srt_ref[["ref_group"]] <- ref_group
@@ -662,7 +662,7 @@ RunSingleR <- function(srt_query, srt_ref, query_group = NULL, ref_group = NULL,
                        aggr.ref = FALSE, aggr.args = list(),
                        quantile = 0.8, fine.tune = TRUE, tune.thresh = 0.05, prune = TRUE,
                        BPPARAM = BiocParallel::bpparam()) {
-  check_R("SingleR")
+  if (!requireNamespace("SingleR", quietly = TRUE)) stop("Package 'SingleR' is required")
   if (!is.null(ref_group)) {
     if (length(ref_group) == ncol(srt_ref)) {
       srt_ref[["ref_group"]] <- ref_group

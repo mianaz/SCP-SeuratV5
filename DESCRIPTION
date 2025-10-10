@@ -125,6 +125,6 @@ Suggests:
     uwot,
     withr (>= 2.5.0)
 LinkingTo: Rcpp
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 URL: https://github.com/zhanghao-njmu/SCP

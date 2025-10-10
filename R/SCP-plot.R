@@ -736,7 +736,7 @@ panel_fix_overall <- function(x, panel_index = NULL, respect = NULL,
   # print(paste0("height:", height))
 
   if (isTRUE(raster)) {
-    check_R(c("png", "ragg"))
+    if (!requireNamespace("png", quietly = TRUE)) stop("Package 'png' is required"); if (!requireNamespace("ragg", quietly = TRUE)) stop("Package 'ragg' is required")
     for (i in seq_along(panel_index)) {
       index <- panel_index[i]
       g <- g_new <- gtable$grobs[[index]]
@@ -1433,7 +1433,7 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
   }
   raster <- raster %||% (nrow(dat_use) > 1e5)
   if (isTRUE(raster)) {
-    check_R("exaexa/scattermore")
+    if (!requireNamespace("scattermore", quietly = TRUE)) stop("Package 'scattermore' is required")
   }
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2) {
@@ -1659,7 +1659,7 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
         pointsize = ceiling(pt.size), alpha = pt.alpha, pixels = raster.dpi
       )
     } else if (isTRUE(hex)) {
-      check_R("hexbin")
+      if (!requireNamespace("hexbin", quietly = TRUE)) stop("Package 'hexbin' is required")
       if (isTRUE(hex.count)) {
         p <- p + geom_hex(
           mapping = aes(x = .data[["x"]], y = .data[["y"]], fill = .data[["group.by"]], color = .data[["group.by"]], alpha = after_stat(count)),
@@ -2228,7 +2228,7 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
   }
   raster <- raster %||% (nrow(dat_use) > 1e5)
   if (isTRUE(raster)) {
-    check_R("exaexa/scattermore")
+    if (!requireNamespace("scattermore", quietly = TRUE)) stop("Package 'scattermore' is required")
   }
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2) {
@@ -2670,7 +2670,7 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
             pointsize = ceiling(pt.size), alpha = pt.alpha, pixels = raster.dpi
           )
       } else if (isTRUE(hex)) {
-        check_R("hexbin")
+        if (!requireNamespace("hexbin", quietly = TRUE)) stop("Package 'hexbin' is required")
         dat_na <- dat[is.na(dat[["value"]]), , drop = FALSE]
         dat_hex <- dat[!is.na(dat[["value"]]), , drop = FALSE]
         if (nrow(dat_na) > 0) {
@@ -2899,7 +2899,7 @@ CellDimPlot3D <- function(srt, group.by, reduction = NULL, dims = c(1, 2, 3), ax
     zlab <- axis_labs[3]
   }
   if ((!is.null(save) && is.character(save) && nchar(save) > 0)) {
-    check_R("htmlwidgets")
+    if (!requireNamespace("htmlwidgets", quietly = TRUE)) stop("Package 'htmlwidgets' is required")
     if (!grepl(".html$", save)) {
       stop("'save' must be a string with .html as a suffix.")
     }
@@ -3131,7 +3131,7 @@ FeatureDimPlot3D <- function(srt, features, reduction = NULL, dims = c(1, 2, 3),
     zlab <- axis_labs[3]
   }
   if ((!is.null(save) && is.character(save) && nchar(save) > 0)) {
-    check_R("htmlwidgets")
+    if (!requireNamespace("htmlwidgets", quietly = TRUE)) stop("Package 'htmlwidgets' is required")
     if (!grepl(".html$", save)) {
       stop("'save' must be a string with .html as a suffix.")
     }
@@ -3839,7 +3839,7 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
     sort <- FALSE
   }
   if (isTRUE(multiplegroup_comparisons) || length(comparisons) > 0) {
-    check_R("ggpubr")
+    if (!requireNamespace("ggpubr", quietly = TRUE)) stop("Package 'ggpubr' is required")
     ncomp <- sapply(comparisons, length)
     if (any(ncomp > 2)) {
       stop("'comparisons' must be a list in which all elements must be vectors of length 2")
@@ -4986,7 +4986,7 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
     for (sp in levels(dat_all[[split.by]])) {
       dat_use <- dat_split[[ifelse(split.by == "All.groups", 1, sp)]]
       if (plot_type == "venn") {
-        check_R(c("ggVennDiagram", "sf"))
+        if (!requireNamespace("ggVennDiagram", quietly = TRUE)) stop("Package 'ggVennDiagram' is required"); if (!requireNamespace("sf", quietly = TRUE)) stop("Package 'sf' is required")
         dat_list <- as.list(dat_use[, stat.by])
         dat_list <- lapply(setNames(names(dat_list), names(dat_list)), function(x) {
           lg <- dat_list[[x]]
@@ -5049,7 +5049,7 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
         p <- p + labs(x = sp, title = title, subtitle = subtitle)
       }
       if (plot_type == "upset") {
-        check_R("ggupset")
+        if (!requireNamespace("ggupset", quietly = TRUE)) stop("Package 'ggupset' is required")
         for (n in seq_len(nrow(dat_use))) {
           dat_use[["intersection"]][n] <- list(stat.by[unlist(dat_use[n, stat.by])])
         }
@@ -5355,7 +5355,7 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
   }
   raster <- raster %||% (nrow(dat_use) * ncol(combn(features, m = 2)) > 1e5)
   if (isTRUE(raster)) {
-    check_R("exaexa/scattermore")
+    if (!requireNamespace("scattermore", quietly = TRUE)) stop("Package 'scattermore' is required")
   }
   if (!is.null(x = raster.dpi)) {
     if (!is.numeric(x = raster.dpi) || length(x = raster.dpi) != 2) {
@@ -5695,7 +5695,7 @@ CellDensityPlot <- function(srt, features, group.by = NULL, split.by = NULL, ass
                             legend.position = "right", legend.direction = "vertical",
                             theme_use = "theme_scp", theme_args = list(),
                             combine = TRUE, nrow = NULL, ncol = NULL, byrow = TRUE, force = FALSE) {
-  check_R("ggridges")
+  if (!requireNamespace("ggridges", quietly = TRUE)) stop("Package 'ggridges' is required")
   assay <- assay %||% DefaultAssay(srt)
   x_order <- match.arg(x_order)
   if (is.null(features)) {
@@ -6766,7 +6766,7 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
   set.seed(seed)
 
   plot_type <- match.arg(plot_type)
-  check_R("metR")
+  if (!requireNamespace("metR", quietly = TRUE)) stop("Package 'metR' is required")
 
   if (!reduction %in% names(srt@reductions)) {
     stop(paste0(reduction, " is not in the srt reduction names."))
@@ -6853,7 +6853,7 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
     )
   }
   if (plot_type == "stream") {
-    check_R("metR")
+    if (!requireNamespace("metR", quietly = TRUE)) stop("Package 'metR' is required")
     res <- compute_velocity_on_grid(X_emb, V_emb,
       density = density, smooth = smooth, n_neighbors = n_neighbors,
       min_mass = min_mass, scale = 1, cutoff_perc = cutoff_perc,
@@ -7258,7 +7258,7 @@ grid_draw <- function(groblist, x, y, width, height) {
 #' @importFrom proxyC dist
 #' @importFrom ComplexHeatmap merge_dendrogram
 cluster_within_group2 <- function(mat, factor) {
-  check_R("dendextend")
+  if (!requireNamespace("dendextend", quietly = TRUE)) stop("Package 'dendextend' is required")
   if (!is.factor(factor)) {
     factor <- factor(factor, levels = unique(factor))
   }
@@ -7414,7 +7414,7 @@ heatmap_enrichment <- function(geneID, geneID_groups, feature_split_palette = "s
 
           ha_keys <- NULL
           if (isTRUE(anno_keys)) {
-            check_R("jokergoo/simplifyEnrichment")
+            if (!requireNamespace("simplifyEnrichment", quietly = TRUE)) stop("Package 'simplifyEnrichment' is required")
             keys_list <- lapply(subdf_list, function(df) {
               if (all(df$Database %in% c("GO", "GO_BP", "GO_CC", "GO_MF"))) {
                 df0 <- simplifyEnrichment::keyword_enrichment_from_GO(df[["ID"]])
@@ -7948,7 +7948,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
   set.seed(seed)
 
   if (isTRUE(raster_by_magick)) {
-    check_R("magick")
+    if (!requireNamespace("magick", quietly = TRUE)) stop("Package 'magick' is required")
   }
   if (is.null(features)) {
     stop("No feature provided.")
@@ -8509,7 +8509,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          status <- tryCatch(check_R("e1071"), error = identity)
+          status <- tryCatch(if (!requireNamespace("e1071", quietly = TRUE)) stop("Package 'e1071' is required"), error = identity)
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -9153,7 +9153,7 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
                            seed = 11, ht_params = list()) {
   set.seed(seed)
   if (isTRUE(raster_by_magick)) {
-    check_R("magick")
+    if (!requireNamespace("magick", quietly = TRUE)) stop("Package 'magick' is required")
   }
 
   split_method <- match.arg(split_method)
@@ -9590,7 +9590,7 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          status <- tryCatch(check_R("e1071"), error = identity)
+          status <- tryCatch(if (!requireNamespace("e1071", quietly = TRUE)) stop("Package 'e1071' is required"), error = identity)
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -10160,7 +10160,7 @@ CellCorHeatmap <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
                            seed = 11, ht_params = list()) {
   set.seed(seed)
   if (isTRUE(raster_by_magick)) {
-    check_R("magick")
+    if (!requireNamespace("magick", quietly = TRUE)) stop("Package 'magick' is required")
   }
 
   ref_legend <- TRUE
@@ -11073,7 +11073,7 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
                            seed = 11, ht_params = list()) {
   set.seed(seed)
   if (isTRUE(raster_by_magick)) {
-    check_R("magick")
+    if (!requireNamespace("magick", quietly = TRUE)) stop("Package 'magick' is required")
   }
 
   split_method <- match.arg(split_method)
@@ -11582,7 +11582,7 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          status <- tryCatch(check_R("e1071"), error = identity)
+          status <- tryCatch(if (!requireNamespace("e1071", quietly = TRUE)) stop("Package 'e1071' is required"), error = identity)
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -12154,7 +12154,7 @@ DynamicPlot <- function(srt, lineages, features, group.by = NULL, cells = NULL, 
                         combine = TRUE, nrow = NULL, ncol = NULL, byrow = TRUE, seed = 11) {
   set.seed(seed)
 
-  check_R("MatrixGenerics")
+  if (!requireNamespace("MatrixGenerics", quietly = TRUE)) stop("Package 'MatrixGenerics' is required")
   x_order <- match.arg(x_order)
   if (!is.null(group.by) && !group.by %in% colnames(srt@meta.data)) {
     stop(group.by, " is not in the meta.data of srt object.")
@@ -13317,7 +13317,7 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
       df_edges[["to_dim2"]] <- df_nodes[df_edges[["to"]], "dim2"]
 
       if (enrichmap_mark == "hull") {
-        check_R("concaveman")
+        if (!requireNamespace("concaveman", quietly = TRUE)) stop("Package 'concaveman' is required")
       }
       mark_layer <- do.call(
         switch(enrichmap_mark,
@@ -13375,8 +13375,8 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
     }))
   } else if (plot_type == "wordcloud") {
     # wordcloud -------------------------------------------------------------------------------------------------
-    check_R("ggwordcloud")
-    check_R("jokergoo/simplifyEnrichment")
+    if (!requireNamespace("ggwordcloud", quietly = TRUE)) stop("Package 'ggwordcloud' is required")
+    if (!requireNamespace("simplifyEnrichment", quietly = TRUE)) stop("Package 'simplifyEnrichment' is required")
     plist <- lapply(df_list, function(df) {
       if (word_type == "term") {
         df_groups <- split(df, list(df$Database, df$Groups))
@@ -14398,7 +14398,7 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
       df_edges[["to_dim2"]] <- df_nodes[df_edges[["to"]], "dim2"]
 
       if (enrichmap_mark == "hull") {
-        check_R("concaveman")
+        if (!requireNamespace("concaveman", quietly = TRUE)) stop("Package 'concaveman' is required")
       }
       mark_layer <- do.call(
         switch(enrichmap_mark,
@@ -14456,8 +14456,8 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
     }
   } else if (plot_type == "wordcloud") {
     # wordcloud -------------------------------------------------------------------------------------------------
-    check_R("ggwordcloud")
-    check_R("jokergoo/simplifyEnrichment")
+    if (!requireNamespace("ggwordcloud", quietly = TRUE)) stop("Package 'ggwordcloud' is required")
+    if (!requireNamespace("simplifyEnrichment", quietly = TRUE)) stop("Package 'simplifyEnrichment' is required")
     for (nm in names(res)) {
       res_enrich <- res[[nm]]
       if (is.null(id_use)) {

@@ -152,7 +152,7 @@ CellDimPlot(panc8_sub, group.by = c("tech", "celltype"))
 
 \dontrun{
 integration_methods <- c(
-  "Uncorrected", "Seurat", "scVI", "SCANVI", "MNN", "fastMNN", "Harmony",
+  "Uncorrected", "Seurat", "scVI", "MNN", "fastMNN", "Harmony",
   "Scanorama", "BBKNN", "CSS", "LIGER", "Conos", "ComBat"
 )
 for (method in integration_methods) {

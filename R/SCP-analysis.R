@@ -844,7 +844,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
       features_nm <- features_raw
       colnames(scores) <- make.names(paste(name, names(features_nm), sep = "_"))
     } else if (method == "UCell") {
-      check_R("UCell")
+      if (!requireNamespace("UCell", quietly = TRUE)) stop("Package 'UCell' is required")
       srt_tmp <- UCell::AddModuleScore_UCell(
         srt_sp,
         features = features,
@@ -863,7 +863,7 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
       scores <- srt_tmp[[paste0(names(features_keep), name)]]
       colnames(scores) <- make.names(paste(name, names(features_nm), sep = "_"))
     } else if (method == "AUCell") {
-      check_R("AUCell")
+      if (!requireNamespace("AUCell", quietly = TRUE)) stop("Package 'AUCell' is required")
       CellRank <- AUCell::AUCell_buildRankings(as_matrix(get_seurat_data(srt_sp, layer = slot, assay = assau)), BPPARAM = BPPARAM, plotStats = FALSE)
       cells_AUC <- AUCell::AUCell_calcAUC(
         geneSets = features,
@@ -1581,7 +1581,7 @@ WilcoxDETest <- function(data.use, cells.1, cells.2, verbose = TRUE, ...) {
     yes = pbsapply,
     no = future_sapply
   )
-  check_R("limma")
+  if (!requireNamespace("limma", quietly = TRUE)) stop("Package 'limma' is required")
   p_val <- my.sapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
@@ -2424,7 +2424,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
       if (any(orgdb_dependent %in% db)) {
         status <- tryCatch(
           {
-            check_R(c(org_sp, "GO.db", "GOSemSim"))
+            if (!requireNamespace("GO.db", quietly = TRUE)) stop("Package 'GO.db' is required"); if (!requireNamespace("GOSemSim", quietly = TRUE)) stop("Package 'GOSemSim' is required")
           },
           error = identity
         )
@@ -2442,13 +2442,13 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         orgdb <- get(org_sp)
       }
       if ("PFAM" %in% db) {
-        check_R("PFAM.db")
+        if (!requireNamespace("PFAM.db", quietly = TRUE)) stop("Package 'PFAM.db' is required")
       }
       if ("Reactome" %in% db) {
-        check_R("reactome.db")
+        if (!requireNamespace("reactome.db", quietly = TRUE)) stop("Package 'reactome.db' is required")
       }
       # if ("MeSH" %in% db) {
-      #   check_R(c("AHMeSHDbs", "MeSHDbi", "MeSH.db", "AnnotationHub"))
+      #   if (!requireNamespace("AHMeSHDbs", quietly = TRUE)) stop("Package 'AHMeSHDbs' is required"); if (!requireNamespace("MeSHDbi", quietly = TRUE)) stop("Package 'MeSHDbi' is required"); if (!requireNamespace("MeSH.db", quietly = TRUE)) stop("Package 'MeSH.db' is required"); if (!requireNamespace("AnnotationHub", quietly = TRUE)) stop("Package 'AnnotationHub' is required")
       # }
 
       if (is.null(custom_TERM2GENE)) {
@@ -2496,7 +2496,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         ## KEGG ---------------------------------------------------------------------------
         if (any(db == "KEGG") && (!"KEGG" %in% names(db_list[[sps]]))) {
           message("Preparing database: KEGG")
-          check_R("httr")
+          if (!requireNamespace("httr", quietly = TRUE)) stop("Package 'httr' is required")
           orgs <- kegg_get("https://rest.kegg.jp/list/organism")
           kegg_sp <- orgs[grep(gsub(pattern = "_", replacement = " ", x = sps), orgs[, 3]), 2]
           if (length(kegg_sp) == 0) {
@@ -2602,7 +2602,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         }
 
         ## Pathwaycommons ---------------------------------------------------------------------------
-        # check_R("paxtoolsr")
+        # if (!requireNamespace("paxtoolsr", quietly = TRUE)) stop("Package 'paxtoolsr' is required")
 
         ## Reactome ---------------------------------------------------------------------------
         if (any(db == "Reactome") && (!"Reactome" %in% names(db_list[[sps]]))) {
@@ -3064,7 +3064,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
               stop("Stop the preparation.")
             }
           }
-          check_R("openxlsx")
+          if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Package 'openxlsx' is required")
           message("Preparing database: CSPA")
           temp <- tempfile(fileext = ".xlsx")
           url <- "https://wlab.ethz.ch/cspa/data/S1_File.xlsx"
@@ -3104,7 +3104,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
               stop("Stop the preparation.")
             }
           }
-          check_R("openxlsx")
+          if (!requireNamespace("openxlsx", quietly = TRUE)) stop("Package 'openxlsx' is required")
           message("Preparing database: Surfaceome")
           temp <- tempfile(fileext = ".xlsx")
           url <- "http://wlab.ethz.ch/surfaceome/table_S3_surfaceome.xlsx"
@@ -4511,7 +4511,7 @@ RunMonocle2 <- function(srt, assay = NULL, slot = "counts", expressionFamily = "
                         max_components = 2, reduction_method = "DDRTree", norm_method = "log", residualModelFormulaStr = NULL, pseudo_expr = 1,
                         root_state = NULL, seed = 11) {
   set.seed(seed)
-  check_R(c("monocle", "DDRTree", "BiocGenerics", "Biobase", "VGAM"))
+  if (!requireNamespace("monocle", quietly = TRUE)) stop("Package 'monocle' is required"); if (!requireNamespace("DDRTree", quietly = TRUE)) stop("Package 'DDRTree' is required"); if (!requireNamespace("BiocGenerics", quietly = TRUE)) stop("Package 'BiocGenerics' is required"); if (!requireNamespace("Biobase", quietly = TRUE)) stop("Package 'Biobase' is required"); if (!requireNamespace("VGAM", quietly = TRUE)) stop("Package 'VGAM' is required")
 
   if (!"package:DDRTree" %in% search()) {
     attachNamespace("DDRTree")
@@ -4849,7 +4849,7 @@ RunMonocle3 <- function(srt, assay = NULL, slot = "counts",
                         root_pr_nodes = NULL, root_cells = NULL, seed = 11) {
   set.seed(seed)
   if (!requireNamespace("monocle3", quietly = TRUE) || packageVersion("monocle3") < package_version("1.2.0")) {
-    check_R("cole-trapnell-lab/monocle3")
+    if (!requireNamespace("monocle3", quietly = TRUE)) stop("Package 'monocle3' is required")
   }
   assay <- assay %||% DefaultAssay(srt)
   expr_matrix <- as.sparse(get_seurat_data(srt, layer = slot, assay = assay))
@@ -5059,7 +5059,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
   message(paste0("[", time_start, "] ", "Start RunDynamicFeatures"))
   message("Workers: ", bpworkers(BPPARAM))
 
-  check_R("mgcv")
+  if (!requireNamespace("mgcv", quietly = TRUE)) stop("Package 'mgcv' is required")
   meta <- c()
   gene <- c()
   if (!is.null(features)) {

@@ -473,7 +473,7 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt
 RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_css]]@assay.used,
                       ref_css = NULL, ref_umap = NULL, ref_group = NULL,
                       projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
-  check_R("quadbiolab/simspec")
+  if (!requireNamespace("simspec", quietly = TRUE)) stop("Package 'simspec' is required")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
@@ -568,7 +568,7 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
                            ref_pca = NULL, ref_harmony = NULL, ref_umap = NULL, ref_group = NULL,
                            projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
-  check_R("immunogenomics/symphony")
+  if (!requireNamespace("symphony", quietly = TRUE)) stop("Package 'symphony' is required")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {

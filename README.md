@@ -1,20 +1,19 @@
 # SCP - Seurat V5 Compatible
 
-This is a minimal adaptation of the [SCP package](https://github.com/zhanghao-njmu/SCP) to support Seurat V5 compatibility.
+An adaptation of the [SCP package](https://github.com/zhanghao-njmu/SCP) for Seurat V5 support.
 
-## Key Changes for Seurat V5
+## Key Features
 
-### Core Compatibility Functions
-- `get_seurat_data()` - Version-agnostic data access (LayerData for V5, GetAssayData for V4)  
-- `set_seurat_data()` - Version-agnostic data writing
-- `IsSeurat5()` - Version detection utility
-- `get_feature_metadata()` / `set_feature_metadata()` - Feature metadata handling
-- `get_var_features()` - Variable features extraction
+### Seurat V5 Compatibility
+- **V5 Support**: Full compatibility with Seurat V5's layer-based data structure
+- **Version Agnostic**: Seamlessly handles both V4 and V5 objects
+- **Automatic Conversion**: Detection and conversion of legacy objects
 
-### Parameter Updates
-- Updated `slot` → `layer` parameter throughout workflow functions
-- Enhanced `check_srtList()` and `check_DataType()` for V5 object validation
-- Automatic V4→V5 object conversion when needed
+### Core Functions
+- `get_seurat_data()` / `set_seurat_data()` - Unified data access across versions
+- `IsSeurat5()` / `EnsureSeurat5()` - Version detection and conversion
+- `get_feature_metadata()` / `set_feature_metadata()` - Feature metadata management
+- `get_var_features()` - Variable feature extraction
 
 ## Installation
 
@@ -23,14 +22,43 @@ This is a minimal adaptation of the [SCP package](https://github.com/zhanghao-nj
 devtools::install_github("mianaz/SCP-SeuratV5")
 ```
 
-## Dependencies
+## Requirements
 
+### Core Dependencies
+- R >= 4.1.0
 - Seurat >= 5.0.0
 - SeuratObject >= 5.0.0
-- All original SCP dependencies
 
-## Usage
+### Python Environment (Optional)
+For Python-based features (PAGA, scVelo, etc.):
+```r
+# Set up Python environment
+SCP::PrepareEnv()
+```
 
-The package maintains the same API as the original SCP package, with automatic V5/V4 compatibility handling behind the scenes.
+## Quick Start
 
-For complete documentation and examples, see the original [SCP repository](https://github.com/zhanghao-njmu/SCP).
+```r
+library(SCP)
+
+# Load your data (automatic V5 conversion if needed)
+srt <- LoadSeuratObject("your_data.rds")
+
+# Run standard workflow
+srt <- RunSCP(srt,
+  species = "Homo_sapiens",
+  db = "GO_BP",
+  reduction = "umap"
+)
+
+# Visualize results
+CellDimPlot(srt, group.by = "cell_type")
+```
+
+## Documentation
+
+For detailed documentation and tutorials, see the original [SCP repository](https://github.com/zhanghao-njmu/SCP).
+
+## License
+
+GPL (>= 3)

@@ -116,7 +116,7 @@ NULL
 #' @examples
 #' \dontrun{
 #' if (interactive()) {
-#'   check_R(c("stringr", "RColorBrewer", "ggsci", "Redmonder", "rcartocolor", "nord", "viridis", "pals", "oompaBase", "dichromat", "jaredhuling/jcolors"))
+#'   if (!requireNamespace("stringr", quietly = TRUE)) stop("Package 'stringr' is required"); if (!requireNamespace("RColorBrewer", quietly = TRUE)) stop("Package 'RColorBrewer' is required"); if (!requireNamespace("ggsci", quietly = TRUE)) stop("Package 'ggsci' is required"); if (!requireNamespace("Redmonder", quietly = TRUE)) stop("Package 'Redmonder' is required"); if (!requireNamespace("rcartocolor", quietly = TRUE)) stop("Package 'rcartocolor' is required"); if (!requireNamespace("nord", quietly = TRUE)) stop("Package 'nord' is required"); if (!requireNamespace("viridis", quietly = TRUE)) stop("Package 'viridis' is required"); if (!requireNamespace("pals", quietly = TRUE)) stop("Package 'pals' is required"); if (!requireNamespace("oompaBase", quietly = TRUE)) stop("Package 'oompaBase' is required"); if (!requireNamespace("dichromat", quietly = TRUE)) stop("Package 'dichromat' is required"); if (!requireNamespace("jcolors", quietly = TRUE)) stop("Package 'jcolors' is required")
 #'   library(stringr)
 #'   library(RColorBrewer)
 #'   library(ggsci)
@@ -262,7 +262,7 @@ NULL
 #' @examples
 #' \dontrun{
 #' if (interactive()) {
-#'   check_R(c("ggjlab/scZCL", "ggjlab/scHCL", "ggjlab/scMCA"))
+#'   if (!requireNamespace("scZCL", quietly = TRUE)) stop("Package 'scZCL' is required"); if (!requireNamespace("scHCL", quietly = TRUE)) stop("Package 'scHCL' is required"); if (!requireNamespace("scMCA", quietly = TRUE)) stop("Package 'scMCA' is required")
 #'   ref_scHCL <- Seurat::NormalizeData(scHCL::ref.expr)
 #'   ref_scMCA <- Seurat::NormalizeData(scMCA::ref.expr)
 #'   ref_scZCL <- Seurat::NormalizeData(scZCL::ref.expr)

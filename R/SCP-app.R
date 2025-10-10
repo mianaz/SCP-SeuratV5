@@ -604,7 +604,7 @@ RunSCExplorer <- function(base_dir = "SCExplorer",
                           style_script = require("styler", quietly = TRUE),
                           overwrite = FALSE,
                           return_app = TRUE) {
-  check_R(c("rhdf5", "HDF5Array", "shiny@1.6.0", "ggplot2", "ragg", "htmlwidgets", "plotly", "bslib", "future", "promises", "BiocParallel"))
+  if (!requireNamespace("rhdf5", quietly = TRUE)) stop("Package 'rhdf5' is required"); if (!requireNamespace("HDF5Array", quietly = TRUE)) stop("Package 'HDF5Array' is required"); if (!requireNamespace("shiny", quietly = TRUE)) stop("Package 'shiny' is required"); if (!requireNamespace("ggplot2", quietly = TRUE)) stop("Package 'ggplot2' is required"); if (!requireNamespace("ragg", quietly = TRUE)) stop("Package 'ragg' is required"); if (!requireNamespace("htmlwidgets", quietly = TRUE)) stop("Package 'htmlwidgets' is required"); if (!requireNamespace("plotly", quietly = TRUE)) stop("Package 'plotly' is required"); if (!requireNamespace("bslib", quietly = TRUE)) stop("Package 'bslib' is required"); if (!requireNamespace("future", quietly = TRUE)) stop("Package 'future' is required"); if (!requireNamespace("promises", quietly = TRUE)) stop("Package 'promises' is required"); if (!requireNamespace("BiocParallel", quietly = TRUE)) stop("Package 'BiocParallel' is required")
   DataFile_full <- paste0(base_dir, "/", DataFile)
   MetaFile_full <- paste0(base_dir, "/", MetaFile)
   if (!file.exists(DataFile_full) || !file.exists(MetaFile_full)) {
@@ -2255,7 +2255,18 @@ server <- function(input, output, session) {
     paste0("if (utils::packageVersion('SCP') < app_SCP_version) {
       stop(paste0('SCExplorer requires SCP >= ", as.character(packageVersion("SCP")), "'))
     }"),
-    "SCP::check_R(c('rhdf5', 'HDF5Array', 'shiny@1.6.0', 'ggplot2', 'ragg', 'htmlwidgets', 'plotly', 'bslib', 'future', 'promises', 'BiocParallel'))",
+    "# Check required packages",
+    "if (!requireNamespace('rhdf5', quietly = TRUE)) stop('Package rhdf5 is required')",
+    "if (!requireNamespace('HDF5Array', quietly = TRUE)) stop('Package HDF5Array is required')",
+    "if (!requireNamespace('shiny', quietly = TRUE)) stop('Package shiny is required')",
+    "if (!requireNamespace('ggplot2', quietly = TRUE)) stop('Package ggplot2 is required')",
+    "if (!requireNamespace('ragg', quietly = TRUE)) stop('Package ragg is required')",
+    "if (!requireNamespace('htmlwidgets', quietly = TRUE)) stop('Package htmlwidgets is required')",
+    "if (!requireNamespace('plotly', quietly = TRUE)) stop('Package plotly is required')",
+    "if (!requireNamespace('bslib', quietly = TRUE)) stop('Package bslib is required')",
+    "if (!requireNamespace('future', quietly = TRUE)) stop('Package future is required')",
+    "if (!requireNamespace('promises', quietly = TRUE)) stop('Package promises is required')",
+    "if (!requireNamespace('BiocParallel', quietly = TRUE)) stop('Package BiocParallel is required')",
     "library(shiny)",
     "library(bslib)",
     "library(future)",
