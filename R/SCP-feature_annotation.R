@@ -70,9 +70,7 @@ AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol",
       for (assay in assays) {
         if (is_v5) {
           # Seurat V5 approach - get feature metadata
-          if (!requireNamespace("SeuratObject", quietly = TRUE)) {
-            stop("Package 'SeuratObject' is required for Seurat V5 support")
-          }
+          require_packages("SeuratObject")
           meta.features <- SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features")
           if (any(colnames(db_df) %in% colnames(meta.features)) && isTRUE(overwrite)) {
             meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(db_df))]
@@ -134,9 +132,7 @@ AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol",
     for (assay in assays) {
       if (is_v5) {
         # Seurat V5 approach
-        if (!requireNamespace("SeuratObject", quietly = TRUE)) {
-          stop("Package 'SeuratObject' is required for Seurat V5 support")
-        }
+        require_packages("SeuratObject")
         meta.features <- SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features")
         if (length(intersect(colnames(meta.features), colnames(gtf_columns_collapse))) > 0 && isTRUE(overwrite)) {
           meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(gtf_columns_collapse))]

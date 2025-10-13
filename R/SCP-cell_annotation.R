@@ -184,21 +184,11 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
     ref <- t(bulk_ref[features_common, , drop = FALSE])
   } else if (!is.null(srt_ref)) {
     ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
-    if (!is.null(ref_group)) {
-      if (length(ref_group) == ncol(srt_ref)) {
-        srt_ref[["ref_group"]] <- ref_group
-      } else if (length(ref_group) == 1) {
-        if (!ref_group %in% colnames(srt_ref@meta.data)) {
-          stop("ref_group must be one of the column names in the meta.data")
-        } else {
-          srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-        }
-      } else {
-        stop("Length of ref_group must be one or length of srt_ref.")
-      }
-    } else {
-      stop("ref_group must be provided.")
+    # Validate and standardize ref_group parameter
+    if (is.null(ref_group)) {
+      stop("ref_group must be provided.", call. = FALSE)
     }
+    srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     drop_cell <- colnames(srt_ref)[is.na(srt_ref[["ref_group", drop = TRUE]])]
     if (length(drop_cell) > 0) {
       message("Drop ", length(drop_cell), " cells with NA in the ref_group")
@@ -282,18 +272,9 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   }
   k <- min(c(k, nrow(ref)))
 
+  # Validate and standardize query_group parameter
   if (!is.null(query_group)) {
-    if (length(query_group) == ncol(srt_query)) {
-      srt_query[["query_group"]] <- query_group
-    } else if (length(query_group) == 1) {
-      if (!query_group %in% colnames(srt_query@meta.data)) {
-        stop("query_group must be one of the column names in the meta.data")
-      } else {
-        srt_query[["query_group"]] <- srt_query[[query_group]]
-      }
-    } else {
-      stop("Length of query_group must be one or length of srt_query.")
-    }
+    srt_query <- validate_group_parameter(srt_query, query_group, param_name = "query_group", target_slot = "query_group")
   }
   if (!isTRUE(use_reduction)) {
     query_assay <- query_assay %||% DefaultAssay(srt_query)
@@ -529,24 +510,16 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
 #' @export
 RunScmap <- function(srt_query, srt_ref, ref_group = NULL, query_assay = "RNA", ref_assay = "RNA",
                      method = "scmapCluster", nfeatures = 500, threshold = 0.5, k = 10) {
-  if (!requireNamespace("scmap", quietly = TRUE)) stop("Package 'scmap' is required")
-  if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
-    ref_group <- "ref_group"
-  } else {
-    stop("'ref_group' must be provided.")
-  }
+  require_packages("scmap", context = "RunScmap")
 
+  # Validate and standardize ref_group parameter
+  if (is.null(ref_group)) {
+    stop("'ref_group' must be provided.", call. = FALSE)
+  }
+  srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
+  ref_group <- "ref_group"
+
+  # Check data types
   status_query <- check_DataType(srt = srt_query, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
   status_ref <- check_DataType(srt = srt_ref, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
@@ -555,6 +528,7 @@ RunScmap <- function(srt_query, srt_ref, ref_group = NULL, query_assay = "RNA", 
     warning("Data type is unknown or different between query and ref.", immediate. = TRUE)
   }
 
+  # Convert to SingleCellExperiment
   assays_query <- list(
     counts = get_seurat_data(srt_query, layer = "counts", assay = query_assay),
     logcounts = get_seurat_data(srt_query, layer = "data", assay = query_assay)
@@ -662,41 +636,25 @@ RunSingleR <- function(srt_query, srt_ref, query_group = NULL, ref_group = NULL,
                        aggr.ref = FALSE, aggr.args = list(),
                        quantile = 0.8, fine.tune = TRUE, tune.thresh = 0.05, prune = TRUE,
                        BPPARAM = BiocParallel::bpparam()) {
-  if (!requireNamespace("SingleR", quietly = TRUE)) stop("Package 'SingleR' is required")
-  if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
-    ref_group <- "ref_group"
-  } else {
-    stop("'ref_group' must be provided.")
+  require_packages("SingleR", context = "RunSingleR")
+
+  # Validate and standardize ref_group parameter
+  if (is.null(ref_group)) {
+    stop("'ref_group' must be provided.", call. = FALSE)
   }
+  srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
+  ref_group <- "ref_group"
+
+  # Validate and standardize query_group parameter
   if (!is.null(query_group)) {
-    if (length(query_group) == ncol(srt_query)) {
-      srt_query[["query_group"]] <- query_group
-    } else if (length(query_group) == 1) {
-      if (!query_group %in% colnames(srt_query@meta.data)) {
-        stop("query_group must be one of the column names in the meta.data")
-      } else {
-        srt_query[["query_group"]] <- srt_query[[query_group]]
-      }
-    } else {
-      stop("Length of query_group must be one or length of srt_query.")
-    }
+    srt_query <- validate_group_parameter(srt_query, query_group, param_name = "query_group", target_slot = "query_group")
     query_group <- "query_group"
     method <- "SingleRCluster"
   } else {
     method <- "SingleRCell"
   }
 
+  # Check data types
   status_query <- check_DataType(srt = srt_query, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
   status_ref <- check_DataType(srt = srt_ref, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
@@ -705,11 +663,13 @@ RunSingleR <- function(srt_query, srt_ref, query_group = NULL, ref_group = NULL,
     warning("Data type is unknown or different between query and ref.", immediate. = TRUE)
   }
 
+  # Convert to SingleCellExperiment
   assays_query <- list(
     counts = get_seurat_data(srt_query, layer = "counts", assay = query_assay),
     logcounts = get_seurat_data(srt_query, layer = "data", assay = query_assay)
   )
   sce_query <- as(SummarizedExperiment::SummarizedExperiment(assays = assays_query), Class = "SingleCellExperiment")
+  SummarizedExperiment::rowData(sce_query)[["feature_symbol"]] <- rownames(sce_query)
   metadata_query <- srt_query[[]]
   SummarizedExperiment::colData(x = sce_query) <- S4Vectors::DataFrame(metadata_query)
 
@@ -718,6 +678,7 @@ RunSingleR <- function(srt_query, srt_ref, query_group = NULL, ref_group = NULL,
     logcounts = get_seurat_data(srt_ref, layer = "data", assay = ref_assay)
   )
   sce_ref <- as(SummarizedExperiment::SummarizedExperiment(assays = assays_ref), Class = "SingleCellExperiment")
+  SummarizedExperiment::rowData(sce_ref)[["feature_symbol"]] <- rownames(sce_ref)
   metadata_ref <- srt_ref[[]]
   SummarizedExperiment::colData(x = sce_ref) <- S4Vectors::DataFrame(metadata_ref)
 

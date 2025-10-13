@@ -2,13 +2,19 @@ Package: SCP
 Type: Package
 Title: Single Cell Pipeline
 Version: 0.6.0
-Author: Hao Zhang
-Maintainer: Hao Zhang <haozhang@njmu.edu.cn>
-Authors@R: person(given = "Hao",
-                   family = "Zhang", 
-                   role = c("aut", "cre"),
-                   email = "haozhang@njmu.edu.cn")
-Description: An end-to-end Single-Cell Pipeline designed to facilitate comprehensive analysis and exploration of single-cell data.
+Authors@R: c(
+    person(given = "Hao",
+           family = "Zhang",
+           role = "aut",
+           email = "haozhang@njmu.edu.cn",
+           comment = "Original author"),
+    person(given = "Miana",
+           family = "Z",
+           role = c("ctb", "cre"),
+           email = "mianaz@users.noreply.github.com",
+           comment = "Seurat V5 adaptation and UV integration"))
+Maintainer: Miana Z <mianaz@users.noreply.github.com>
+Description: An end-to-end Single-Cell Pipeline designed to facilitate comprehensive analysis and exploration of single-cell data. This fork adds full Seurat V5 compatibility and modern Python dependency management with UV.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: True
@@ -53,7 +59,9 @@ Imports:
     Seurat (>= 5.0.0),
     SeuratObject (>= 5.0.0),
     Signac,
-    slingshot
+    slingshot,
+    stringr,
+    tidyr
 Suggests:
     AUCell,
     batchelor,
@@ -113,13 +121,11 @@ Suggests:
     SingleCellExperiment,
     SingleR,
     styler,
-    stringr,
     sva,
     symphony,
     S4Vectors,
     SummarizedExperiment,
     testthat (>= 3.0.0),
-    tidyr,
     umap,
     UCell,
     uwot,
@@ -127,4 +133,5 @@ Suggests:
 LinkingTo: Rcpp
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
-URL: https://github.com/zhanghao-njmu/SCP
+URL: https://github.com/mianaz/SCP-SeuratV5
+BugReports: https://github.com/mianaz/SCP-SeuratV5/issues

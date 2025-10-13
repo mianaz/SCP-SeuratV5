@@ -42,6 +42,10 @@ run_quick_tests.R
 *.tar.gz
 *.Rcheck/
 
+# UV generated files
+requirements.txt
+inst/requirements.txt
+
 # Temporary files
 *~
 *.swp
@@ -68,6 +72,17 @@ test_scp_v5_*.R
 test_outputs/
 tests/*.rds
 
-# Documentation files
+# Documentation files (development only)
 CLAUDE.md
 agents.md
+DEPENDENCY_AUDIT.md
+DEPENDENCY_UPDATES.md
+DEPENDENCY_UPDATE_COMPLETE.md
+TESTING_UV.md
+
+# Test scripts (temporary/development)
+test_local.R
+test_ssl_download.R
+test_uv_integration.R
+test_clean_install.R
+inst/.venv/

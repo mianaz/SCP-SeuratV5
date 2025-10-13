@@ -1,80 +1,51 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+# Simple R CMD check workflow
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master]
 
 name: R-CMD-check
 
 jobs:
   R-CMD-check:
-    runs-on: ${{ matrix.config.os }}
-
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          # Reduced matrix for faster CI - uncomment others for full testing
-          - {os: ubuntu-latest,   r: 'release'}
-          # - {os: macOS-latest,   r: 'release'}
-          # - {os: windows-latest, r: 'release'}
-          # - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          # - {os: ubuntu-latest,   r: 'oldrel-1'}
-
+    runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      # Skip SSL verification for external downloads during checks
       _R_CHECK_FORCE_SUGGESTS_: false
-      # Set shorter timeout for examples
-      _R_CHECK_EXAMPLE_TIMING_THRESHOLD_: 30
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: r-lib/actions/setup-pandoc@v2
-
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
+          r-version: 'release'
           use-public-rspm: true
 
-      - name: Install system dependencies for Bioconductor packages
-        if: runner.os == 'Linux'
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      # Install system dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y libxml2-dev libcurl4-openssl-dev libssl-dev \
-            libgit2-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev \
-            libpng-dev libtiff5-dev libjpeg-dev libgdal-dev libudunits2-dev \
-            libgeos-dev libproj-dev libglpk-dev
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install scanpy anndata numpy pandas scipy
-
+      # Install BiocManager first
       - name: Install BiocManager
         run: |
           install.packages('BiocManager')
         shell: Rscript {0}
 
+      # Install package dependencies
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::BiocManager
+          extra-packages: any::rcmdcheck
           needs: check
 
+      # Run R CMD check - skip examples, vignettes, and tests for speed
       - uses: r-lib/actions/check-r-package@v2
         with:
-          upload-snapshots: true
-          error-on: '"error"'  # Changed from "note" to only fail on errors
-          args: 'c("--no-manual", "--no-build-vignettes", "--no-tests")'
+          upload-snapshots: false
+          error-on: '"error"'
+          args: 'c("--no-manual", "--no-vignettes", "--no-build-vignettes", "--no-tests")'

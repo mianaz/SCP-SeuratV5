@@ -48,17 +48,7 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
+    srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     ref_group <- "ref_group"
   }
   if (is.null(ref_umap)) {
@@ -286,17 +276,7 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
+    srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
   }
 
   if (is.null(ref_pca)) {
@@ -473,21 +453,11 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt
 RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_css]]@assay.used,
                       ref_css = NULL, ref_umap = NULL, ref_group = NULL,
                       projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
-  if (!requireNamespace("simspec", quietly = TRUE)) stop("Package 'simspec' is required")
+  require_packages("simspec")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
+    srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     ref_group <- "ref_group"
   }
   if (is.null(ref_css)) {
@@ -568,21 +538,11 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
                            ref_pca = NULL, ref_harmony = NULL, ref_umap = NULL, ref_group = NULL,
                            projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
-  if (!requireNamespace("symphony", quietly = TRUE)) stop("Package 'symphony' is required")
+  require_packages("symphony")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
   ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
-    if (length(ref_group) == ncol(srt_ref)) {
-      srt_ref[["ref_group"]] <- ref_group
-    } else if (length(ref_group) == 1) {
-      if (!ref_group %in% colnames(srt_ref@meta.data)) {
-        stop("ref_group must be one of the column names in the meta.data")
-      } else {
-        srt_ref[["ref_group"]] <- srt_ref[[ref_group]]
-      }
-    } else {
-      stop("Length of ref_group must be one or length of srt_ref.")
-    }
+    srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     ref_group <- "ref_group"
   }
   if (is.null(ref_pca)) {

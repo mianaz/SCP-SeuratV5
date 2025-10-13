@@ -7,18 +7,41 @@
 #' @importFrom SeuratObject DefaultAssay CreateAssayObject CreateDimReducObject
 #' @importFrom SeuratObject LayerData
 #' @importFrom Seurat as.CellDataSet
+#' @importFrom tidyr unnest
+#' @importFrom stringr str_wrap
 #' @import ggplot2
 #' @import Seurat
 #' @import future
 #' @import future.apply
 #' @import methods
 
-# Declare global variables used in NSE contexts (ggplot, dplyr, etc.)
+# Declare global variables used in NSE contexts (ggplot, dplyr, tidyr, etc.)
 utils::globalVariables(c(
+  # Base plotting and aesthetics
   "x", "y", "z", "value", "variable", "Var1", "Var2",
-  ".", "group", "label", "name", "count", "frequency", "percent",
   "xend", "yend", "hjust", "vjust", "angle", "color", "fill",
-  "size", "shape", "alpha", "linetype", "linewidth"
+  "size", "shape", "alpha", "linetype", "linewidth",
+  # Grouping and labeling
+  ".", "group", "label", "name", "count", "frequency", "percent",
+  # Common single-cell analysis variables
+  "gene", "error", "from_dim1", "to_dim1", "from_dim2", "to_dim2",
+  "feature", "cell", "cluster", "celltype", "sample", "condition",
+  # Data manipulation variables
+  "row", "col", "id", "type", "category", "class", "level",
+  # Statistics and metrics
+  "mean", "median", "sd", "var", "min", "max", "sum",
+  "pct", "ratio", "score", "weight", "rank",
+  # Enrichment and pathway analysis
+  "pathway", "term", "geneID", "description", "pvalue", "qvalue",
+  "padj", "p.adjust", "GeneRatio", "BgRatio", "richFactor",
+  # Dimensionality reduction
+  "UMAP_1", "UMAP_2", "tSNE_1", "tSNE_2", "PC_1", "PC_2",
+  "dim1", "dim2", "component", "embedding",
+  # Trajectory and pseudotime
+  "pseudotime", "trajectory", "branch", "state", "fate",
+  # Gene expression
+  "expression", "logFC", "avg_log2FC", "pct.1", "pct.2",
+  "avg.exp", "avg.exp.scaled"
 ))
 
 #' Check if Python packages are available
@@ -467,41 +490,327 @@ SCP_present <- function() {
   return(SCP_envpresent)
 }
 
+#' Check if UV is installed
+#'
+#' @return Logical, TRUE if UV is available
+#' @export
+check_uv <- function() {
+  tryCatch({
+    result <- system2("uv", "--version", stdout = TRUE, stderr = FALSE)
+    return(length(result) > 0 && grepl("uv", result[1], ignore.case = TRUE))
+  }, error = function(e) {
+    return(FALSE)
+  }, warning = function(w) {
+    return(FALSE)
+  })
+}
+
+#' Install UV if not present
+#'
+#' @param force Force reinstallation even if UV exists
+#' @export
+install_uv <- function(force = FALSE) {
+  if (!check_uv() || force) {
+    message("Installing UV...")
+
+    # Platform-specific installation
+    if (Sys.info()["sysname"] == "Windows") {
+      # Windows installation using PowerShell
+      system2("powershell",
+              args = c("-ExecutionPolicy", "ByPass", "-c",
+                      "irm https://astral.sh/uv/install.ps1 | iex"),
+              wait = TRUE)
+    } else {
+      # Unix-like systems (macOS, Linux)
+      system2("sh",
+              args = c("-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"),
+              wait = TRUE)
+    }
+
+    # Check if installation was successful
+    if (!check_uv()) {
+      stop("UV installation failed. Please install manually from https://docs.astral.sh/uv/")
+    }
+
+    message("UV installed successfully!")
+  } else {
+    message("UV is already installed.")
+  }
+}
+
+#' Check if UV environment exists
+#'
+#' @return Logical, TRUE if .venv exists in package directory
+#' @export
+uv_env_exists <- function() {
+  # Check for .venv in the package root
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    # During development, use current directory
+    pkg_dir <- getwd()
+  }
+  venv_path <- file.path(pkg_dir, ".venv")
+  return(dir.exists(venv_path))
+}
+
+#' Create UV virtual environment
+#'
+#' @param python_version Python version to use (e.g., "3.10")
+#' @export
+uv_create_env <- function(python_version = "3.10") {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    # During development, use current directory
+    pkg_dir <- getwd()
+  }
+
+  # Change to package directory
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(pkg_dir)
+
+  # Copy .python-version file if it exists in inst directory
+  python_version_locations <- c(
+    ".python-version",  # Current directory
+    file.path("inst", ".python-version"),  # In inst directory
+    system.file(".python-version", package = "SCP")  # Installed location
+  )
+
+  for (loc in python_version_locations) {
+    if (file.exists(loc) && loc != ".python-version") {
+      file.copy(loc, ".python-version", overwrite = TRUE)
+      break
+    }
+  }
+
+  # Create virtual environment
+  system2("uv", args = c("venv", "--python", python_version), wait = TRUE)
+
+  # Verify creation
+  if (!uv_env_exists()) {
+    stop("Failed to create UV virtual environment")
+  }
+
+  return(invisible(TRUE))
+}
+
+#' Remove UV virtual environment
+#'
+#' @export
+uv_remove_env <- function() {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
+  }
+  venv_path <- file.path(pkg_dir, ".venv")
+
+  if (dir.exists(venv_path)) {
+    unlink(venv_path, recursive = TRUE)
+    message("UV environment removed.")
+  }
+}
+
+#' Sync Python dependencies using UV
+#'
+#' @param extras Character vector of extra dependency groups to install
+#' @export
+uv_sync_deps <- function(extras = "all") {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
+  }
+
+  # Change to package directory
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(pkg_dir)
+
+  # Look for pyproject.toml in multiple locations
+  pyproject_locations <- c(
+    "pyproject.toml",  # Current directory
+    file.path("inst", "pyproject.toml"),  # In inst directory
+    system.file("pyproject.toml", package = "SCP")  # Installed location
+  )
+
+  pyproject_path <- NULL
+  for (loc in pyproject_locations) {
+    if (file.exists(loc)) {
+      pyproject_path <- loc
+      break
+    }
+  }
+
+  if (is.null(pyproject_path)) {
+    stop("pyproject.toml not found. Cannot sync dependencies.")
+  }
+
+  # Copy pyproject.toml to current directory if needed
+  if (pyproject_path != "pyproject.toml") {
+    file.copy(pyproject_path, "pyproject.toml", overwrite = TRUE)
+  }
+
+  # Prepare extras argument
+  if (length(extras) == 1 && extras == "all") {
+    extras_arg <- "--all-extras"
+  } else if (length(extras) > 0) {
+    extras_arg <- paste0("--extra ", extras, collapse = " ")
+  } else {
+    extras_arg <- ""
+  }
+
+  # Install dependencies
+  # First, compile requirements from pyproject.toml
+  if (length(extras) == 0 || (length(extras) == 1 && extras == "")) {
+    # Install only core dependencies
+    compile_cmd <- c("pip", "compile", "pyproject.toml", "-o", "requirements.txt", "--quiet")
+  } else if (extras_arg == "--all-extras") {
+    # Install with all extras
+    compile_cmd <- c("pip", "compile", "pyproject.toml", "--all-extras", "-o", "requirements.txt", "--quiet")
+  } else {
+    # Install specific extras
+    extras_args <- unlist(lapply(extras, function(e) c("--extra", e)))
+    compile_cmd <- c("pip", "compile", "pyproject.toml", extras_args, "-o", "requirements.txt", "--quiet")
+  }
+
+  # Compile the requirements
+  system2("uv", args = compile_cmd, wait = TRUE, stderr = FALSE, stdout = FALSE)
+
+  # Install from compiled requirements
+  if (file.exists("requirements.txt")) {
+    result <- system2("uv", args = c("pip", "install", "-r", "requirements.txt"), wait = TRUE)
+  } else {
+    # Fallback: install packages directly
+    packages <- c("numpy", "pandas", "scipy", "matplotlib", "seaborn",
+                 "scikit-learn", "h5py", "numba", "anndata")
+    result <- system2("uv", args = c("pip", "install", packages), wait = TRUE)
+  }
+
+  if (result != 0) {
+    warning("UV installation may have encountered issues. Checking installation...")
+  }
+
+  # Special handling for Apple Silicon
+  if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
+    if ("all" %in% extras || "deeplearning" %in% extras) {
+      message("Installing Apple Silicon optimizations...")
+      system2("uv", args = c("pip", "install", "-e", ".[apple_silicon]"), wait = TRUE)
+    }
+  }
+
+  return(invisible(TRUE))
+}
+
+#' Configure reticulate to use UV environment
+#'
+#' @export
+use_uv_env <- function() {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
+  }
+
+  venv_path <- file.path(pkg_dir, ".venv")
+  if (!dir.exists(venv_path)) {
+    stop("UV environment not found. Run PrepareEnv(method='uv') first.")
+  }
+
+  # Find Python executable in venv
+  if (Sys.info()["sysname"] == "Windows") {
+    python_path <- file.path(venv_path, "Scripts", "python.exe")
+  } else {
+    python_path <- file.path(venv_path, "bin", "python")
+  }
+
+  if (!file.exists(python_path)) {
+    stop("Python executable not found in UV environment")
+  }
+
+  # Use the UV environment
+  reticulate::use_python(python_path, required = TRUE)
+
+  return(invisible(TRUE))
+}
+
 #' Install the SCP python environment
 #'
 #' Install all python packages in the SCP environment automatically. The environment will be created
-#' using a Conda environment.
+#' using UV (if available) or Conda as a fallback.
 #'
-#' @param method Installation method. By default, "auto" automatically find a method that will work in the local environment. Change the default to force a specific installation method. Note that the "virtualenv" method is not available on Windows.
-#' @param pip Whether to use pip for installing packages. This is only relevant when `conda = "auto".
-#' @param user Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager. This is only relevant when `pip = TRUE`.
+#' @param method Installation method. Options are "auto", "uv", or "conda". "auto" will prefer UV if available, otherwise use conda.
+#' @param pip Whether to use pip for installing packages. This is only relevant when method is "conda".
+#' @param user Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager.
 #' @param force Force reinstall the SCP python environment.
-#' @param update Whether to update packages that already exist within the environment. Note that this parameter is only supported on Conda package manager. The available options are "default", "all", and "selected". "default" only updates the selected packages to the latest versions specified. "all" Update all packages in the environment. An alternative is "selected" to update selected packages to the latest versions while leaving all other packages. within the environment alone.
-#' @param python_version Python version to use for the SCP environment. Default is "3.10".
+#' @param update Whether to update packages that already exist within the environment. For UV, this always syncs to the latest allowed versions. For Conda, options are "default", "all", and "selected".
+#' @param python_version Python version to use for the SCP environment. Default is "3.10". Note that with UV, this is controlled by .python-version file.
+#' @param extras Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")). Default is "all" for complete installation.
 #' @export
 #'
-PrepareEnv <- function(method = "auto", pip = FALSE, user = FALSE, force = FALSE, update = "all", python_version = "3.10") {
-  if (!SCP_present() || isTRUE(force)) {
-    if (isTRUE(force)) {
-      message("The SCP python environment will be reinstalled with Python ", python_version, ".")
+PrepareEnv <- function(method = "auto", pip = FALSE, user = FALSE, force = FALSE, update = "all", python_version = "3.10", extras = "all") {
+  # Determine which method to use
+  if (method == "auto") {
+    if (check_uv()) {
+      method <- "uv"
+      message("UV detected. Using UV for Python environment management.")
     } else {
-      message("The SCP python environment has not been created. Creating it now with Python ", python_version, ".")
+      method <- "conda"
+      message("UV not found. Using conda for Python environment management.")
+      message("To use UV (recommended for faster installations), install it with:")
+      message("  curl -LsSf https://astral.sh/uv/install.sh | sh")
     }
-    packages <- c(
-      "anndata", "pandas", "numpy", "scipy", "matplotlib", "seaborn", "scikit-learn",
-      "scikit-misc", "pynndescent", "umap-learn", "pymde", "opentsne", "phate", "scanorama", "bbknn",
-      "leidenalg", "louvain", "rapids-singlecell", "scrublet", "scvi-tools", "torch", "h5py", "numba", "pybind11", "xgboost"
-    )
-    
-    # Check for Apple Silicon and modify scvi-tools installation
-    if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
-      message("Apple Silicon detected. Using optimized scvi-tools installation with Metal support.")
-      # Remove scvi-tools from the regular package list
-      packages <- packages[packages != "scvi-tools"]
+  }
+
+  # Check if we should use UV
+  if (method == "uv") {
+    if (!check_uv()) {
+      stop("UV is not installed. Please install UV or use method='conda'")
     }
-    install_py(packages = packages, method = method, pip = pip, user = user, force = force, update = update, python_version = python_version)
+
+    # UV-based installation
+    if (!uv_env_exists() || isTRUE(force)) {
+      if (isTRUE(force) && uv_env_exists()) {
+        message("Removing existing UV environment...")
+        uv_remove_env()
+      }
+
+      message("Creating UV environment with Python ", python_version, "...")
+      uv_create_env(python_version = python_version)
+
+      message("Installing Python dependencies with UV...")
+      uv_sync_deps(extras = extras)
+
+      message("UV environment setup complete!")
+    } else {
+      if (isTRUE(update)) {
+        message("Updating UV environment...")
+        uv_sync_deps(extras = extras)
+      } else {
+        message("UV environment already exists. Use force=TRUE to reinstall or update=TRUE to update packages.")
+      }
+    }
   } else {
-    message("The SCP python environment is already present.")
+    # Fallback to original conda-based installation
+    if (!SCP_present() || isTRUE(force)) {
+      if (isTRUE(force)) {
+        message("The SCP python environment will be reinstalled with Python ", python_version, ".")
+      } else {
+        message("The SCP python environment has not been created. Creating it now with Python ", python_version, ".")
+      }
+      packages <- c(
+        "anndata", "pandas", "numpy", "scipy", "matplotlib", "seaborn", "scikit-learn",
+        "scikit-misc", "pynndescent", "umap-learn", "pymde", "opentsne", "phate", "scanorama", "bbknn",
+        "leidenalg", "louvain", "rapids-singlecell", "scrublet", "scvi-tools", "torch", "h5py", "numba", "pybind11", "xgboost"
+      )
+
+      # Check for Apple Silicon and modify scvi-tools installation
+      if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
+        message("Apple Silicon detected. Using optimized scvi-tools installation with Metal support.")
+        # Remove scvi-tools from the regular package list
+        packages <- packages[packages != "scvi-tools"]
+      }
+      install_py(packages = packages, method = "conda", pip = pip, user = user, force = force, update = update, python_version = python_version)
+    } else {
+      message("The SCP python environment is already present.")
+    }
   }
 }
 

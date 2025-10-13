@@ -150,7 +150,7 @@ check_srtList <- function(srtList, batch, assay = NULL,
     stop("'normalization_method' must be one of: 'LogNormalize', 'SCT', 'TFIDF'")
   }
   if (normalization_method %in% c("SCT")) {
-    if (!requireNamespace("glmGamPoi", quietly = TRUE)) stop("Package 'glmGamPoi' is required")
+    require_packages("glmGamPoi")
   }
   if (!HVF_source %in% c("global", "separate")) {
     stop("'HVF_source' must be one of: 'global', 'separate'")
@@ -630,9 +630,7 @@ RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
     
     if (is_v5) {
       # Seurat V5 approach
-      if (!requireNamespace("SeuratObject", quietly = TRUE)) {
-        stop("Package 'SeuratObject' is required for Seurat V5 support")
-      }
+      require_packages("SeuratObject")
       
       # Handle feature metadata renaming
       meta_features <- SeuratObject::FetchData(assay_obj, vars = NULL, layer = "meta.features")
@@ -2323,7 +2321,7 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     "leiden" = 4
   )
 
-  if (!requireNamespace("batchelor", quietly = TRUE)) stop("Package 'batchelor' is required")
+  require_packages("batchelor")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -2514,7 +2512,7 @@ fastMNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     "leiden" = 4
   )
 
-  if (!requireNamespace("batchelor", quietly = TRUE)) stop("Package 'batchelor' is required")
+  require_packages("batchelor")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -2702,7 +2700,7 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     "leiden" = 4
   )
 
-  if (!requireNamespace("harmony", quietly = TRUE)) stop("Package 'harmony' is required")
+  require_packages("harmony")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -3328,7 +3326,7 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     "leiden" = 4
   )
 
-  if (!requireNamespace("simspec", quietly = TRUE)) stop("Package 'simspec' is required"); if (!requireNamespace("qlcMatrix", quietly = TRUE)) stop("Package 'qlcMatrix' is required")
+  require_packages(c("simspec", "qlcMatrix"))
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -3519,7 +3517,7 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     "leiden" = 4
   )
 
-  if (!requireNamespace("rliger", quietly = TRUE)) stop("Package 'rliger' is required")
+  require_packages("rliger")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -3745,7 +3743,7 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     "leiden" = 4
   )
 
-  if (!requireNamespace("conos", quietly = TRUE)) stop("Package 'conos' is required")
+  require_packages("conos")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {
@@ -3957,7 +3955,7 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     "leiden" = 4
   )
 
-  if (!requireNamespace("sva", quietly = TRUE)) stop("Package 'sva' is required")
+  require_packages("sva")
   set.seed(seed)
 
   if (is.null(srtList) && is.null(srtMerge)) {

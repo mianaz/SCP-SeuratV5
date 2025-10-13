@@ -22,7 +22,7 @@ db_scDblFinder <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01
   if (status != "raw_counts") {
     stop("Data type is not raw counts!")
   }
-  if (!requireNamespace("scDblFinder", quietly = TRUE)) stop("Package 'scDblFinder' is required")
+  require_packages("scDblFinder")
   sce <- as.SingleCellExperiment(srt, assay = assay)
   sce <- scDblFinder::scDblFinder(sce, dbr = db_rate, verbose = FALSE, ...)
   srt[["db.scDblFinder_score"]] <- sce[["scDblFinder.score"]]
@@ -55,7 +55,7 @@ db_scds <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, metho
   if (status != "raw_counts") {
     stop("Data type is not raw counts!")
   }
-  if (!requireNamespace("scds", quietly = TRUE)) stop("Package 'scds' is required")
+  require_packages("scds")
   method <- match.arg(method)
   sce <- as.SingleCellExperiment(srt, assay = assay)
   sce <- scds::cxds_bcds_hybrid(sce, ...)

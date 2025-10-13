@@ -117,7 +117,7 @@ RunNMF.default <- function(object, assay = NULL, layer = "data", nbes = 50,
   }
   nbes <- min(nbes, nrow(x = object) - 1)
   if (nmf.method == "RcppML") {
-    if (!requireNamespace("RcppML", quietly = TRUE)) stop("Package 'RcppML' is required")
+    require_packages("RcppML")
     options("RcppML.verbose" = FALSE)
     options("RcppML.threads" = 0)
     if (!"package:Matrix" %in% search()) {
@@ -132,7 +132,7 @@ RunNMF.default <- function(object, assay = NULL, layer = "data", nbes = 50,
     feature.loadings <- t(nmf.results$h)
   }
   if (nmf.method == "NMF") {
-    if (!requireNamespace("NMF", quietly = TRUE)) stop("Package 'NMF' is required")
+    require_packages("NMF")
     seed <- NMF::seed
     nmf.results <- NMF::nmf(x = as_matrix(t(object)), rank = nbes)
     cell.embeddings <- nmf.results@fit@W
@@ -277,11 +277,11 @@ RunMDS.default <- function(object, assay = NULL, layer = "data",
     mds.results <- cmdscale(cell.dist, k = nmds, eig = TRUE, ...)
   }
   if (mds.method == "isoMDS") {
-    if (!requireNamespace("MASS", quietly = TRUE)) stop("Package 'MASS' is required")
+    require_packages("MASS")
     mds.results <- MASS::isoMDS(cell.dist, k = nmds, ...)
   }
   if (mds.method == "sammon") {
-    if (!requireNamespace("MASS", quietly = TRUE)) stop("Package 'MASS' is required")
+    require_packages("MASS")
     mds.results <- MASS::sammon(cell.dist, k = nmds, ...)
   }
   cell.embeddings <- mds.results$points
@@ -395,7 +395,7 @@ RunGLMPCA.default <- function(object, assay = NULL, layer = "counts",
                               features = NULL, L = 5, fam = c("poi", "nb", "nb2", "binom", "mult", "bern"),
                               rev.gmlpca = FALSE, ndims.print = 1:5, nfeatures.print = 30,
                               reduction.key = "GLMPC_", verbose = TRUE, seed.use = 11, ...) {
-  if (!requireNamespace("glmpca", quietly = TRUE)) stop("Package 'glmpca' is required")
+  require_packages("glmpca")
   if (inherits(object, "dgCMatrix")) {
     object <- as_matrix(object)
   }
@@ -518,7 +518,7 @@ RunDM.Seurat <- function(object,
 RunDM.default <- function(object, assay = NULL, layer = "data",
                           ndcs = 2, sigma = "local", k = 30, dist.method = "euclidean",
                           reduction.key = "DM_", verbose = TRUE, seed.use = 11, ...) {
-  if (!requireNamespace("destiny", quietly = TRUE)) stop("Package 'destiny' is required")
+  require_packages("destiny")
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
@@ -1798,7 +1798,7 @@ RunHarmony2.Seurat <- function(object, group.by.vars,
                                project.dim = TRUE,
                                reduction.name = "Harmony", reduction.key = "Harmony_",
                                verbose = TRUE, seed.use = 11L, ...) {
-  if (!requireNamespace("harmony", quietly = TRUE)) stop("Package 'harmony' is required")
+  require_packages("harmony")
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }

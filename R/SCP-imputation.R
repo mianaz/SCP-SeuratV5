@@ -82,9 +82,7 @@ RunImputation <- function(srt, assay = NULL, slot = "data",
 #' @importFrom irlba irlba
 #' @importFrom Matrix t
 RunALRA <- function(data_mat, k = NULL, q = 0.01, verbose = TRUE) {
-  if (!requireNamespace("irlba", quietly = TRUE)) {
-    stop("Package 'irlba' is required for ALRA imputation")
-  }
+  require_packages("irlba")
   
   if (verbose) message("Centering and scaling data...")
   data_centered <- scale(t(data_mat), center = TRUE, scale = TRUE)
@@ -121,9 +119,7 @@ RunALRA <- function(data_mat, k = NULL, q = 0.01, verbose = TRUE) {
 #' @importFrom Matrix t
 #' @importFrom FNN get.knn
 RunMAGIC <- function(data_mat, t = 3, k = 10, verbose = TRUE) {
-  if (!requireNamespace("FNN", quietly = TRUE)) {
-    stop("Package 'FNN' is required for MAGIC imputation")
-  }
+  require_packages("FNN")
   
   if (verbose) message("Computing distance matrix...")
   dist_mat <- FNN::get.knn(t(data_mat), k = k)$nn.dist
@@ -158,9 +154,7 @@ RunMAGIC <- function(data_mat, t = 3, k = 10, verbose = TRUE) {
 #' @importFrom FNN get.knn
 #' @importFrom Matrix t
 RunKNNSmooth <- function(data_mat, k = 15, verbose = TRUE) {
-  if (!requireNamespace("FNN", quietly = TRUE)) {
-    stop("Package 'FNN' is required for KNN smoothing")
-  }
+  require_packages("FNN")
   
   # Find k nearest neighbors
   if (verbose) message("Finding ", k, " nearest neighbors...")

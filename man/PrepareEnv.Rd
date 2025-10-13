@@ -10,23 +10,26 @@ PrepareEnv(
   user = FALSE,
   force = FALSE,
   update = "all",
-  python_version = "3.10"
+  python_version = "3.10",
+  extras = "all"
 )
 }
 \arguments{
-\item{method}{Installation method. By default, "auto" automatically find a method that will work in the local environment. Change the default to force a specific installation method. Note that the "virtualenv" method is not available on Windows.}
+\item{method}{Installation method. Options are "auto", "uv", or "conda". "auto" will prefer UV if available, otherwise use conda.}
 
-\item{pip}{Whether to use pip for installing packages. This is only relevant when `conda = "auto".}
+\item{pip}{Whether to use pip for installing packages. This is only relevant when method is "conda".}
 
-\item{user}{Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager. This is only relevant when `pip = TRUE`.}
+\item{user}{Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager.}
 
 \item{force}{Force reinstall the SCP python environment.}
 
-\item{update}{Whether to update packages that already exist within the environment. Note that this parameter is only supported on Conda package manager. The available options are "default", "all", and "selected". "default" only updates the selected packages to the latest versions specified. "all" Update all packages in the environment. An alternative is "selected" to update selected packages to the latest versions while leaving all other packages. within the environment alone.}
+\item{update}{Whether to update packages that already exist within the environment. For UV, this always syncs to the latest allowed versions. For Conda, options are "default", "all", and "selected".}
 
-\item{python_version}{Python version to use for the SCP environment. Default is "3.10".}
+\item{python_version}{Python version to use for the SCP environment. Default is "3.10". Note that with UV, this is controlled by .python-version file.}
+
+\item{extras}{Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")). Default is "all" for complete installation.}
 }
 \description{
 Install all python packages in the SCP environment automatically. The environment will be created
-using a Conda environment.
+using UV (if available) or Conda as a fallback.
 }
