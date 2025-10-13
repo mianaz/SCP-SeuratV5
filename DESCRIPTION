@@ -63,6 +63,8 @@ Imports:
     stringr,
     tidyr
 Suggests:
+    AHMeSHDbs,
+    AnnotationHub,
     AUCell,
     batchelor,
     Biobase,
@@ -92,6 +94,8 @@ Suggests:
     htmlwidgets,
     httr,
     intrinsicDimension,
+    MeSH.db,
+    MeSHDbi,
     metR,
     mgcv,
     monocle,

@@ -37,6 +37,12 @@ jobs:
           install.packages('BiocManager')
         shell: Rscript {0}
 
+      # Install MeSH-related packages
+      - name: Install MeSH packages
+        run: |
+          BiocManager::install(c('AnnotationHub', 'MeSHDbi', 'MeSH.db', 'AHMeSHDbs'), ask = FALSE, update = FALSE)
+        shell: Rscript {0}
+
       # Install package dependencies
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
