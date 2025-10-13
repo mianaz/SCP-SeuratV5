@@ -48,6 +48,7 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          dependencies: '"hard"'
 
       # Run R CMD check - skip examples, vignettes, and tests for speed
       - uses: r-lib/actions/check-r-package@v2
