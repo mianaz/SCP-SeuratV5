@@ -3068,7 +3068,30 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: CSPA")
           temp <- tempfile(fileext = ".xlsx")
           url <- "https://wlab.ethz.ch/cspa/data/S1_File.xlsx"
-          download.file(url =url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+          # Use caching mechanism if available, otherwise fall back to direct download
+          if (exists(".download_with_cache", mode = "function")) {
+            success <- .download_with_cache(url = url, destfile = temp,
+                                           mode = ifelse(.Platform$OS.type == "windows", "wb", "w"),
+                                           use_cache = TRUE, verbose = TRUE)
+            if (!success) {
+              stop("Failed to download CSPA database. Please check your internet connection or download manually from: ", url)
+            }
+          } else {
+            # Fallback to original method with SSL fix
+            tryCatch({
+              download.file(url = url, destfile = temp,
+                           mode = ifelse(.Platform$OS.type == "windows", "wb", "w"),
+                           method = "curl", extra = "-k")
+            }, error = function(e) {
+              # Fallback: try with default method without SSL verification
+              tryCatch({
+                download.file(url = url, destfile = temp,
+                             mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+              }, error = function(e2) {
+                stop("Failed to download CSPA database. Please check your internet connection or download manually from: ", url)
+              })
+            })
+          }
           surfacepro <- openxlsx::read.xlsx(temp, sheet = 1)
           unlink(temp)
           surfacepro <- surfacepro[surfacepro[["organism"]] == switch(db_species["CSPA"],
@@ -3108,7 +3131,30 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
           message("Preparing database: Surfaceome")
           temp <- tempfile(fileext = ".xlsx")
           url <- "http://wlab.ethz.ch/surfaceome/table_S3_surfaceome.xlsx"
-          download.file(url =url, destfile = temp, mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+          # Use caching mechanism if available, otherwise fall back to direct download
+          if (exists(".download_with_cache", mode = "function")) {
+            success <- .download_with_cache(url = url, destfile = temp,
+                                           mode = ifelse(.Platform$OS.type == "windows", "wb", "w"),
+                                           use_cache = TRUE, verbose = TRUE)
+            if (!success) {
+              stop("Failed to download Surfaceome database. Please check your internet connection or download manually from: ", url)
+            }
+          } else {
+            # Fallback to original method with SSL fix
+            tryCatch({
+              download.file(url = url, destfile = temp,
+                           mode = ifelse(.Platform$OS.type == "windows", "wb", "w"),
+                           method = "curl", extra = "-k")
+            }, error = function(e) {
+              # Fallback: try with default method
+              tryCatch({
+                download.file(url = url, destfile = temp,
+                             mode = ifelse(.Platform$OS.type == "windows", "wb", "w"))
+              }, error = function(e2) {
+                stop("Failed to download Surfaceome database. Please check your internet connection or download manually from: ", url)
+              })
+            })
+          }
           surfaceome <- openxlsx::read.xlsx(temp, sheet = 2, colNames = TRUE, startRow = 2)
           unlink(temp)
           TERM2GENE <- data.frame("Term" = "SurfaceProtein", "symbol" = surfaceome[["UniProt.gene"]])

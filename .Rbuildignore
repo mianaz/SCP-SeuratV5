@@ -15,3 +15,8 @@
 ^README.md$
 ^tmaps$
 ^test.R$
+^\.claude$
+^CLAUDE\.md$
+^test_local\.R$
+^test_ssl_download\.R$
+^SCP\.Rcheck$
