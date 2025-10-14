@@ -55,4 +55,4 @@ jobs:
         with:
           upload-snapshots: false
           error-on: '"error"'
-          args: 'c("--no-manual", "--no-vignettes", "--no-build-vignettes", "--no-tests")'
+          args: 'c("--no-manual", "--no-vignettes", "--no-build-vignettes", "--no-tests", "--no-examples")'

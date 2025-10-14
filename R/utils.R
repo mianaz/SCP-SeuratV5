@@ -52,8 +52,19 @@ utils::globalVariables(c(
 #' @return Invisible NULL. Throws an error if packages are not available.
 #' @export
 check_Python <- function(packages) {
+  # Force Python initialization by attempting to get the config
+  # This ensures reticulate has fully initialized Python before we check for modules
+  tryCatch({
+    py_config <- reticulate::py_config()
+    if (is.null(py_config$python)) {
+      stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
+    }
+  }, error = function(e) {
+    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
+  })
+
   if (!reticulate::py_available()) {
-    stop("Python is not available. Please set up Python environment with PrepareEnv()")
+    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
   }
 
   for (pkg in packages) {
@@ -649,54 +660,38 @@ uv_sync_deps <- function(extras = "all") {
     file.copy(pyproject_path, "pyproject.toml", overwrite = TRUE)
   }
 
-  # Prepare extras argument
-  if (length(extras) == 1 && extras == "all") {
-    extras_arg <- "--all-extras"
-  } else if (length(extras) > 0) {
-    extras_arg <- paste0("--extra ", extras, collapse = " ")
-  } else {
-    extras_arg <- ""
-  }
+  # Install dependencies using UV's native pyproject.toml support
+  message("Installing Python dependencies from pyproject.toml...")
 
-  # Install dependencies
-  # First, compile requirements from pyproject.toml
-  if (length(extras) == 0 || (length(extras) == 1 && extras == "")) {
-    # Install only core dependencies
-    compile_cmd <- c("pip", "compile", "pyproject.toml", "-o", "requirements.txt", "--quiet")
-  } else if (extras_arg == "--all-extras") {
-    # Install with all extras
-    compile_cmd <- c("pip", "compile", "pyproject.toml", "--all-extras", "-o", "requirements.txt", "--quiet")
+  # Determine which extras to install
+  if (length(extras) == 0 || "" %in% extras || is.null(extras)) {
+    # Install only core dependencies (no extras)
+    result <- system2("uv", args = c("pip", "install", "-e", "."), wait = TRUE)
+  } else if ("all" %in% extras) {
+    # Install all extras
+    result <- system2("uv", args = c("pip", "install", "-e", ".[all]"), wait = TRUE)
   } else {
     # Install specific extras
-    extras_args <- unlist(lapply(extras, function(e) c("--extra", e)))
-    compile_cmd <- c("pip", "compile", "pyproject.toml", extras_args, "-o", "requirements.txt", "--quiet")
-  }
-
-  # Compile the requirements
-  system2("uv", args = compile_cmd, wait = TRUE, stderr = FALSE, stdout = FALSE)
-
-  # Install from compiled requirements
-  if (file.exists("requirements.txt")) {
-    result <- system2("uv", args = c("pip", "install", "-r", "requirements.txt"), wait = TRUE)
-  } else {
-    # Fallback: install packages directly
-    packages <- c("numpy", "pandas", "scipy", "matplotlib", "seaborn",
-                 "scikit-learn", "h5py", "numba", "anndata")
-    result <- system2("uv", args = c("pip", "install", packages), wait = TRUE)
+    extras_str <- paste0("[", paste(extras, collapse = ","), "]")
+    result <- system2("uv", args = c("pip", "install", "-e", paste0(".", extras_str)), wait = TRUE)
   }
 
   if (result != 0) {
-    warning("UV installation may have encountered issues. Checking installation...")
-  }
+    warning("Installation from pyproject.toml failed. Trying fallback method...")
+    # Fallback: install core packages directly by name
+    core_packages <- c(
+      "numpy", "pandas", "scipy", "matplotlib", "seaborn",
+      "scikit-learn", "h5py", "numba", "anndata",
+      "scvelo", "scanpy", "loompy"
+    )
+    result <- system2("uv", args = c("pip", "install", core_packages), wait = TRUE)
 
-  # Special handling for Apple Silicon
-  if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
-    if ("all" %in% extras || "deeplearning" %in% extras) {
-      message("Installing Apple Silicon optimizations...")
-      system2("uv", args = c("pip", "install", "-e", ".[apple_silicon]"), wait = TRUE)
+    if (result != 0) {
+      stop("Failed to install Python dependencies. Check UV installation and pyproject.toml.")
     }
   }
 
+  message("Python dependencies installed successfully.")
   return(invisible(TRUE))
 }
 
@@ -798,14 +793,15 @@ PrepareEnv <- function(method = "auto", pip = FALSE, user = FALSE, force = FALSE
       packages <- c(
         "anndata", "pandas", "numpy", "scipy", "matplotlib", "seaborn", "scikit-learn",
         "scikit-misc", "pynndescent", "umap-learn", "pymde", "opentsne", "phate", "scanorama", "bbknn",
-        "leidenalg", "louvain", "rapids-singlecell", "scrublet", "scvi-tools", "torch", "h5py", "numba", "pybind11", "xgboost"
+        "leidenalg", "louvain", "scrublet", "scvi-tools", "torch", "h5py", "numba", "pybind11", "xgboost",
+        "scvelo", "scanpy", "loompy"
       )
 
-      # Check for Apple Silicon and modify scvi-tools installation
+      # Check for Apple Silicon and modify package list
       if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
-        message("Apple Silicon detected. Using optimized scvi-tools installation with Metal support.")
-        # Remove scvi-tools from the regular package list
-        packages <- packages[packages != "scvi-tools"]
+        message("Apple Silicon detected. Adjusting package list for ARM64 compatibility.")
+        # Remove packages that are not available or need special handling on Apple Silicon
+        packages <- packages[!packages %in% c("scvi-tools", "rapids-singlecell")]
       }
       install_py(packages = packages, method = "conda", pip = pip, user = user, force = force, update = update, python_version = python_version)
     } else {
@@ -815,7 +811,14 @@ PrepareEnv <- function(method = "auto", pip = FALSE, user = FALSE, force = FALSE
 }
 
 install_py <- function(packages = NULL, method = "auto", pip = FALSE, user = FALSE, force = FALSE, update = "all", python_version = NULL, ...) {
-  if (reticulate::is_osx() && reticulate::is_python_conda()) {
+  # Check if on macOS and using conda
+  is_osx <- Sys.info()["sysname"] == "Darwin"
+  is_conda <- tryCatch({
+    py_config <- reticulate::py_config()
+    grepl("conda", py_config$python, ignore.case = TRUE)
+  }, error = function(e) FALSE)
+
+  if (is_osx && is_conda) {
     nomkl <- TRUE
   } else {
     nomkl <- FALSE

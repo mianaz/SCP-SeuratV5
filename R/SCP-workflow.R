@@ -327,7 +327,7 @@ check_srtList <- function(srtList, batch, assay = NULL,
       } else {
         DefaultAssay(srtList[[i]]) <- "SCT"
       }
-      if (!"residual_variance" %in% colnames(srtList[[i]]@assays$SCT@meta.features)) {
+      if (!"residual_variance" %in% colnames(get_feature_metadata(srtList[[i]], assay = "SCT"))) {
         if (length(srtList[[i]]@assays$SCT@SCTModel.list) > 1) {
           index <- which(sapply(srtList[[i]]@assays$SCT@SCTModel.list, function(x) nrow(x@cell.attributes) == ncol(srtList[[i]])))
         } else {
@@ -336,12 +336,12 @@ check_srtList <- function(srtList, batch, assay = NULL,
         model <- srtList[[i]]@assays$SCT@SCTModel.list[[index]]
         feature.attr <- SCTResults(object = model, layer = "feature.attributes")
       } else {
-        feature.attr <- srtList[[i]]@assays$SCT@meta.features
+        feature.attr <- get_feature_metadata(srtList[[i]], assay = "SCT")
       }
       nfeatures <- min(nHVF, nrow(x = feature.attr))
       top.features <- rownames(x = feature.attr)[head(order(feature.attr$residual_variance, decreasing = TRUE), n = nfeatures)]
       VariableFeatures(srtList[[i]], assay = DefaultAssay(srtList[[i]])) <- top.features
-      srtList[[i]]@assays$SCT@meta.features <- feature.attr
+      srtList[[i]] <- set_feature_metadata(srtList[[i]], metadata = feature.attr, assay = "SCT")
     }
   }
 
