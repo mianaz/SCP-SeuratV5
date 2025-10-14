@@ -6110,49 +6110,20 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   args <- args[!names(args) %in% c("srt", "assay_X", "slot_X", "assay_layers", "slot_layers", "return_seurat", "palette", "palcolor")]
 
   if (!is.null(srt)) {
-    # Use SeuratDisk for conversion to avoid memory issues with large sparse matrices
-    if (!requireNamespace("SeuratDisk", quietly = TRUE)) {
-      message("SeuratDisk is required for efficient Seurat to AnnData conversion.")
-      message("Install from: devtools::install_github('mianaz/seuratdisk-V5')")
-      stop("SeuratDisk package not available")
-    }
-
-    # Import scanpy for loading h5ad
-    sc <- tryCatch({
-      import("scanpy", convert = FALSE)
-    }, error = function(e) {
-      stop("Failed to import scanpy. Please ensure Python environment is set up with PrepareEnv()")
-    })
-
-    # Create temporary files
-    h5seurat_file <- tempfile(fileext = ".h5seurat")
-    h5ad_file <- tempfile(fileext = ".h5ad")
+    # Use the srt_to_adata function for reliable conversion that handles duplicate gene names correctly
+    message("Converting Seurat object to AnnData (", ncol(srt), " cells, ", nrow(srt), " genes)...")
 
     tryCatch({
-      # Save Seurat object to h5seurat format
-      message("Converting Seurat object to h5seurat (", ncol(srt), " cells, ", nrow(srt), " genes)...")
-      SeuratDisk::SaveH5Seurat(srt, filename = h5seurat_file, overwrite = TRUE, verbose = FALSE)
-
-      # Convert h5seurat to h5ad format (keeps sparse matrices sparse)
-      message("Converting h5seurat to h5ad...")
-      SeuratDisk::Convert(h5seurat_file, dest = h5ad_file, assay = assay_X, overwrite = TRUE, verbose = FALSE)
-
-      # Load h5ad file with scanpy
-      message("Loading h5ad file...")
-      args[["adata"]] <- sc$read_h5ad(h5ad_file)
-      message("Conversion complete. AnnData object created with ", args[["adata"]]$n_obs, " cells.")
-
+      args[["adata"]] <- srt_to_adata(
+        srt = srt,
+        assay_X = assay_X, slot_X = slot_X,
+        assay_layers = assay_layers, slot_layers = slot_layers
+      )
+      message("Conversion complete. AnnData object created with ", py_to_r(args[["adata"]]$n_obs), " cells and ", py_to_r(args[["adata"]]$n_vars), " genes.")
     }, error = function(e) {
-      # Clean up on error
-      if (file.exists(h5seurat_file)) unlink(h5seurat_file)
-      if (file.exists(h5ad_file)) unlink(h5ad_file)
       stop("Failed to convert Seurat to AnnData: ", e$message,
-           "\nThis may indicate issues with SeuratDisk or the h5ad format.",
-           "\nTry subsetting your data or checking for NA values in metadata.")
-    }, finally = {
-      # Clean up temporary files on success
-      if (file.exists(h5seurat_file)) unlink(h5seurat_file)
-      if (file.exists(h5ad_file)) unlink(h5ad_file)
+           "\nThis may indicate issues with the data format.",
+           "\nTry checking for duplicate gene names or NA values in metadata.")
     })
   }
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
