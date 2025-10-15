@@ -1,6 +1,0 @@
-pyproject.toml
-scp_python_deps.egg-info/PKG-INFO
-scp_python_deps.egg-info/SOURCES.txt
-scp_python_deps.egg-info/dependency_links.txt
-scp_python_deps.egg-info/requires.txt
-scp_python_deps.egg-info/top_level.txt

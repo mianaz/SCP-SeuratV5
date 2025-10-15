@@ -2,65 +2,68 @@
 name = "scp-python-deps"
 version = "0.7.0"
 description = "Python dependencies for SCP R package"
-requires-python = ">=3.10,<3.14"  # Updated: Python 3.10+ for broader compatibility, support 3.10-3.13
+requires-python = ">=3.10,<3.14"  # Align with inst/pyproject.toml
 
 dependencies = [
     # Core scientific computing (Updated versions)
-    "numpy>=1.26.0,<3.0.0",  # numpy 2.x is stable now
+    "numpy>=1.26.0,<3.0.0",
     "pandas>=2.2.0",
     "scipy>=1.13.0",
     "matplotlib>=3.9.0",
     "seaborn>=0.13.0",
     "scikit-learn>=1.5.0",
     "h5py>=3.11.0",
-    "numba>=0.62.0",  # Full Python 3.12 and M-silicon support
-    "anndata>=0.10.0,<0.12.0",  # 0.10.x supports Python 3.10+, 0.12+ requires Python 3.11+
+    "numba>=0.62.0",
+    "anndata>=0.10.0,<0.12.0",
     # Single-cell essentials
-    "scanpy>=1.11.0",  # Latest version with Python 3.12 support
-    "igraph>=0.11.9",  # CRITICAL: Changed from python-igraph (deprecated)
+    "scanpy>=1.11.0",
+    "igraph>=0.11.9",
 ]
+
+[tool.setuptools]
+# Explicitly exclude R package directories to avoid setuptools confusion
+packages = []
+py-modules = []
 
 [project.optional-dependencies]
 # Velocity analysis dependencies
 velocity = [
-    "scvelo>=0.3.3",  # Latest version
+    "scvelo>=0.3.3",
     "loompy>=3.0.0",
 ]
 
 # Trajectory analysis dependencies
 trajectory = [
-    "scanpy>=1.9.0",
-    "paga>=0.1.0",
     "phate>=1.0.0",
-    "palantir>=1.4.1",  # Added latest version
-    "cellrank>=2.0.7",  # Added latest version
+    "palantir>=1.4.1",
+    "cellrank>=2.0.7",
 ]
 
 # Deep learning dependencies
 deeplearning = [
-    "scvi-tools>=1.3.3",  # Latest version
-    "torch>=2.5.0",  # Latest PyTorch with MPS improvements
+    "scvi-tools>=1.3.3",
+    "torch>=2.5.0",
 ]
 
-# Apple Silicon optimizations (ENHANCED)
+# Apple Silicon optimizations
 apple_silicon = [
-    "scvi-tools[metal]>=1.3.3",  # Metal support
-    "torch>=2.5.0",  # PyTorch with MPS backend
+    "scvi-tools[metal]>=1.3.3",
+    "torch>=2.5.0",
 ]
 
 # Single-cell specific tools
 singlecell = [
-    "scikit-misc>=0.5.0",  # Updated
+    "scikit-misc>=0.5.0",
     "pynndescent>=0.5.13",
     "umap-learn>=0.5.6",
     "pymde>=0.1.18",
-    "opentsne>=1.0.0",  # Updated
+    "opentsne>=1.0.0",
     "scanorama>=1.7.4",
     "bbknn>=1.6.0",
     "leidenalg>=0.10.2",
     "louvain>=0.8.2",
     "scrublet>=0.2.3",
-    "pybind11>=2.13.0",  # Updated
+    "pybind11>=2.13.0",
 ]
 
 # Machine learning
@@ -68,11 +71,16 @@ ml = [
     "xgboost>=2.1.0",
 ]
 
-# All dependencies combined
+# Spatial transcriptomics analysis
+spatial = [
+    "squidpy>=1.6.5",
+    "scikit-image>=0.19.0",
+]
+
+# All dependencies combined (excluding core deps which are always installed)
 all = [
     "scvelo>=0.3.3",
     "loompy>=3.0.0",
-    "paga>=0.1.0",
     "phate>=1.0.0",
     "palantir>=1.4.1",
     "cellrank>=2.0.7",
@@ -90,8 +98,10 @@ all = [
     "scrublet>=0.2.3",
     "pybind11>=2.13.0",
     "xgboost>=2.1.0",
+    "squidpy>=1.6.5",
+    "scikit-image>=0.19.0",
 ]
 
 [build-system]
-requires = ["setuptools>=75", "wheel"]  # Updated setuptools
+requires = ["setuptools>=75", "wheel"]
 build-backend = "setuptools.build_meta"

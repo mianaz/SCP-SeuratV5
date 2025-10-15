@@ -15,10 +15,10 @@ An adaptation of the [SCP package](https://github.com/zhanghao-njmu/SCP) with fu
 - **Zero Migration Cost**: Existing pipelines work without modification
 
 ### ⚡ Fast Python Dependency Management
-- **UV Integration**: Ultra-fast Python package manager (10-100x faster than conda)
-- **Smart Fallback**: Automatic conda fallback if UV is not available
+- **UV-Only**: Ultra-fast Python package manager (10-100x faster than pip/conda)
 - **Modular Installation**: Install only the features you need
 - **Cross-Platform**: Works on macOS, Linux, and Windows
+- **Simple Setup**: One command to install all dependencies
 
 ### 🔬 Comprehensive Single-Cell Analysis
 - RNA velocity analysis (scVelo, CellRank)
@@ -43,42 +43,25 @@ devtools::install_github("mianaz/SCP-SeuratV5")
 
 ### Python Environment Setup
 
-SCP uses Python for advanced analysis features. Choose your preferred method:
-
-#### Option 1: UV (Recommended - Fast!)
+SCP uses Python for advanced analysis features, managed exclusively via UV (ultra-fast package manager).
 
 ```r
 library(SCP)
 
 # Install core dependencies only (~5 seconds)
-PrepareEnv(method = "uv")
+PrepareEnv()
 
 # Install all features (~60 seconds)
-PrepareEnv(method = "uv", extras = "all")
+PrepareEnv(extras = "all")
 
 # Install specific features
-PrepareEnv(method = "uv", extras = c("velocity", "trajectory", "dimred"))
+PrepareEnv(extras = c("velocity", "trajectory", "spatial"))
+
+# Add more features to existing environment later
+uv_install_extras("deeplearning")
 ```
 
-**Performance**: UV is 10-100x faster than conda!
-
-#### Option 2: Conda (Traditional)
-
-```r
-library(SCP)
-
-# Automatic setup with conda
-PrepareEnv(method = "conda")
-```
-
-#### Option 3: Auto (Smart Detection)
-
-```r
-library(SCP)
-
-# Automatically use UV if available, otherwise conda
-PrepareEnv()  # or PrepareEnv(method = "auto")
-```
+**Performance**: UV is 10-100x faster than pip/conda!
 
 For detailed Python setup instructions, see [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md).
 
@@ -157,14 +140,16 @@ srt <- RunCellRank(srt,
 
 ### Python Dependencies (Optional)
 - **Python** 3.10, 3.11, or 3.12 (3.10 recommended)
+- Managed via UV (ultra-fast package manager)
 - Quick start:
 
 ```r
 # One-time install
-PrepareEnv(extras = c("spatial"))
+PrepareEnv(extras = c("spatial", "velocity"))
 
-# In new sessions, activate and verify
-EnsureEnv(required = c("scanpy","squidpy","anndata"))
+# In new sessions, activate environment
+library(SCP)
+use_uv_env()
 ```
 
 See [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md) for the complete list.
@@ -184,12 +169,14 @@ See [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md) for the complete list.
 - `get_var_features(srt)` - Get variable features
 
 ### Python Environment
-- `PrepareEnv()` - Set up Python environment
-- `EnsureEnv(required)` - Activate UV env and check modules
+- `PrepareEnv(extras)` - Set up UV Python environment with optional feature groups
+- `use_uv_env()` - Configure R to use UV environment
 - `check_uv()` - Check if UV is installed
 - `uv_env_exists()` - Check if UV environment exists
-- `use_uv_env()` - Configure R to use UV environment
-- `RemoveEnv()` - Remove Python environment
+- `uv_install_extras(extras)` - Add optional feature groups to existing environment
+- `uv_install_packages(packages)` - Install individual Python packages
+- `RemoveEnv()` - Remove UV Python environment
+- `check_Python(packages)` - Verify Python packages are available
 
 ### Analysis Functions
 See the [original SCP documentation](https://github.com/zhanghao-njmu/SCP) for the full list of analysis functions.
@@ -210,14 +197,18 @@ See the [original SCP documentation](https://github.com/zhanghao-njmu/SCP) for t
 ### Test Python Dependencies
 
 ```r
-# Quick diagnostics of the environment
-VerifyEnv(verbose = TRUE)
-```
+library(SCP)
 
-This reports:
-- Core and optional Python groups availability
-- Active reticulate configuration
-- Guidance to install missing extras
+# Activate UV environment
+use_uv_env()
+
+# Check specific packages
+check_Python(c("numpy", "pandas", "scanpy", "anndata"))
+
+# Check UV installation
+check_uv()
+uv_env_exists()
+```
 
 ### Quick Test
 
@@ -227,8 +218,10 @@ library(SCP)
 # Test basic functionality
 IsSeurat5(your_object)
 
-# Test Python modules (if installed)
-EnsureEnv(required = c("numpy", "pandas", "scanpy"))
+# Test Python environment
+use_uv_env()
+py_config <- reticulate::py_config()
+print(py_config)
 ```
 
 ## Troubleshooting
@@ -237,12 +230,16 @@ EnsureEnv(required = c("numpy", "pandas", "scanpy"))
 
 ```r
 # Remove and recreate environment
-uv_remove_env()  # or RemoveEnv() for conda
-PrepareEnv(method = "uv", force = TRUE)
+RemoveEnv()
+PrepareEnv(force = TRUE)
 
-# Test installation
-# Quick diagnostics
-VerifyEnv(verbose = TRUE)
+# Or manually
+uv_remove_env()
+PrepareEnv(extras = "all")
+
+# Verify installation
+use_uv_env()  # Activate environment
+check_Python(c("numpy", "scanpy", "anndata"))  # Check packages
 ```
 
 ### Seurat V5 Conversion Issues
@@ -259,25 +256,28 @@ srt <- EnsureSeurat5(srt)
 ### Missing Optional Dependencies
 
 ```r
-# Install specific feature groups
-PrepareEnv(method = "uv", extras = c("velocity", "trajectory"))
+# Install specific feature groups to existing environment
+uv_install_extras(c("velocity", "trajectory"))
+
+# Or reinstall with new extras
+PrepareEnv(extras = c("velocity", "trajectory", "spatial"), update = TRUE)
 ```
 
 ## Performance Tips
 
-1. **Use UV**: 10-100x faster than conda for Python setup
-2. **Install Only What You Need**: Use specific `extras` instead of "all"
-3. **Seurat V5 Native**: Use V5 objects for better memory efficiency
-4. **Apple Silicon**: Use `extras = "apple_silicon"` for Metal acceleration
+1. **Modular Installation**: Install only specific `extras` you need instead of "all" for faster setup
+2. **Seurat V5 Native**: Use V5 objects for better memory efficiency
+3. **Apple Silicon**: Use `extras = "apple_silicon"` for Metal acceleration in deep learning
+4. **UV Speed**: Python environment setup is 10-100x faster than traditional pip/conda
 
 ## Platform Support
 
-| Platform | UV | Conda | Status |
-|----------|-----|-------|--------|
-| macOS (Intel) | ✅ | ✅ | Full support |
-| macOS (Apple Silicon) | ✅ | ✅ | Full support + Metal |
-| Linux | ✅ | ✅ | Full support |
-| Windows | ✅ | ✅ | Full support |
+| Platform | Python (UV) | Status |
+|----------|-------------|--------|
+| macOS (Intel) | ✅ | Full support |
+| macOS (Apple Silicon) | ✅ | Full support + Metal acceleration |
+| Linux | ✅ | Full support |
+| Windows | ✅ | Full support |
 
 ## Contributing
 
@@ -322,5 +322,5 @@ For issues and questions:
 
 ---
 
-**Version**: 0.6.0
-**Last Updated**: 2025-10-13
+**Version**: 0.7.0
+**Last Updated**: 2025-10-14

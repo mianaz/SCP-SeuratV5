@@ -549,6 +549,70 @@ invoke <- function(.fn, .args = list(), ...) {
 
 # Removed SCP_present() function - no longer needed with UV-only approach
 
+# ============================================================================
+# UV Environment Helper Functions
+# ============================================================================
+
+#' Get SCP package directory
+#'
+#' @return Character, path to SCP package directory
+#' @keywords internal
+get_scp_pkg_dir <- function() {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") pkg_dir <- getwd()
+  pkg_dir
+}
+
+#' Find pyproject.toml file
+#'
+#' @return Character path to pyproject.toml or NULL if not found
+#' @keywords internal
+find_pyproject_toml <- function() {
+  locations <- c(
+    "pyproject.toml",
+    file.path("inst", "pyproject.toml"),
+    system.file("pyproject.toml", package = "SCP")
+  )
+  for (loc in locations) {
+    if (file.exists(loc)) return(loc)
+  }
+  NULL
+}
+
+#' Get Python executable path in UV environment
+#'
+#' @param venv_path Path to venv directory. If NULL, uses default SCP .venv
+#' @return Character path to Python executable
+#' @keywords internal
+get_uv_python_path <- function(venv_path = NULL) {
+  if (is.null(venv_path)) {
+    venv_path <- file.path(get_scp_pkg_dir(), ".venv")
+  }
+  if (Sys.info()["sysname"] == "Windows") {
+    file.path(venv_path, "Scripts", "python.exe")
+  } else {
+    file.path(venv_path, "bin", "python")
+  }
+}
+
+#' Extract major version number from version string
+#'
+#' @param version_string Version string (e.g., "5.0.1" or package_version object)
+#' @return Numeric major version or NA if cannot parse
+#' @keywords internal
+extract_major_version <- function(version_string) {
+  version_str <- as.character(version_string)
+  if (grepl("^[0-9]+", version_str)) {
+    major <- as.numeric(strsplit(version_str, "\\.")[[1]][1])
+    if (!is.na(major)) return(major)
+  }
+  NA_real_
+}
+
+# ============================================================================
+# UV Environment Management Functions
+# ============================================================================
+
 #' Check if UV is installed
 #'
 #' @return Logical, TRUE if UV is available
@@ -602,14 +666,8 @@ install_uv <- function(force = FALSE) {
 #' @return Logical, TRUE if .venv exists in package directory
 #' @export
 uv_env_exists <- function() {
-  # Check for .venv in the package root
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    # During development, use current directory
-    pkg_dir <- getwd()
-  }
-  venv_path <- file.path(pkg_dir, ".venv")
-  return(dir.exists(venv_path))
+  venv_path <- file.path(get_scp_pkg_dir(), ".venv")
+  dir.exists(venv_path)
 }
 
 #' Create UV virtual environment
@@ -617,11 +675,7 @@ uv_env_exists <- function() {
 #' @param python_version Python version to use (e.g., "3.10")
 #' @export
 uv_create_env <- function(python_version = "3.10") {
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    # During development, use current directory
-    pkg_dir <- getwd()
-  }
+  pkg_dir <- get_scp_pkg_dir()
 
   # Change to package directory
   old_wd <- getwd()
@@ -657,11 +711,7 @@ uv_create_env <- function(python_version = "3.10") {
 #'
 #' @export
 uv_remove_env <- function() {
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
-  venv_path <- file.path(pkg_dir, ".venv")
+  venv_path <- file.path(get_scp_pkg_dir(), ".venv")
 
   if (dir.exists(venv_path)) {
     unlink(venv_path, recursive = TRUE)
@@ -674,31 +724,15 @@ uv_remove_env <- function() {
 #' @param extras Character vector of extra dependency groups to install
 #' @export
 uv_sync_deps <- function(extras = "all") {
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
+  pkg_dir <- get_scp_pkg_dir()
 
   # Change to package directory
   old_wd <- getwd()
   on.exit(setwd(old_wd))
   setwd(pkg_dir)
 
-  # Look for pyproject.toml in multiple locations
-  pyproject_locations <- c(
-    "pyproject.toml",  # Current directory
-    file.path("inst", "pyproject.toml"),  # In inst directory
-    system.file("pyproject.toml", package = "SCP")  # Installed location
-  )
-
-  pyproject_path <- NULL
-  for (loc in pyproject_locations) {
-    if (file.exists(loc)) {
-      pyproject_path <- loc
-      break
-    }
-  }
-
+  # Find pyproject.toml
+  pyproject_path <- find_pyproject_toml()
   if (is.null(pyproject_path)) {
     stop("pyproject.toml not found. Cannot sync dependencies.")
   }
@@ -776,31 +810,15 @@ uv_install_extras <- function(extras) {
     stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
   }
 
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
+  pkg_dir <- get_scp_pkg_dir()
 
   # Change to package directory
   old_wd <- getwd()
   on.exit(setwd(old_wd))
   setwd(pkg_dir)
 
-  # Ensure pyproject.toml is available
-  pyproject_locations <- c(
-    "pyproject.toml",
-    file.path("inst", "pyproject.toml"),
-    system.file("pyproject.toml", package = "SCP")
-  )
-
-  pyproject_path <- NULL
-  for (loc in pyproject_locations) {
-    if (file.exists(loc)) {
-      pyproject_path <- loc
-      break
-    }
-  }
-
+  # Find pyproject.toml
+  pyproject_path <- find_pyproject_toml()
   if (is.null(pyproject_path)) {
     stop("pyproject.toml not found. Cannot install extras.")
   }
@@ -857,10 +875,7 @@ uv_install_packages <- function(packages) {
     stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
   }
 
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
+  pkg_dir <- get_scp_pkg_dir()
 
   # Change to package directory
   old_wd <- getwd()
@@ -883,22 +898,13 @@ uv_install_packages <- function(packages) {
 #'
 #' @export
 use_uv_env <- function() {
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
-
-  venv_path <- file.path(pkg_dir, ".venv")
+  venv_path <- file.path(get_scp_pkg_dir(), ".venv")
   if (!dir.exists(venv_path)) {
     stop("UV environment not found. Run PrepareEnv(method='uv') first.")
   }
 
-  # Find Python executable in venv
-  if (Sys.info()["sysname"] == "Windows") {
-    python_path <- file.path(venv_path, "Scripts", "python.exe")
-  } else {
-    python_path <- file.path(venv_path, "bin", "python")
-  }
+  # Get Python executable path
+  python_path <- get_uv_python_path(venv_path)
 
   if (!file.exists(python_path)) {
     stop("Python executable not found in UV environment")
@@ -907,7 +913,7 @@ use_uv_env <- function() {
   # Use the UV environment
   reticulate::use_python(python_path, required = TRUE)
 
-  return(invisible(TRUE))
+  invisible(TRUE)
 }
 
 #' Install the SCP python environment
@@ -1279,35 +1285,39 @@ get_var_features <- function(srt, assay = NULL) {
 #' @return A list with version information
 #' @export
 GetSeuratVersion <- function(srt = NULL) {
+  pkg_version <- packageVersion("Seurat")
+  pkg_major <- extract_major_version(pkg_version)
+
   result <- list(
-    package_version = packageVersion("Seurat"),
-    package_major = as.numeric(strsplit(as.character(packageVersion("Seurat")), "\\.")[[1]][1]),
-    is_v5_installed = as.numeric(strsplit(as.character(packageVersion("Seurat")), "\\.")[[1]][1]) >= 5
+    package_version = pkg_version,
+    package_major = pkg_major,
+    is_v5_installed = !is.na(pkg_major) && pkg_major >= 5
   )
-  
+
   if (!is.null(srt)) {
     if (!inherits(srt, "Seurat")) {
       stop("Input must be a Seurat object")
     }
-    
+
     # Object-specific version information
     result$object_version <- attr(srt, "version")
     result$object_class <- class(srt)
-    
+
+    # Use IsSeurat5() for comprehensive object version check
+    result$is_object_v5 <- IsSeurat5(srt)
+
     # Check default assay information
     tryCatch({
       default_assay <- DefaultAssay(srt)
       assay_obj <- srt[[default_assay]]
       result$assay_class <- class(assay_obj)
       result$has_layers <- !is.null(tryCatch(Layers(assay_obj), error = function(e) NULL))
-      result$is_object_v5 <- IsSeurat5(srt)
     }, error = function(e) {
       result$assay_class <- "unknown"
       result$has_layers <- FALSE
-      result$is_object_v5 <- FALSE
     })
   }
-  
+
   return(result)
 }
 
@@ -1324,18 +1334,14 @@ IsSeurat5 <- function(srt) {
   # Create a comprehensive check for Seurat V5 features
   tryCatch({
     # Method 1: Check object version attribute (most reliable)
-    seurat_version <- attr(srt, "version")
-    if (!is.null(seurat_version)) {
-      # Handle different version formats: "5.0.0", "5", etc.
-      version_str <- as.character(seurat_version)
-      if (grepl("^[0-9]+", version_str)) {
-        major_version <- as.numeric(strsplit(version_str, "\\.")[[1]][1])
-        if (!is.na(major_version) && major_version >= 5) {
-          return(TRUE)
-        }
+    obj_version <- attr(srt, "version")
+    if (!is.null(obj_version)) {
+      major_version <- extract_major_version(obj_version)
+      if (!is.na(major_version) && major_version >= 5) {
+        return(TRUE)
       }
     }
-    
+
     # Method 2: Check if the assay class is Assay5
     default_assay <- tryCatch(DefaultAssay(srt), error = function(e) NULL)
     if (!is.null(default_assay)) {
@@ -1344,7 +1350,7 @@ IsSeurat5 <- function(srt) {
         return(TRUE)
       }
     }
-    
+
     # Method 3: Check for presence of layer-based structure (V5 specific)
     if (!is.null(default_assay)) {
       assay <- tryCatch(srt[[default_assay]], error = function(e) NULL)
@@ -1357,7 +1363,7 @@ IsSeurat5 <- function(srt) {
             return(TRUE)
           }
         }
-        
+
         # Method 4: Check for V5-specific slots or methods
         if (.hasSlot(assay, "layers")) {
           layers_slot <- tryCatch(slot(assay, "layers"), error = function(e) NULL)
@@ -1367,21 +1373,21 @@ IsSeurat5 <- function(srt) {
         }
       }
     }
-    
+
     # Method 5: Check package version as final fallback
-    seurat_pkg_version <- tryCatch(packageVersion("Seurat"), error = function(e) NULL)
-    if (!is.null(seurat_pkg_version)) {
-      major_version <- as.numeric(strsplit(as.character(seurat_pkg_version), "\\.")[[1]][1])
+    pkg_version <- tryCatch(packageVersion("Seurat"), error = function(e) NULL)
+    if (!is.null(pkg_version)) {
+      major_version <- extract_major_version(pkg_version)
       if (!is.na(major_version) && major_version >= 5) {
-        # If we have V5 installed but object doesn't have V5 features, 
+        # If we have V5 installed but object doesn't have V5 features,
         # it might be an old object that needs updating
         # Return FALSE here to indicate it's not a V5 object yet
       }
     }
-    
+
     # If none of the above checks pass, it's not a V5 object
     return(FALSE)
-    
+
   }, error = function(e) {
     # If any errors occur during the checks, be conservative and return FALSE
     warning("Error during Seurat version detection: ", e$message, call. = FALSE)
@@ -1409,11 +1415,10 @@ EnsureSeurat5 <- function(srt, verbose = TRUE) {
   
   # Check if we have Seurat V5 installed
   tryCatch({
-    seurat_version <- packageVersion("Seurat")
-    # Extract the major version number properly
-    major_version <- as.numeric(strsplit(as.character(seurat_version), "\\.")[[1]][1])
-    is_v5_installed <- major_version >= 5
-    
+    pkg_version <- packageVersion("Seurat")
+    major_version <- extract_major_version(pkg_version)
+    is_v5_installed <- !is.na(major_version) && major_version >= 5
+
     if (!is_v5_installed) {
       stop("Seurat V5 is required for this function. Please install Seurat V5 with:\n",
            "  install.packages('Seurat')")
@@ -1493,21 +1498,13 @@ RemoveEnv <- function(prompt = TRUE) {
     return(invisible(NULL))
   }
 
-  pkg_dir <- system.file("", package = "SCP")
-  if (pkg_dir == "") {
-    pkg_dir <- getwd()
-  }
-  venv_path <- file.path(pkg_dir, ".venv")
+  venv_path <- file.path(get_scp_pkg_dir(), ".venv")
 
   # Get environment information
   env_size <- dir_size(venv_path)
 
   # Find Python executable
-  if (Sys.info()["sysname"] == "Windows") {
-    python_path <- file.path(venv_path, "Scripts", "python.exe")
-  } else {
-    python_path <- file.path(venv_path, "bin", "python")
-  }
+  python_path <- get_uv_python_path(venv_path)
 
   python_version <- NA
   if (file.exists(python_path)) {

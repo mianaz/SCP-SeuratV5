@@ -27,7 +27,9 @@
 ^DEPENDENCY_UPDATE_COMPLETE\.md$
 ^TESTING_UV\.md$
 ^\.venv$
+^inst/\.venv$
 ^\.python-version$
+^inst/\.python-version$
 ^uv\.lock$
 ^\.uv$
 ^__pycache__$
