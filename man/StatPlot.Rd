@@ -137,12 +137,12 @@ data("pancreas_sub")
 head(pancreas_sub@meta.data)
 StatPlot(pancreas_sub@meta.data, stat.by = "Phase", group.by = "CellType", plot_type = "bar", label = TRUE)
 
-head(pancreas_sub[["RNA"]]@meta.features)
-StatPlot(pancreas_sub[["RNA"]]@meta.features, stat.by = "highly_variable_genes", plot_type = "ring", label = TRUE)
+head(get_feature_metadata(pancreas_sub, assay = "RNA"))
+StatPlot(get_feature_metadata(pancreas_sub, assay = "RNA"), stat.by = "highly_variable_genes", plot_type = "ring", label = TRUE)
 
 pancreas_sub <- AnnotateFeatures(pancreas_sub, species = "Mus_musculus", IDtype = "symbol", db = "GeneType")
-head(pancreas_sub[["RNA"]]@meta.features)
-StatPlot(pancreas_sub[["RNA"]]@meta.features,
+head(get_feature_metadata(pancreas_sub, assay = "RNA"))
+StatPlot(get_feature_metadata(pancreas_sub, assay = "RNA"),
   stat.by = "highly_variable_genes", group.by = "GeneType",
   stat_type = "count", plot_type = "bar", position = "dodge", label = TRUE, NA_stat = FALSE
 )

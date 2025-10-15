@@ -4,7 +4,7 @@
 \alias{get_seurat_data}
 \title{Get data from Seurat object in a version-agnostic way}
 \usage{
-get_seurat_data(srt, layer = "data", assay = NULL)
+get_seurat_data(srt, layer = "data", assay = NULL, join_layers = TRUE)
 }
 \arguments{
 \item{srt}{A Seurat object}
@@ -12,10 +12,15 @@ get_seurat_data(srt, layer = "data", assay = NULL)
 \item{layer}{The layer to extract (e.g., "counts", "data", "scale.data")}
 
 \item{assay}{Name of the assay. If NULL, uses the default assay.}
+
+\item{join_layers}{Logical. For V5 objects with multiple layers, should layers be joined?
+Default is TRUE to ensure all cells are included. Set to FALSE for per-sample operations.}
 }
 \value{
 A matrix of the requested data
 }
 \description{
 This function extracts data from a Seurat object, handling both V4 and V5 formats.
+For V5 objects with multiple layers (e.g., split by sample), it automatically joins
+layers to ensure all cells are included, unless join_layers is set to FALSE.
 }

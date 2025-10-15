@@ -28,13 +28,8 @@ RunImputation <- function(srt, assay = NULL, slot = "data",
   assay <- assay %||% DefaultAssay(srt)
   method <- match.arg(method)
   new_assay <- new_assay %||% paste0(method, "_imputed")
-  
-  is_v5 <- IsSeurat5(srt)
-  if (is_v5) {
-    data_mat <- LayerData(srt[[assay]], layer = slot)
-  } else {
-    data_mat <- GetAssayData(srt, slot = slot, assay = assay)
-  }
+
+  data_mat <- get_seurat_data(srt, layer = slot, assay = assay)
   
   if (is.null(features)) {
     features <- VariableFeatures(srt, assay = assay)
@@ -53,15 +48,9 @@ RunImputation <- function(srt, assay = NULL, slot = "data",
   )
   
   if (verbose) message("Creating new assay: ", new_assay)
-  
-  if (is_v5) {
-    new_assay_obj <- CreateAssayObject(counts = NULL)
-    new_assay_obj <- SetAssayData(new_assay_obj, slot = "data", 
-                                 new.data = imputed_mat)
-  } else {
-    new_assay_obj <- CreateAssayObject(data = imputed_mat)
-  }
-  
+
+  # CreateAssayObject works with data parameter in both V4 and V5
+  new_assay_obj <- CreateAssayObject(data = imputed_mat)
   srt[[new_assay]] <- new_assay_obj
   
   return(srt)

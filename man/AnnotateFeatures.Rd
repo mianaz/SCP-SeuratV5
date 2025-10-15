@@ -63,11 +63,11 @@ pancreas_sub <- AnnotateFeatures(pancreas_sub,
   species = "Mus_musculus", IDtype = "symbol",
   db = c("Chromosome", "GeneType", "Enzyme", "TF", "CSPA", "VerSeDa")
 )
-head(FetchData(pancreas_sub, vars = NULL, layer = "meta.features"))
+head(get_feature_metadata(pancreas_sub, assay = "RNA"))
 
 ## Annotate features using a GTF file
 # pancreas_sub <- AnnotateFeatures(pancreas_sub, gtf = "/data/reference/CellRanger/refdata-gex-mm10-2020-A/genes/genes.gtf")
-# head(FetchData(pancreas_sub, vars = NULL, layer = "meta.features"))
+# head(get_feature_metadata(pancreas_sub, assay = "RNA"))
 }
 \seealso{
 \code{\link{PrepareDB}} \code{\link{ListDB}}

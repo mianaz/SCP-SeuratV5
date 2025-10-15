@@ -656,7 +656,7 @@ buildReferenceFromSeurat <- function(obj, assay = "RNA", pca = "pca", pca_dims =
   message("Saved soft cluster assignments")
 
   if (assay == "RNA") {
-    var_features <- get_var_features(obj, assay = assay)
+    var_features <- VariableFeatures(obj, assay = assay)
     vargenes_means_sds <- data.frame(
       symbol = var_features,
       mean = rowMeans(get_seurat_data(obj, layer = "data", assay = assay)[var_features, ])
@@ -666,7 +666,7 @@ buildReferenceFromSeurat <- function(obj, assay = "RNA", pca = "pca", pca_dims =
       row_means = vargenes_means_sds$mean
     )
   } else if (assay == "SCT") {
-    var_features <- get_var_features(obj, assay = assay)
+    var_features <- VariableFeatures(obj, assay = assay)
     vargenes_means_sds <- data.frame(
       symbol = var_features,
       mean = rowMeans(get_seurat_data(obj, layer = "scale.data", assay = assay)[var_features, ])

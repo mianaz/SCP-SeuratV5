@@ -18,6 +18,9 @@ test_SCP_quick.R
 # Backup of original SCP repository
 SCP_original_backup/
 
+# Spatial functions backup
+spatial_backup/
+
 # Test results and temporary files
 test_results_*.rds
 *.log

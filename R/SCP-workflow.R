@@ -636,14 +636,17 @@ RenameFeatures <- function(srt, newnames = NULL, assays = NULL) {
     if (is_v5) {
       # Seurat V5 approach
       require_packages("SeuratObject")
-      
+
       # Handle feature metadata renaming
-      meta_features <- SeuratObject::FetchData(assay_obj, vars = NULL, layer = "meta.features")
+      meta_features <- get_feature_metadata(srt, assay = assay)
       if (nrow(meta_features) > 0) {
         index <- which(rownames(meta_features) %in% names(newnames))
         rownames(meta_features)[index] <- newnames[rownames(meta_features)[index]]
-        assay_obj <- SeuratObject::AddMetaData(assay_obj, meta_features, layer = "meta.features")
+        srt <- set_feature_metadata(srt, metadata = meta_features, assay = assay)
       }
+
+      # Refresh assay object after metadata update
+      assay_obj <- GetAssay(srt, assay)
       
       # Handle layer data renaming for different layers
       for (layer_name in c("counts", "data", "scale.data")) {
@@ -968,15 +971,14 @@ SrtAppend <- function(srt_raw, srt_append,
                 if ("data" %in% Layers(srt_append[[info]])) {
                   layer(srt_raw[[info]], "data") <- layer(srt_append[[info]], "data")
                 }
-                # Copy other assay attributes
-                srt_raw[[info]] <- SetAssayData(srt_raw[[info]], 
-                                                slot = "meta.features", 
-                                                new.data = cbind(GetAssayData(srt_raw, slot = "meta.features", assay = info),
-                                                                GetAssayData(srt_append, slot = "meta.features", assay = info)[
-                                                                  rownames(GetAssayData(srt_raw, slot = "meta.features", assay = info)),
-                                                                  setdiff(colnames(GetAssayData(srt_append, slot = "meta.features", assay = info)), 
-                                                                          colnames(GetAssayData(srt_raw, slot = "meta.features", assay = info)))
-                                                                ]))
+                # Copy other assay attributes - merge meta.features
+                meta_raw <- get_feature_metadata(srt_raw, assay = info)
+                meta_append <- get_feature_metadata(srt_append, assay = info)
+                meta_merged <- cbind(meta_raw,
+                                    meta_append[rownames(meta_raw),
+                                               setdiff(colnames(meta_append), colnames(meta_raw)),
+                                               drop = FALSE])
+                srt_raw <- set_feature_metadata(srt_raw, metadata = meta_merged, assay = info)
                 # Copy variable features                                                
                 VariableFeatures(srt_raw[[info]]) <- VariableFeatures(srt_append[[info]])
               } else {
@@ -984,15 +986,14 @@ SrtAppend <- function(srt_raw, srt_append,
                 srt_raw[[info]]$counts <- srt_append[[info]]$counts
                 srt_raw[[info]]$data <- srt_append[[info]]$data
                 VariableFeatures(srt_raw[[info]]) <- VariableFeatures(srt_append[[info]])
-                # Update meta.features
-                srt_raw[[info]] <- SetAssayData(srt_raw[[info]], 
-                                                slot = "meta.features", 
-                                                new.data = cbind(GetAssayData(srt_raw, slot = "meta.features", assay = info),
-                                                               GetAssayData(srt_append, slot = "meta.features", assay = info)[
-                                                                 rownames(GetAssayData(srt_raw, slot = "meta.features", assay = info)),
-                                                                 setdiff(colnames(GetAssayData(srt_append, slot = "meta.features", assay = info)), 
-                                                                         colnames(GetAssayData(srt_raw, slot = "meta.features", assay = info)))
-                                                               ]))
+                # Update meta.features using helper
+                meta_raw <- get_feature_metadata(srt_raw, assay = info)
+                meta_append <- get_feature_metadata(srt_append, assay = info)
+                meta_merged <- cbind(meta_raw,
+                                    meta_append[rownames(meta_raw),
+                                               setdiff(colnames(meta_append), colnames(meta_raw)),
+                                               drop = FALSE])
+                srt_raw <- set_feature_metadata(srt_raw, metadata = meta_merged, assay = info)
               }
             }
           } else {

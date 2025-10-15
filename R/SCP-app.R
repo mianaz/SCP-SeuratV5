@@ -40,7 +40,7 @@ CreateDataFile <- function(srt, DataFile, name = NULL, assays = "RNA", slots = "
   message("Write the expression matrix to hdf5 file: ", DataFile)
   for (assay in assays) {
     for (slot in slots) {
-      data <- t(LayerData(srt[[assay]], layer = slot))
+      data <- t(get_seurat_data(srt, layer = slot, assay = assay))
       if (isTRUE(overwrite)) {
         try(h5delete(file = DataFile, name = paste0(name, "/", assay, "/", slot)), silent = TRUE)
       }

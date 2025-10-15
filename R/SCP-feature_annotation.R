@@ -23,11 +23,11 @@
 #'   species = "Mus_musculus", IDtype = "symbol",
 #'   db = c("Chromosome", "GeneType", "Enzyme", "TF", "CSPA", "VerSeDa")
 #' )
-#' head(FetchData(pancreas_sub, vars = NULL, layer = "meta.features"))
+#' head(get_feature_metadata(pancreas_sub, assay = "RNA"))
 #'
 #' ## Annotate features using a GTF file
 #' # pancreas_sub <- AnnotateFeatures(pancreas_sub, gtf = "/data/reference/CellRanger/refdata-gex-mm10-2020-A/genes/genes.gtf")
-#' # head(FetchData(pancreas_sub, vars = NULL, layer = "meta.features"))
+#' # head(get_feature_metadata(pancreas_sub, assay = "RNA"))
 #' @importFrom data.table fread rbindlist
 #' @export
 AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol", "ensembl_id", "entrez_id"),
@@ -41,10 +41,7 @@ AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol",
   if (is.null(db) && is.null(gtf)) {
     stop("Neither 'db' nor 'gtf' is specified")
   }
-  
-  # Check if using Seurat V5
-  is_v5 <- IsSeurat5(srt)
-  
+
   if (!is.null(db)) {
     db_list <- PrepareDB(
       species = species, db = db, db_update = db_update, db_version = db_version, convert_species = convert_species,
@@ -68,33 +65,17 @@ AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol",
       rownames(db_df) <- db_df[["rowid"]]
       db_df[["rowid"]] <- NULL
       for (assay in assays) {
-        if (is_v5) {
-          # Seurat V5 approach - get feature metadata
-          require_packages("SeuratObject")
-          meta.features <- SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features")
-          if (any(colnames(db_df) %in% colnames(meta.features)) && isTRUE(overwrite)) {
-            meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(db_df))]
-          }
-          db_sub <- db_df[rownames(db_df) %in% rownames(meta.features), , drop = FALSE]
-          if (nrow(db_sub) == 0) {
-            stop(paste0("No data to append was found in the Seurat object. Please check if the species name is correct. The expected feature names are ", paste(head(rownames(db_df), 10), collapse = ","), "."))
-          }
-          meta.features <- cbind(meta.features, db_sub[rownames(meta.features), setdiff(colnames(db_sub), colnames(meta.features)), drop = FALSE])
-          # Update feature metadata for Seurat V5
-          srt[[assay]] <- SeuratObject::AddMetaData(srt[[assay]], meta.features, layer = "meta.features")
-        } else {
-          # Seurat V4 approach - direct slot access
-          meta.features <- srt[[assay]]@meta.features
-          if (any(colnames(db_df) %in% colnames(meta.features)) && isTRUE(overwrite)) {
-            meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(db_df))]
-          }
-          db_sub <- db_df[rownames(db_df) %in% rownames(meta.features), , drop = FALSE]
-          if (nrow(db_sub) == 0) {
-            stop(paste0("No data to append was found in the Seurat object. Please check if the species name is correct. The expected feature names are ", paste(head(rownames(db_df), 10), collapse = ","), "."))
-          }
-          meta.features <- cbind(meta.features, db_sub[rownames(meta.features), setdiff(colnames(db_sub), colnames(meta.features)), drop = FALSE])
-          srt[[assay]]@meta.features <- meta.features
+        # Use version-agnostic helper functions
+        meta.features <- get_feature_metadata(srt, assay = assay)
+        if (any(colnames(db_df) %in% colnames(meta.features)) && isTRUE(overwrite)) {
+          meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(db_df))]
         }
+        db_sub <- db_df[rownames(db_df) %in% rownames(meta.features), , drop = FALSE]
+        if (nrow(db_sub) == 0) {
+          stop(paste0("No data to append was found in the Seurat object. Please check if the species name is correct. The expected feature names are ", paste(head(rownames(db_df), 10), collapse = ","), "."))
+        }
+        meta.features <- cbind(meta.features, db_sub[rownames(meta.features), setdiff(colnames(db_sub), colnames(meta.features)), drop = FALSE])
+        srt <- set_feature_metadata(srt, metadata = meta.features, assay = assay)
       }
     }
   }
@@ -130,25 +111,13 @@ AnnotateFeatures <- function(srt, species = "Homo_sapiens", IDtype = c("symbol",
     rownames(gtf_columns_collapse) <- gtf_columns_collapse[["rowid"]]
     gtf_columns_collapse[["rowid"]] <- NULL
     for (assay in assays) {
-      if (is_v5) {
-        # Seurat V5 approach
-        require_packages("SeuratObject")
-        meta.features <- SeuratObject::FetchData(srt[[assay]], vars = NULL, layer = "meta.features")
-        if (length(intersect(colnames(meta.features), colnames(gtf_columns_collapse))) > 0 && isTRUE(overwrite)) {
-          meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(gtf_columns_collapse))]
-        }
-        meta.features <- cbind(meta.features, gtf_columns_collapse[rownames(meta.features), setdiff(colnames(gtf_columns_collapse), colnames(meta.features)), drop = FALSE])
-        # Update feature metadata for Seurat V5
-        srt[[assay]] <- SeuratObject::AddMetaData(srt[[assay]], meta.features, layer = "meta.features")
-      } else {
-        # Seurat V4 approach
-        meta.features <- srt[[assay]]@meta.features
-        if (length(intersect(colnames(meta.features), colnames(gtf_columns_collapse))) > 0 && isTRUE(overwrite)) {
-          meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(gtf_columns_collapse))]
-        }
-        meta.features <- cbind(meta.features, gtf_columns_collapse[rownames(meta.features), setdiff(colnames(gtf_columns_collapse), colnames(meta.features)), drop = FALSE])
-        srt[[assay]]@meta.features <- meta.features
+      # Use version-agnostic helper functions
+      meta.features <- get_feature_metadata(srt, assay = assay)
+      if (length(intersect(colnames(meta.features), colnames(gtf_columns_collapse))) > 0 && isTRUE(overwrite)) {
+        meta.features <- meta.features[, setdiff(colnames(meta.features), colnames(gtf_columns_collapse))]
       }
+      meta.features <- cbind(meta.features, gtf_columns_collapse[rownames(meta.features), setdiff(colnames(gtf_columns_collapse), colnames(meta.features)), drop = FALSE])
+      srt <- set_feature_metadata(srt, metadata = meta.features, assay = assay)
     }
   }
   return(srt)

@@ -115,7 +115,7 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
   }, error = function(e) {
     stop("Failed to import scrublet: ", e$message)
   })
-  raw_counts <- t(as_matrix(LayerData(object = srt[[assay]], layer = "counts")))
+  raw_counts <- t(as_matrix(get_seurat_data(srt, layer = "counts", assay = assay)))
   scrub <- scr$Scrublet(raw_counts, expected_doublet_rate = db_rate, ...)
   res <- scrub$scrub_doublets()
   doublet_scores <- res[[1]]
@@ -177,7 +177,7 @@ db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 *
   }, error = function(e) {
     stop("Failed to import doubletdetection: ", e$message)
   })
-  counts <- LayerData(object = srt[[assay]], layer = "counts")
+  counts <- get_seurat_data(srt, layer = "counts", assay = assay)
   clf <- doubletdetection$BoostClassifier(
     n_iters = as.integer(5),
     standard_scaling = TRUE,
