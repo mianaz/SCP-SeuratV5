@@ -1081,6 +1081,9 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
   num.groups <- length(levels.split)
   assay <- assay %||% DefaultAssay(object)
 
+  # Hoist IsSeurat5 check to avoid repeated calls in loop (lines 1142, 1185)
+  is_v5 <- IsSeurat5(object)
+
   cells <- list()
   for (i in 1:num.groups) {
     cells[[i]] <- rownames(x = object.var[object.var[, 1] == levels.split[i], , drop = FALSE])
@@ -1139,7 +1142,7 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
         next
       }
       # Use Seurat object directly for V5, Assays() for V4
-      if (IsSeurat5(object)) {
+      if (is_v5) {
         marker.test[[level.use]] <- FindMarkers(
           object = object, assay = assay, layer = slot, cells.1 = cells.1.use, cells.2 = cells.2.use, features = features,
           test.use = test.use, logfc.threshold = logfc.threshold,
@@ -4446,12 +4449,14 @@ RunGSEA <- function(srt = NULL, group_by = NULL, test.use = "wilcox", DE_thresho
 #' pancreas_sub <- RunSlingshot(pancreas_sub, group.by = "SubCellType", reduction = "StandardpcaUMAP3D")
 #' CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP", lineages = paste0("Lineage", 1:3), lineages_span = 0.1, lineages_trim = c(0.05, 0.95))
 #' @importFrom Seurat AddMetaData as.SingleCellExperiment
-#' @importFrom slingshot slingshot slingPseudotime slingBranchID
 #' @export
 RunSlingshot <- function(srt, group.by, reduction = NULL, dims = NULL, start = NULL, end = NULL, prefix = NULL,
                          reverse = FALSE, align_start = FALSE, show_plot = TRUE, lineage_palette = "Dark2", seed = 11, ...) {
   if (missing(group.by)) {
     stop("group.by is missing")
+  }
+  if (!requireNamespace("slingshot", quietly = TRUE)) {
+    stop("Package 'slingshot' is required for trajectory inference. Install it with: BiocManager::install('slingshot')")
   }
   if (is.null(reduction)) {
     reduction <- DefaultReduction(srt)
@@ -4469,14 +4474,14 @@ RunSlingshot <- function(srt, group.by, reduction = NULL, dims = NULL, start = N
   }
 
   set.seed(seed)
-  sl <- slingshot(
+  sl <- slingshot::slingshot(
     data = as.data.frame(srt_sub[[reduction]]@cell.embeddings[, dims]),
     clusterLabels = as.character(srt_sub[[group.by, drop = TRUE]]),
     start.clus = start, end.clus = end, ...
   )
 
   srt@tools[[paste("Slingshot", group.by, reduction, sep = "_")]] <- sl
-  df <- as.data.frame(slingPseudotime(sl))
+  df <- as.data.frame(slingshot::slingPseudotime(sl))
   colnames(df) <- paste0(prefix, colnames(df))
   if (isTRUE(reverse)) {
     if (isTRUE(align_start)) {
@@ -4486,7 +4491,7 @@ RunSlingshot <- function(srt, group.by, reduction = NULL, dims = NULL, start = N
     }
   }
   srt <- AddMetaData(srt, metadata = df)
-  srt <- AddMetaData(srt, metadata = slingBranchID(sl), col.name = paste0(prefix, "BranchID"))
+  srt <- AddMetaData(srt, metadata = slingshot::slingBranchID(sl), col.name = paste0(prefix, "BranchID"))
 
   if (isTRUE(show_plot)) {
     if (ncol(srt[[reduction]]@cell.embeddings) == 2 || ncol(srt[[reduction]]@cell.embeddings) > 3) {
@@ -5937,7 +5942,7 @@ RunPAGA <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers
                     palette = "Paired", palcolor = NULL,
                     show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                     return_seurat = !is.null(srt)) {
-  check_Python("scanpy")
+  check_Python(c("scanpy", "anndata"))
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -6051,9 +6056,9 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
                       palette = "Paired", palcolor = NULL,
                       show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                       return_seurat = !is.null(srt)) {
-  # Check for required Python modules with robust error handling
+  # Ensure Python environment for velocity
   result <- tryCatch({
-    check_Python("scvelo")
+    check_Python(c("scvelo", "anndata"))
     NULL
   }, error = function(e) {
     message("Python module 'scvelo' is required for velocity analysis but is not installed.")
@@ -6067,7 +6072,7 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   
   if (isTRUE(magic_impute)) {
     result <- tryCatch({
-      check_Python("magic-impute")
+      check_Python(c("magic-impute"))
       NULL
     }, error = function(e) {
       message("Python module 'magic-impute' is required for imputation but is not installed.")
@@ -6203,7 +6208,7 @@ RunPalantir <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
                         point_size = 20, palette = "Paired", palcolor = NULL,
                         show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                         return_seurat = !is.null(srt)) {
-  check_Python("palantir")
+  check_Python(c("palantir", "anndata"))
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -6284,7 +6289,7 @@ RunWOT <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers 
                    palette = "Paired", palcolor = NULL,
                    show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                    return_seurat = !is.null(srt)) {
-  check_Python("wot")
+  check_Python(c("wot"))
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -6332,6 +6337,7 @@ RunWOT <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers 
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
+  check_Python(c("wot", "anndata"))
   SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
   adata <- do.call(SCP_analysis$WOT, args)
 
@@ -6361,9 +6367,9 @@ RunCellRank <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
                         denoise = FALSE, kinetics = FALSE, axis = "equal",
                         show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                         return_seurat = !is.null(srt)) {
-  check_Python("cellrank")
+  check_Python(c("cellrank", "anndata"))
   if (isTRUE(magic_impute)) {
-    check_Python("magic-impute")
+    check_Python(c("magic-impute"))
   }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")

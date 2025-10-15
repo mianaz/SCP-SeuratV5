@@ -2,23 +2,62 @@ def SCVELO(adata=None, h5ad=None, group_by=None, palette=None,
           linear_reduction=None, nonlinear_reduction=None,basis=None,
           mode=["deterministic","stochastic","dynamical"],fitting_by="stochastic",
           magic_impute=False,knn=5, t=2,
-          min_shared_counts=30, n_pcs=30, n_neighbors=30, 
+          min_shared_counts=30, n_pcs=30, n_neighbors=30,
           stream_smooth=None, stream_density=2,
           arrow_size=5, arrow_length=5,arrow_density=0.5,
           denoise=False,denoise_topn=3,kinetics=False,kinetics_topn=100,
           calculate_velocity_genes=False,top_n=6,n_jobs=1,
           show_plot=True, dpi=300, save=False, dirpath="./", fileprefix=""):
+  # Configure environment before any other imports
+  import os
+  import platform
+
+  # Enhanced M-series detection and configuration
+  is_m_series = platform.system() == "Darwin" and platform.machine() == "arm64"
+
+  if is_m_series:
+    print("M-series MacBook detected: Applying M-series specific configurations")
+    # Set M-series specific environment variables
+    os.environ["PYTHONHASHSEED"] = "0"
+    os.environ["PYTHONUNBUFFERED"] = "1"
+    os.environ["SCANPY_SETTINGS"] = "scanpy_settings"
+    os.environ["MPLBACKEND"] = "Agg"
+    os.environ["DISPLAY"] = ""
+
+    # Force single-threaded execution for M-series
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+    os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    os.environ["NUMBA_NUM_THREADS"] = "1"
+    os.environ["NUMBA_DISABLE_JIT"] = "1"
+    os.environ["NUMBA_THREADING_LAYER"] = "tbb"
+    os.environ["NUMBA_DEFAULT_NUM_THREADS"] = "1"
+    os.environ["KMP_WARNINGS"] = "0"
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+    # Configure NUMBA for M-series - must be done before importing numba
+    try:
+      import numba
+      numba.config.DISABLE_JIT = True  # Disable JIT compilation
+      numba.set_num_threads(1)         # Force single thread
+      print("NUMBA configured for M-series MacBook")
+    except ImportError:
+      print("Warning: numba not available for M-series configuration")
+
+  import matplotlib
+  matplotlib.use("Agg")  # Use non-interactive backend
   import matplotlib.pyplot as plt
   import scvelo as scv
   import scanpy as sc
   import numpy as np
-  
+
   import warnings
   warnings.simplefilter("ignore", category=UserWarning)
   warnings.simplefilter("ignore", category=FutureWarning)
   warnings.simplefilter("ignore", category=DeprecationWarning)
 
-  import os
   prevdir = os.getcwd()
   os.chdir(os.path.expanduser(dirpath))
   
@@ -59,6 +98,37 @@ def SCVELO(adata=None, h5ad=None, group_by=None, palette=None,
       else:
         basis="basis"
         adata.obsm[linear_reduction+"_basis"]=adata.obsm[linear_reduction][:,0:2]
+
+    # Validate and fix basis
+    if basis not in adata.obsm:
+      print(f"Warning: basis '{basis}' not found in adata.obsm. Available keys: {list(adata.obsm.keys())}")
+      # Try to find alternative basis
+      if nonlinear_reduction and nonlinear_reduction in adata.obsm:
+        basis = nonlinear_reduction
+        print(f"Using {nonlinear_reduction} as basis instead.")
+      elif nonlinear_reduction and f"X_{nonlinear_reduction}" in adata.obsm:
+        basis = f"X_{nonlinear_reduction}"
+        print(f"Using X_{nonlinear_reduction} as basis instead.")
+      elif linear_reduction and linear_reduction in adata.obsm:
+        basis = linear_reduction
+        print(f"Using {linear_reduction} as basis instead.")
+      elif linear_reduction and f"X_{linear_reduction}" in adata.obsm:
+        basis = f"X_{linear_reduction}"
+        print(f"Using X_{linear_reduction} as basis instead.")
+      else:
+        # Create a 2D basis from available data
+        if linear_reduction in adata.obsm:
+          adata.obsm["basis"] = adata.obsm[linear_reduction][:, 0:2]
+          basis = "basis"
+          print("Created 2D basis from linear reduction")
+        elif f"X_{linear_reduction}" in adata.obsm:
+          adata.obsm["basis"] = adata.obsm[f"X_{linear_reduction}"][:, 0:2]
+          basis = "basis"
+          print("Created 2D basis from X_{linear_reduction}")
+        else:
+          raise ValueError(f"Cannot find suitable basis. Available obsm keys: {list(adata.obsm.keys())}")
+
+    print(f"Using basis: {basis}")
     scv.pl.utils.check_basis(adata, basis)
      
     if "spliced" not in adata.layers.keys():
@@ -251,14 +321,21 @@ def SCVELO(adata=None, h5ad=None, group_by=None, palette=None,
             plt.savefig('.'.join(filter(None, [fileprefix, vkey+"_latent_time.png"])), dpi=dpi)
         
         # PAGA
-        adata.uns["neighbors"]["distances"] = adata.obsp["distances"]
-        adata.uns["neighbors"]["connectivities"] = adata.obsp["connectivities"]
-        scv.tl.paga(adata, groups=group_by, vkey=vkey,root_key=vkey+'_root_cells',end_key=vkey+'_end_points')
-        scv.pl.paga(adata,title=vkey+" PAGA ("+group_by+")",node_colors=palette, basis=basis, alpha=0.5,min_edge_width=2, node_size_scale=1.5,legend_loc="none",save=False, show=False)
-        if show_plot is True:
-          plt.show()
-        if save:
-          plt.savefig('.'.join(filter(None, [fileprefix, vkey+"_paga.png"])), dpi=dpi)
+        try:
+          adata.uns["neighbors"]["distances"] = adata.obsp["distances"]
+          adata.uns["neighbors"]["connectivities"] = adata.obsp["connectivities"]
+          scv.tl.paga(adata, groups=group_by, vkey=vkey,root_key=vkey+'_root_cells',end_key=vkey+'_end_points')
+          scv.pl.paga(adata,title=vkey+" PAGA ("+group_by+")",node_colors=palette, basis=basis, alpha=0.5,min_edge_width=2, node_size_scale=1.5,legend_loc="none",save=False, show=False)
+          if show_plot is True:
+            plt.show()
+          if save:
+            plt.savefig('.'.join(filter(None, [fileprefix, vkey+"_paga.png"])), dpi=dpi)
+        except ValueError as e:
+          if "mismatching number of index arrays" in str(e):
+            print(f"Note: PAGA analysis skipped due to known compatibility issue with scvelo 0.3.x and igraph.")
+            print(f"This is a known bug (scvelo issue #1241). The velocity analysis continues without PAGA.")
+          else:
+            raise
     
         # Velocity genes
         if calculate_velocity_genes is True:

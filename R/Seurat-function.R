@@ -73,7 +73,7 @@ RunNMF.Assay <- function(object, assay = NULL, layer = "data", features = NULL, 
                          reduction.key = "BE_", verbose = TRUE, seed.use = 11,
                          ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, layer = layer)
+  data.use <- get_seurat_data(srt = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -229,7 +229,7 @@ RunMDS.Assay <- function(object, assay = NULL, layer = "data",
                          rev.mds = FALSE,
                          reduction.key = "MDS_", verbose = TRUE, seed.use = 11, ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, layer = layer)
+  data.use <- get_seurat_data(srt = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -364,7 +364,7 @@ RunGLMPCA.Assay <- function(object, assay = NULL, layer = "counts",
                             rev.gmlpca = FALSE, ndims.print = 1:5, nfeatures.print = 30,
                             reduction.key = "GLMPC_", verbose = TRUE, seed.use = 11, ...) {
   features <- features %||% VariableFeatures(object = object)
-  data.use <- GetAssayData(object = object, layer = layer)
+  data.use <- get_seurat_data(srt = object, layer = layer)
   features.var <- apply(
     X = data.use[features, ], MARGIN = 1,
     FUN = var
@@ -471,7 +471,8 @@ RunDM.Seurat <- function(object,
                          verbose = TRUE, seed.use = 11, ...) {
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < ndcs) {
       stop("Please provide as many or more features than ndcs: ",
         length(x = features), " features provided, ",
@@ -599,7 +600,8 @@ RunUMAP2.Seurat <- function(object,
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < n.components) {
       stop(
         "Please provide as many or more features than n.components: ",
@@ -1168,7 +1170,8 @@ RunPaCMAP.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1220,7 +1223,7 @@ RunPaCMAP.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python("pacmap")
+  check_Python(c("pacmap"))
   pacmap <- import("pacmap")
 
   operator <- pacmap$PaCMAP(
@@ -1297,7 +1300,8 @@ RunPHATE.Seurat <- function(object, reduction = "pca", dims = NULL, features = N
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1350,7 +1354,7 @@ RunPHATE.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python("phate")
+  check_Python(c("phate"))
   phate <- import("phate")
 
   if (is.numeric(knn_max) && length(knn_max) > 0) {
@@ -1448,7 +1452,8 @@ RunTriMap.Seurat <- function(object, reduction = "pca", dims = NULL, features = 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1500,7 +1505,7 @@ RunTriMap.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python("trimap")
+  check_Python(c("trimap"))
   trimap <- import("trimap")
 
   operator <- trimap$TRIMAP(
@@ -1570,7 +1575,8 @@ RunLargeVis.Seurat <- function(object, reduction = "pca", dims = NULL, features 
   }
   if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- as_matrix(t(x = GetAssayData(object = object, layer = layer, assay = assay)[features, , drop = FALSE]))
+    # Keep sparse matrix - algorithms support sparse input (tested & verified)
+    data.use <- t(x = get_seurat_data(srt = object, layer = layer, assay = assay)[features, , drop = FALSE])
     if (ncol(x = data.use) < n_components) {
       stop(
         "Please provide as many or more features than n_components: ",
@@ -1716,7 +1722,7 @@ RunFR.Seurat <- function(object, reduction = NULL, dims = NULL, features = NULL,
     data.use <- object[[neighbor]]
   } else if (!is.null(x = features)) {
     assay <- assay %||% DefaultAssay(object = object)
-    data.use <- t(GetAssayData(object = object, layer = layer, assay = assay)[features, ])
+    data.use <- t(get_seurat_data(srt = object, layer = layer, assay = assay)[features, ])
     data.use <- FindNeighbors(data.use, k.param = k.param)[["snn"]]
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object = object[[reduction]])

@@ -1,7 +1,7 @@
 Package: SCP
 Type: Package
 Title: Single Cell Pipeline
-Version: 0.6.0
+Version: 0.7.0
 Authors@R: c(
     person(given = "Hao",
            family = "Zhang",
@@ -12,9 +12,10 @@ Authors@R: c(
            family = "Z",
            role = c("ctb", "cre"),
            email = "mianaz@users.noreply.github.com",
-           comment = "Seurat V5 adaptation and UV integration"))
+           comment = "Seurat V5 adaptation, Python 3.12 support, and UV integration"))
 Maintainer: Miana Z <mianaz@users.noreply.github.com>
-Description: An end-to-end Single-Cell Pipeline designed to facilitate comprehensive analysis and exploration of single-cell data. This fork adds full Seurat V5 compatibility and modern Python dependency management with UV.
+Description: An end-to-end Single-Cell Pipeline designed to facilitate comprehensive analysis and exploration of single-cell data. This version adds full Seurat V5 compatibility, Python 3.12 support with updated dependencies, enhanced M-silicon Mac compatibility, and modern Python dependency management with UV.
+SystemRequirements: Python (>= 3.10, < 3.14)
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: True
@@ -35,9 +36,9 @@ Imports:
     future,
     future.apply,
     ggplot2 (>= 3.4.0),
-    ggrepel,
     ggforce,
     ggnewscale,
+    ggrepel,
     grDevices,
     grid,
     gtable,
@@ -56,10 +57,8 @@ Imports:
     rhdf5,
     rlang,
     scales,
-    Seurat (>= 5.0.0),
-    SeuratObject (>= 5.0.0),
-    Signac,
-    slingshot,
+    Seurat (>= 4.2.0),
+    SeuratObject (>= 4.0.0),
     stringr,
     tidyr
 Suggests:
@@ -70,6 +69,11 @@ Suggests:
     Biobase,
     BiocGenerics,
     BiocManager (>= 1.30.16),
+    BiocParallel,
+    biomaRt,
+    circlize,
+    clusterProfiler,
+    ComplexHeatmap (>= 2.13.0),
     concaveman,
     conos,
     covr,
@@ -78,7 +82,10 @@ Suggests:
     destiny,
     devtools (>= 2.4.3),
     e1071,
+    ggforce,
+    ggnewscale,
     ggpubr,
+    ggrepel,
     ggridges,
     ggsignif,
     ggupset,
@@ -88,28 +95,39 @@ Suggests:
     glmpca,
     GO.db,
     GOSemSim,
+    gtable,
     harmony,
+    HDF5Array,
     hexbin,
     htmlwidgets,
     httr,
+    igraph,
     intrinsicDimension,
+    irlba,
+    MASS,
+    MatrixGenerics,
     MeSH.db,
     MeSHDbi,
     metR,
     mgcv,
-    MatrixGenerics,
-    MASS,
     NMF,
     openxlsx,
     org.Hs.eg.db,
     org.Mm.eg.db,
+    patchwork,
+    pbapply,
     PFAM.db,
+    plotly,
     png,
     promises,
+    proxyC,
     purrr,
+    R.cache,
     ragg,
     reactome.db,
     renv,
+    reshape2,
+    rhdf5,
     R.utils,
     RcppParallel,
     RcppML,
@@ -138,3 +156,23 @@ RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 URL: https://github.com/mianaz/SCP-SeuratV5
 BugReports: https://github.com/mianaz/SCP-SeuratV5/issues
+Collate: 
+    'RcppExports.R'
+    'SCP-analysis.R'
+    'SCP-app.R'
+    'SCP-cache.R'
+    'SCP-cell_annotation.R'
+    'SCP-cellqc.R'
+    'SCP-feature_annotation.R'
+    'SCP-imputation.R'
+    'SCP-plot.R'
+    'SCP-projection.R'
+    'utils.R'
+    'SCP-workflow.R'
+    'Seurat-function.R'
+    'data.R'
+    'example-data.R'
+    'ggsankey.R'
+    'reexports.R'
+    'validation-utils.R'
+    'zzz.R'

@@ -5,31 +5,25 @@
 \title{Install the SCP python environment}
 \usage{
 PrepareEnv(
-  method = "auto",
-  pip = FALSE,
-  user = FALSE,
   force = FALSE,
-  update = "all",
+  update = FALSE,
   python_version = "3.10",
-  extras = "all"
+  extras = NULL
 )
 }
 \arguments{
-\item{method}{Installation method. Options are "auto", "uv", or "conda". "auto" will prefer UV if available, otherwise use conda.}
-
-\item{pip}{Whether to use pip for installing packages. This is only relevant when method is "conda".}
-
-\item{user}{Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager.}
-
 \item{force}{Force reinstall the SCP python environment.}
 
-\item{update}{Whether to update packages that already exist within the environment. For UV, this always syncs to the latest allowed versions. For Conda, options are "default", "all", and "selected".}
+\item{update}{Whether to update packages that already exist within the environment.}
 
-\item{python_version}{Python version to use for the SCP environment. Default is "3.10". Note that with UV, this is controlled by .python-version file.}
+\item{python_version}{Python version to use for the SCP environment. Default is "3.10".}
 
-\item{extras}{Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")). Default is "all" for complete installation.}
+\item{extras}{Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")).
+Default is NULL for minimal installation (core packages only).
+Use "all" for complete installation, or specify individual groups: "velocity", "trajectory", "deeplearning", "singlecell", "ml".
+You can install extras later with uv_install_extras().}
 }
 \description{
-Install all python packages in the SCP environment automatically. The environment will be created
-using UV (if available) or Conda as a fallback.
+Install all python packages in the SCP environment automatically using UV.
+UV is a fast Python package installer that is 10-100x faster than pip/conda.
 }

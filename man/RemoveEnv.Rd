@@ -4,20 +4,16 @@
 \alias{RemoveEnv}
 \title{Remove SCP Python environment}
 \usage{
-RemoveEnv(envname = "SCP_env", prompt = TRUE, conda = "auto")
+RemoveEnv(prompt = TRUE)
 }
 \arguments{
-\item{envname}{The name of the conda environment to remove. Default is "SCP_env".}
-
 \item{prompt}{Whether to prompt for confirmation before removing. Default is TRUE.}
-
-\item{conda}{The path to conda executable. Default is "auto" which automatically finds conda.}
 }
 \value{
 NULL (invisibly). Messages will indicate success or failure.
 }
 \description{
-This function removes the SCP Python environment from your system.
+This function removes the UV-based SCP Python environment (.venv) from your system.
 It will prompt for confirmation before deletion unless `prompt = FALSE`.
 }
 \examples{

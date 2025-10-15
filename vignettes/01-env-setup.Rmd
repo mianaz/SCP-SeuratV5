@@ -1,0 +1,20 @@
+---
+title: "Environment Setup"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Environment Setup}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```r
+library(SCP)
+
+# One-time setup
+install_uv()
+PrepareEnv(extras = c("spatial"))
+
+# In each new session
+EnsureEnv(required = c("scanpy","squidpy","anndata"))
+```
+

@@ -97,11 +97,11 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
   }
   # Check for scrublet availability with better error handling
   result <- tryCatch({
-    check_Python("scrublet")
+    check_Python(c("scrublet"))
     NULL
   }, error = function(e) {
     message("Python module 'scrublet' is required for doublet detection but is not installed.")
-    message("To install, run: PrepareEnv() and then check_Python('scrublet')")
+    message("To install, run: PrepareEnv() and then EnsureEnv(required='scrublet')")
     return(e)
   })
   
@@ -159,11 +159,11 @@ db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 *
   }
   # Check for doubletdetection availability with better error handling
   result <- tryCatch({
-    check_Python("doubletdetection")
+    check_Python(c("doubletdetection"))
     NULL
   }, error = function(e) {
     message("Python module 'doubletdetection' is required for DoubletDetection but is not installed.")
-    message("To install, run: PrepareEnv() and then check_Python('doubletdetection')")
+    message("To install, run: PrepareEnv() and then EnsureEnv(required='doubletdetection')")
     return(e)
   })
   

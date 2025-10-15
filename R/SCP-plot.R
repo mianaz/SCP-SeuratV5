@@ -11089,6 +11089,10 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
   exp_name <- exp_legend_title %||% exp_name
 
   assay <- assay %||% DefaultAssay(srt)
+
+  # Hoist IsSeurat5 check to avoid repeated calls in loops (lines 11304, 11319, 11324)
+  is_v5 <- IsSeurat5(srt)
+
   if (any(!lineages %in% colnames(srt@meta.data))) {
     lineages_missing <- lineages[!lineages %in% colnames(srt@meta.data)]
     for (l in lineages_missing) {
@@ -11301,8 +11305,6 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
   feature_metadata <- feature_metadata[rownames(feature_metadata) %in% features, , drop = FALSE]
   features <- rownames(feature_metadata)
   if (!is.null(feature_annotation)) {
-    is_v5 <- IsSeurat5(srt)
-
     feature_metadata <- cbind.data.frame(feature_metadata, get_feature_metadata(srt, assay = assay)[rownames(feature_metadata), feature_annotation, drop = FALSE])
   }
 
@@ -11316,13 +11318,9 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
     mat_raw <- do.call(cbind, mat_list)
   } else {
     mat_list <- list()
-    is_v5 <- IsSeurat5(srt)
-
     Y_libsize <- colSums(get_seurat_data(srt, layer = "counts", assay = assay))
     for (l in lineages) {
       cells <- gsub(pattern = l, replacement = "", x = cell_order_list[[l]])
-      is_v5 <- IsSeurat5(srt)
-
       gene_data <- get_seurat_data(srt, layer = slot, assay = assay)[gene, cells, drop = FALSE]
 
       mat_tmp <- as_matrix(rbind(gene_data, t(srt@meta.data[cells, meta, drop = FALSE])))[features, , drop = FALSE]

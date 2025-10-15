@@ -157,7 +157,15 @@ srt <- RunCellRank(srt,
 
 ### Python Dependencies (Optional)
 - **Python** 3.10, 3.11, or 3.12 (3.10 recommended)
-- Python packages are managed automatically by `PrepareEnv()`
+- Quick start:
+
+```r
+# One-time install
+PrepareEnv(extras = c("spatial"))
+
+# In new sessions, activate and verify
+EnsureEnv(required = c("scanpy","squidpy","anndata"))
+```
 
 See [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md) for the complete list.
 
@@ -177,6 +185,7 @@ See [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md) for the complete list.
 
 ### Python Environment
 - `PrepareEnv()` - Set up Python environment
+- `EnsureEnv(required)` - Activate UV env and check modules
 - `check_uv()` - Check if UV is installed
 - `uv_env_exists()` - Check if UV environment exists
 - `use_uv_env()` - Configure R to use UV environment
@@ -184,6 +193,11 @@ See [PYTHON_DEPENDENCIES.md](PYTHON_DEPENDENCIES.md) for the complete list.
 
 ### Analysis Functions
 See the [original SCP documentation](https://github.com/zhanghao-njmu/SCP) for the full list of analysis functions.
+
+### Examples/Tests
+- Minimal scRNA smoke test: `tests/testthat/test_seurat_v5_basics.R`
+- Optional Chromium test: set `SCP_TEST_10X_H5` to a 10x HDF5 path
+- Optional Visium HD test: set `SCP_TEST_VISIUM_BASE` to a binned output dir (e.g., `.../square_008um`) and run `tests/interactive/test_spatial_visium_hd.R`
 
 ## Documentation
 
@@ -196,15 +210,14 @@ See the [original SCP documentation](https://github.com/zhanghao-njmu/SCP) for t
 ### Test Python Dependencies
 
 ```r
-# Run comprehensive test
-source(system.file("inst/test_python_dependencies.R", package = "SCP"))
+# Quick diagnostics of the environment
+VerifyEnv(verbose = TRUE)
 ```
 
-This will:
-- Test all core dependencies
-- Check optional feature groups
-- Verify NumPy version (< 2.0 required)
-- Report installation status
+This reports:
+- Core and optional Python groups availability
+- Active reticulate configuration
+- Guidance to install missing extras
 
 ### Quick Test
 
@@ -214,8 +227,8 @@ library(SCP)
 # Test basic functionality
 IsSeurat5(your_object)
 
-# Test Python (if installed)
-check_Python(c("numpy", "pandas", "scanpy"))
+# Test Python modules (if installed)
+EnsureEnv(required = c("numpy", "pandas", "scanpy"))
 ```
 
 ## Troubleshooting
@@ -228,7 +241,8 @@ uv_remove_env()  # or RemoveEnv() for conda
 PrepareEnv(method = "uv", force = TRUE)
 
 # Test installation
-source(system.file("inst/test_python_dependencies.R", package = "SCP"))
+# Quick diagnostics
+VerifyEnv(verbose = TRUE)
 ```
 
 ### Seurat V5 Conversion Issues

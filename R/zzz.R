@@ -32,63 +32,36 @@
   )
 }
 
-# Simplified Python environment functions
-conda_python <- function(envname = "SCP_env", conda = "auto", ...) {
-  envs <- reticulate::conda_list(conda = conda, ...)
-  if (!envname %in% envs[["name"]]) {
-    stop("conda environment ", envname, " is not available")
-  }
-  python_bin <- envs[envs[["name"]] == envname, ][["python"]][1]
+# UV Python environment functions
 
-  path_cut <- python_bin
-  while (!file.exists(path_cut)) {
-    path_cut_new <- dirname(path_cut)
-    if (path_cut_new == path_cut) {
-      break
-    }
-    path_cut <- path_cut_new
+#' Get Python executable path from UV environment
+#'
+#' @return Path to Python executable in UV environment
+#' @keywords internal
+uv_python <- function() {
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
   }
 
-  if (file.exists(path_cut)) {
-    python_bin <- path_cut
+  venv_path <- file.path(pkg_dir, ".venv")
+
+  if (!dir.exists(venv_path)) {
+    stop("UV environment not found. Please run PrepareEnv() first.")
   }
 
-  invisible(python_bin)
-}
+  # Find Python executable in venv
+  if (Sys.info()["sysname"] == "Windows") {
+    python_path <- file.path(venv_path, "Scripts", "python.exe")
+  } else {
+    python_path <- file.path(venv_path, "bin", "python")
+  }
 
-get_envname <- function() {
-  envname <- getOption("SCP_env_name", default = "SCP_env")
-  return(envname)
-}
+  if (!file.exists(python_path)) {
+    stop("Python executable not found in UV environment")
+  }
 
-find_conda <- function() {
-  tryCatch(
-    {
-      conda <- reticulate::conda_binary()
-      conda <- conda[which.min(nchar(conda))]
-      return(conda)
-    },
-    error = function(error) {
-      return(NULL)
-    }
-  )
-}
-
-env_exist <- function(conda = "auto", envname = "SCP_env", envs_dir = NULL) {
-  tryCatch(
-    {
-      if (is.null(envs_dir)) {
-        conda_envs <- reticulate::conda_list(conda = conda)
-        env_exist <- envname %in% conda_envs[["name"]]
-      } else {
-        env_exist <- dir.exists(paste0(envs_dir, "/", envname))
-      }
-    },
-    error = function(e) {
-      env_exist <- FALSE
-    }
-  )
-  return(env_exist)
+  invisible(python_path)
 }
 
 # macOS compatibility functions

@@ -104,7 +104,6 @@ check_DataType <- function(srt, data = NULL, layer = "data", assay = NULL) {
 #'
 #' @importFrom Seurat SplitObject GetAssayData Assays NormalizeData FindVariableFeatures SCTransform SCTResults SelectIntegrationFeatures PrepSCTIntegration DefaultAssay DefaultAssay<- VariableFeatures VariableFeatures<- UpdateSeuratObject
 #' @importFrom SeuratObject LayerData
-#' @importFrom Signac RunTFIDF
 #' @importFrom Matrix rowSums
 #' @importFrom utils head packageVersion
 #' @export
@@ -267,8 +266,11 @@ check_srtList <- function(srtList, batch, assay = NULL,
         srtList[[i]] <- NormalizeData(object = srtList[[i]], assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
       }
       if (normalization_method == "TFIDF") {
+        if (!requireNamespace("Signac", quietly = TRUE)) {
+          stop("Package 'Signac' is required for TFIDF normalization. Install it with: install.packages('Signac')")
+        }
         cat("Perform RunTFIDF on the data ", i, "/", length(srtList), " of the srtList...\n", sep = "")
-        srtList[[i]] <- RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
+        srtList[[i]] <- Signac::RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
       }
     } else if (is.null(do_normalization)) {
       # V5-safe check_DataType call
@@ -283,8 +285,11 @@ check_srtList <- function(srtList, batch, assay = NULL,
             srtList[[i]] <- NormalizeData(object = srtList[[i]], assay = assay, normalization.method = "LogNormalize", verbose = FALSE)
           }
           if (normalization_method == "TFIDF") {
+            if (!requireNamespace("Signac", quietly = TRUE)) {
+              stop("Package 'Signac' is required for TFIDF normalization. Install it with: install.packages('Signac')")
+            }
             cat("Data ", i, "/", length(srtList), " of the srtList is ", status, ". Perform RunTFIDF on the data ...\n", sep = "")
-            srtList[[i]] <- RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
+            srtList[[i]] <- Signac::RunTFIDF(object = srtList[[i]], assay = assay, verbose = FALSE)
           }
         }
         if (status == "unknown") {
@@ -1035,7 +1040,6 @@ SrtAppend <- function(srt_raw, srt_append,
 #' @param seed Set a seed.
 #'
 #' @importFrom Seurat Embeddings RunPCA RunICA RunTSNE Reductions DefaultAssay DefaultAssay<- Key Key<-
-#' @importFrom Signac RunSVD
 #' @export
 RunDimReduction <- function(srt, prefix = "", features = NULL, assay = NULL, layer = "data",
                             linear_reduction = NULL, linear_reduction_dims = 50,
@@ -1436,7 +1440,15 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -1588,7 +1600,6 @@ Uncorrected_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, 
 #'
 #' @importFrom Seurat GetAssayData ScaleData SetAssayData FindIntegrationAnchors IntegrateData DefaultAssay DefaultAssay<- FindNeighbors FindClusters Idents
 #' @importFrom SeuratObject LayerData
-#' @importFrom Signac RunTFIDF
 #' @export
 Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList = NULL, assay = NULL,
                              do_normalization = NULL, normalization_method = "LogNormalize",
@@ -1619,7 +1630,15 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -1694,7 +1713,10 @@ Seurat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     if (is.null(FindIntegrationAnchors_params[["dims"]])) {
       FindIntegrationAnchors_params[["dims"]] <- 2:min(linear_reduction_dims, 30)
     }
-    srtMerge <- RunTFIDF(object = srtMerge, assay = DefaultAssay(srtMerge), verbose = FALSE)
+    if (!requireNamespace("Signac", quietly = TRUE)) {
+      stop("Package 'Signac' is required for TFIDF normalization. Install it with: install.packages('Signac')")
+    }
+    srtMerge <- Signac::RunTFIDF(object = srtMerge, assay = DefaultAssay(srtMerge), verbose = FALSE)
     srtMerge <- RunDimReduction(
       srtMerge,
       prefix = "", features = HVF, assay = DefaultAssay(srtMerge),
@@ -1903,7 +1925,15 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -1913,10 +1943,10 @@ scVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList
   )
 
   if (.Platform$OS.type == "windows" && !exist_Python_pkgs(packages = "scvi-tools")) {
-    suppressWarnings(system2(command = conda_python(), args = "-m pip install jax[cpu]===0.3.20 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver", stdout = TRUE))
+    suppressWarnings(system2(command = uv_python(), args = "-m pip install jax[cpu]===0.3.20 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver", stdout = TRUE))
   }
 
-  check_Python("scvi-tools")
+  check_Python(c("scvi-tools"))
   scvi <- import("scvi")
   scipy <- import("scipy")
   set.seed(seed)
@@ -2099,7 +2129,15 @@ SCANVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -2113,10 +2151,10 @@ SCANVI_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
   }
 
   if (.Platform$OS.type == "windows" && !exist_Python_pkgs(packages = "scvi-tools")) {
-    suppressWarnings(system2(command = conda_python(), args = "-m pip install jax[cpu]===0.3.20 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver", stdout = TRUE))
+    suppressWarnings(system2(command = uv_python(), args = "-m pip install jax[cpu]===0.3.20 -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver", stdout = TRUE))
   }
 
-  check_Python("scvi-tools")
+  check_Python(c("scvi-tools"))
   scvi <- import("scvi")
   scipy <- import("scipy")
   set.seed(seed)
@@ -2312,7 +2350,15 @@ MNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -2503,7 +2549,15 @@ fastMNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -2691,7 +2745,15 @@ Harmony_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtL
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -2884,7 +2946,15 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -2893,7 +2963,7 @@ Scanorama_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, sr
     "leiden" = 4
   )
 
-  check_Python("scanorama")
+  check_Python(c("scanorama"))
   scanorama <- import("scanorama")
   set.seed(seed)
 
@@ -3092,7 +3162,15 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -3101,7 +3179,7 @@ BBKNN_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     "leiden" = 4
   )
 
-  check_Python("bbknn")
+  check_Python(c("bbknn"))
   bbknn <- import("bbknn")
   set.seed(seed)
 
@@ -3317,7 +3395,15 @@ CSS_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtList 
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -3508,7 +3594,15 @@ LIGER_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -3734,7 +3828,15 @@ Conos_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLis
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -3946,7 +4048,15 @@ ComBat_integrate <- function(srtMerge = NULL, batch = NULL, append = TRUE, srtLi
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,
@@ -4209,7 +4319,15 @@ Standard_SCP <- function(srt, prefix = "Standard", assay = NULL,
     stop("'cluster_algorithm' must be one of 'louvain', 'slm', 'leiden'.")
   }
   if (cluster_algorithm == "leiden") {
-    check_Python("leidenalg")
+    # Leiden algorithm requires Python environment
+    if (uv_env_exists()) {
+      tryCatch(use_uv_env(), error = function(e) {
+        stop("Failed to configure Python environment for leiden algorithm: ", e$message)
+      })
+    } else {
+      stop("Leiden algorithm requires Python environment. Run PrepareEnv() first.")
+    }
+    check_Python(c("leidenalg"))
   }
   cluster_algorithm_index <- switch(tolower(cluster_algorithm),
     "louvain" = 1,

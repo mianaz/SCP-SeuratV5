@@ -1,11 +1,11 @@
 #' @importFrom BiocParallel bpparam
 #' @importFrom Matrix t
-#' @importFrom reticulate py_module_available conda_list use_python import_from_path py_available
+#' @importFrom reticulate py_module_available use_python import_from_path py_available
 #' @importFrom stats as.dist as.formula median model.matrix prcomp sd var aggregate kmeans na.omit setNames quantile weighted.mean
 #' @importFrom utils askYesNo head installed.packages menu modifyList packageVersion read.csv read.table setTxtProgressBar tail txtProgressBar download.file
 #' @importFrom grDevices col2rgb colorRampPalette dev.cur dev.interactive dev.new dev.off devAskNewPage palette pdf recordPlot rgb
 #' @importFrom SeuratObject DefaultAssay CreateAssayObject CreateDimReducObject
-#' @importFrom SeuratObject LayerData
+#' @importFrom SeuratObject LayerData JoinLayers Layers
 #' @importFrom Seurat as.CellDataSet
 #' @importFrom tidyr unnest
 #' @importFrom stringr str_wrap
@@ -44,38 +44,94 @@ utils::globalVariables(c(
   "avg.exp", "avg.exp.scaled"
 ))
 
-#' Check if Python packages are available
+#' Deprecated: prefer check_Python(...)
 #'
-#' This function checks if required Python packages are available in the current Python environment.
+#' This helper checks that required Python packages are available in the
+#' currently configured Python. For user-facing code, call
+#' `check_Python(c("mod1","mod2"))` to both activate the SCP UV
+#' environment and validate modules in one step.
 #'
 #' @param packages Character vector of Python package names to check
 #' @return Invisible NULL. Throws an error if packages are not available.
+#' @seealso EnsureEnv
 #' @export
 check_Python <- function(packages) {
-  # Force Python initialization by attempting to get the config
-  # This ensures reticulate has fully initialized Python before we check for modules
-  tryCatch({
-    py_config <- reticulate::py_config()
-    if (is.null(py_config$python)) {
-      stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
-    }
-  }, error = function(e) {
-    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
-  })
-
+  # Ensure Python is available
   if (!reticulate::py_available()) {
-    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_uv_env()")
+    stop("Python is not available. Please configure Python with use_python() or PrepareEnv()")
   }
 
+  # Force Python initialization by getting the config
+  py_config <- tryCatch({
+    reticulate::py_config()
+  }, error = function(e) {
+    stop("Failed to initialize Python: ", e$message,
+         "\nPlease run PrepareEnv() or use_python() to configure Python.")
+  })
+
+  if (is.null(py_config$python)) {
+    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_python()")
+  }
+
+  # Check each package by actually trying to import it (more reliable than py_module_available)
   for (pkg in packages) {
-    if (!reticulate::py_module_available(pkg)) {
-      stop("Python package '", pkg, "' is required but not installed.\n",
-           "Please install it in your Python environment or run PrepareEnv()")
+    module_available <- tryCatch({
+      # Try to actually import the module
+      reticulate::import(pkg, convert = FALSE)
+      TRUE
+    }, error = function(e) {
+      FALSE
+    })
+
+    if (!module_available) {
+      # Try py_module_available as fallback
+      module_available <- tryCatch({
+        reticulate::py_module_available(pkg)
+      }, error = function(e) {
+        FALSE
+      })
+    }
+
+    if (!module_available) {
+      stop("Python package '", pkg, "' is required but not installed or not accessible.\n",
+           "Current Python: ", py_config$python, "\n",
+           "To install it:\n",
+           "  1. Run PrepareEnv() to set up the SCP environment with all dependencies\n",
+           "  2. Or install manually: uv pip install ", pkg, "\n",
+           "  3. After installation, restart R and run library(SCP); use_uv_env()")
     }
   }
 
   return(invisible(NULL))
 }
+
+#' Ensure SCP Python environment is ready
+#'
+#' Internal helper function to ensure the UV Python environment is configured
+#' and ready for use. Automatically calls use_uv_env() if needed.
+#'
+#' @return Invisible NULL
+#' @keywords internal
+ensure_scp_python <- function() {
+  # Check if UV environment exists
+  if (!uv_env_exists()) {
+    stop("UV Python environment not found.\n",
+         "Please run PrepareEnv() to set up the Python environment first.")
+  }
+
+  # Configure reticulate to use UV environment
+  tryCatch({
+    use_uv_env()
+  }, error = function(e) {
+    stop("Failed to configure Python environment: ", e$message, "\n",
+         "Try running use_uv_env() manually.")
+  })
+
+  return(invisible(NULL))
+}
+
+# Removed EnsureEnv() function - unnecessary wrapper
+# Use use_uv_env() directly when Python environment is needed
 
 #' @export
 palette_default <- c(
@@ -491,15 +547,7 @@ invoke <- function(.fn, .args = list(), ...) {
 }
 
 
-SCP_present <- function() {
-  envs <- conda_list()
-  SCP_envpath <- ""
-  if ("SCP_env" %in% envs[["name"]]) {
-    SCP_envpath <- envs[envs[["name"]] == "SCP_env", ][["python"]]
-  }
-  SCP_envpresent <- SCP_envpath != ""
-  return(SCP_envpresent)
-}
+# Removed SCP_present() function - no longer needed with UV-only approach
 
 #' Check if UV is installed
 #'
@@ -682,7 +730,7 @@ uv_sync_deps <- function(extras = "all") {
     core_packages <- c(
       "numpy", "pandas", "scipy", "matplotlib", "seaborn",
       "scikit-learn", "h5py", "numba", "anndata",
-      "scvelo", "scanpy", "loompy"
+      "scanpy", "igraph"
     )
     result <- system2("uv", args = c("pip", "install", core_packages), wait = TRUE)
 
@@ -692,6 +740,142 @@ uv_sync_deps <- function(extras = "all") {
   }
 
   message("Python dependencies installed successfully.")
+  return(invisible(TRUE))
+}
+
+#' Install optional dependency extras to existing UV environment
+#'
+#' This function installs additional optional dependencies to an existing UV environment
+#' without recreating it. Use this after running PrepareEnv() with minimal dependencies
+#' to add specific feature groups like velocity analysis or deep learning tools.
+#'
+#' @param extras Character vector of extra dependency groups to install.
+#'   Options include: "velocity", "trajectory", "deeplearning", "singlecell", "ml", "all".
+#'   Example: c("velocity", "deeplearning") or "velocity"
+#'
+#' @return Invisible TRUE if successful
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # After installing base environment
+#' PrepareEnv(method = "uv")
+#'
+#' # Later, add velocity analysis tools
+#' uv_install_extras("velocity")
+#'
+#' # Or add multiple extras
+#' uv_install_extras(c("velocity", "trajectory"))
+#' }
+uv_install_extras <- function(extras) {
+  if (!check_uv()) {
+    stop("UV is not installed. Please install UV first with install_uv()")
+  }
+
+  if (!uv_env_exists()) {
+    stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
+  }
+
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
+  }
+
+  # Change to package directory
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(pkg_dir)
+
+  # Ensure pyproject.toml is available
+  pyproject_locations <- c(
+    "pyproject.toml",
+    file.path("inst", "pyproject.toml"),
+    system.file("pyproject.toml", package = "SCP")
+  )
+
+  pyproject_path <- NULL
+  for (loc in pyproject_locations) {
+    if (file.exists(loc)) {
+      pyproject_path <- loc
+      break
+    }
+  }
+
+  if (is.null(pyproject_path)) {
+    stop("pyproject.toml not found. Cannot install extras.")
+  }
+
+  # Copy pyproject.toml to current directory if needed
+  if (pyproject_path != "pyproject.toml") {
+    file.copy(pyproject_path, "pyproject.toml", overwrite = TRUE)
+  }
+
+  # Install the extras
+  message("Installing Python extras: ", paste(extras, collapse = ", "))
+
+  if (length(extras) == 1 && extras == "all") {
+    extras_str <- "[all]"
+  } else {
+    extras_str <- paste0("[", paste(extras, collapse = ","), "]")
+  }
+
+  result <- system2("uv", args = c("pip", "install", "-e", paste0(".", extras_str)), wait = TRUE)
+
+  if (result != 0) {
+    stop("Failed to install extras. Check UV installation and pyproject.toml.")
+  }
+
+  message("Extras installed successfully.")
+  return(invisible(TRUE))
+}
+
+#' Install additional Python packages to existing UV environment
+#'
+#' This function installs individual Python packages to an existing UV environment.
+#' Use this for installing packages that are not part of the predefined extras.
+#'
+#' @param packages Character vector of Python package names to install.
+#'   Can include version specifications (e.g., "numpy>=1.20.0")
+#'
+#' @return Invisible TRUE if successful
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Install individual packages
+#' uv_install_packages("requests")
+#'
+#' # Install multiple packages with versions
+#' uv_install_packages(c("requests>=2.28.0", "beautifulsoup4"))
+#' }
+uv_install_packages <- function(packages) {
+  if (!check_uv()) {
+    stop("UV is not installed. Please install UV first with install_uv()")
+  }
+
+  if (!uv_env_exists()) {
+    stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
+  }
+
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
+  }
+
+  # Change to package directory
+  old_wd <- getwd()
+  on.exit(setwd(old_wd))
+  setwd(pkg_dir)
+
+  message("Installing Python packages: ", paste(packages, collapse = ", "))
+
+  result <- system2("uv", args = c("pip", "install", packages), wait = TRUE)
+
+  if (result != 0) {
+    stop("Failed to install packages: ", paste(packages, collapse = ", "))
+  }
+
+  message("Packages installed successfully.")
   return(invisible(TRUE))
 }
 
@@ -728,129 +912,59 @@ use_uv_env <- function() {
 
 #' Install the SCP python environment
 #'
-#' Install all python packages in the SCP environment automatically. The environment will be created
-#' using UV (if available) or Conda as a fallback.
+#' Install all python packages in the SCP environment automatically using UV.
+#' UV is a fast Python package installer that is 10-100x faster than pip/conda.
 #'
-#' @param method Installation method. Options are "auto", "uv", or "conda". "auto" will prefer UV if available, otherwise use conda.
-#' @param pip Whether to use pip for installing packages. This is only relevant when method is "conda".
-#' @param user Whether to install packages into a user site library, instead of the default system site library. Note that this argument is only relevant when using the Conda package manager.
 #' @param force Force reinstall the SCP python environment.
-#' @param update Whether to update packages that already exist within the environment. For UV, this always syncs to the latest allowed versions. For Conda, options are "default", "all", and "selected".
-#' @param python_version Python version to use for the SCP environment. Default is "3.10". Note that with UV, this is controlled by .python-version file.
-#' @param extras Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")). Default is "all" for complete installation.
+#' @param update Whether to update packages that already exist within the environment.
+#' @param python_version Python version to use for the SCP environment. Default is "3.10".
+#' @param extras Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")).
+#'   Default is NULL for minimal installation (core packages only).
+#'   Use "all" for complete installation, or specify individual groups: "velocity", "trajectory", "deeplearning", "singlecell", "ml".
+#'   You can install extras later with uv_install_extras().
 #' @export
 #'
-PrepareEnv <- function(method = "auto", pip = FALSE, user = FALSE, force = FALSE, update = "all", python_version = "3.10", extras = "all") {
-  # Determine which method to use
-  if (method == "auto") {
-    if (check_uv()) {
-      method <- "uv"
-      message("UV detected. Using UV for Python environment management.")
-    } else {
-      method <- "conda"
-      message("UV not found. Using conda for Python environment management.")
-      message("To use UV (recommended for faster installations), install it with:")
-      message("  curl -LsSf https://astral.sh/uv/install.sh | sh")
-    }
+PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", extras = NULL) {
+  # Check if UV is installed
+  if (!check_uv()) {
+    stop("UV is not installed. Please install UV first.\n",
+         "Installation instructions:\n",
+         "  macOS/Linux: curl -LsSf https://astral.sh/uv/install.sh | sh\n",
+         "  Windows: powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\"\n",
+         "Or use: install_uv()")
   }
 
-  # Check if we should use UV
-  if (method == "uv") {
-    if (!check_uv()) {
-      stop("UV is not installed. Please install UV or use method='conda'")
+  # UV-based installation
+  if (!uv_env_exists() || isTRUE(force)) {
+    if (isTRUE(force) && uv_env_exists()) {
+      message("Removing existing UV environment...")
+      uv_remove_env()
     }
 
-    # UV-based installation
-    if (!uv_env_exists() || isTRUE(force)) {
-      if (isTRUE(force) && uv_env_exists()) {
-        message("Removing existing UV environment...")
-        uv_remove_env()
-      }
+    message("Creating UV environment with Python ", python_version, "...")
+    uv_create_env(python_version = python_version)
 
-      message("Creating UV environment with Python ", python_version, "...")
-      uv_create_env(python_version = python_version)
+    message("Installing Python dependencies with UV...")
+    if (is.null(extras) || length(extras) == 0) {
+      message("Installing minimal (core) Python packages only.")
+      message("To add extras later, use: uv_install_extras('velocity') or similar.")
+    }
+    uv_sync_deps(extras = extras)
 
-      message("Installing Python dependencies with UV...")
+    message("UV environment setup complete!")
+    message("To use this environment, run: use_uv_env()")
+  } else {
+    if (isTRUE(update)) {
+      message("Updating UV environment...")
       uv_sync_deps(extras = extras)
-
-      message("UV environment setup complete!")
     } else {
-      if (isTRUE(update)) {
-        message("Updating UV environment...")
-        uv_sync_deps(extras = extras)
-      } else {
-        message("UV environment already exists. Use force=TRUE to reinstall or update=TRUE to update packages.")
-      }
-    }
-  } else {
-    # Fallback to original conda-based installation
-    if (!SCP_present() || isTRUE(force)) {
-      if (isTRUE(force)) {
-        message("The SCP python environment will be reinstalled with Python ", python_version, ".")
-      } else {
-        message("The SCP python environment has not been created. Creating it now with Python ", python_version, ".")
-      }
-      packages <- c(
-        "anndata", "pandas", "numpy", "scipy", "matplotlib", "seaborn", "scikit-learn",
-        "scikit-misc", "pynndescent", "umap-learn", "pymde", "opentsne", "phate", "scanorama", "bbknn",
-        "leidenalg", "louvain", "scrublet", "scvi-tools", "torch", "h5py", "numba", "pybind11", "xgboost",
-        "scvelo", "scanpy", "loompy"
-      )
-
-      # Check for Apple Silicon and modify package list
-      if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
-        message("Apple Silicon detected. Adjusting package list for ARM64 compatibility.")
-        # Remove packages that are not available or need special handling on Apple Silicon
-        packages <- packages[!packages %in% c("scvi-tools", "rapids-singlecell")]
-      }
-      install_py(packages = packages, method = "conda", pip = pip, user = user, force = force, update = update, python_version = python_version)
-    } else {
-      message("The SCP python environment is already present.")
+      message("UV environment already exists. Use force=TRUE to reinstall or update=TRUE to update packages.")
+      message("To add extras: uv_install_extras('velocity') or similar.")
     }
   }
 }
 
-install_py <- function(packages = NULL, method = "auto", pip = FALSE, user = FALSE, force = FALSE, update = "all", python_version = NULL, ...) {
-  # Check if on macOS and using conda
-  is_osx <- Sys.info()["sysname"] == "Darwin"
-  is_conda <- tryCatch({
-    py_config <- reticulate::py_config()
-    grepl("conda", py_config$python, ignore.case = TRUE)
-  }, error = function(e) FALSE)
-
-  if (is_osx && is_conda) {
-    nomkl <- TRUE
-  } else {
-    nomkl <- FALSE
-  }
-  packages <- unique(packages)
-  condaenv <- "SCP_env"
-  reticulate::conda_create(
-    envname = condaenv,
-    conda = "auto",
-    python_version = python_version,
-    force = force
-  )
-  for (package in packages) {
-    message("Install package: ", package, "\n", sep = "")
-    if (package == "scikit-misc") {
-      system(paste0(reticulate::conda_python(envname = condaenv, conda = "auto"), " -m pip install scikit-misc==0.1.4"))
-    } else if (package == "anndata==0.8.0") {
-      reticulate::conda_install(envname = condaenv, packages = package, pip = TRUE, ...)
-    } else {
-      reticulate::conda_install(envname = condaenv, packages = package, ...)
-    }
-  }
-  
-  # Handle Apple Silicon scvi-tools installation separately
-  if (Sys.info()["sysname"] == "Darwin" && grepl("arm64", Sys.info()["machine"], ignore.case = TRUE)) {
-    message("Installing scvi-tools with Metal support for Apple Silicon...")
-    system(paste0(reticulate::conda_python(envname = condaenv, conda = "auto"), " -m pip install -U 'scvi-tools[metal]'"))
-    # Apply macOS compatibility fix
-    Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
-  }
-  message("Done.\n", sep = "")
-}
+# Removed install_py() function - no longer needed with UV-only approach
 
 try_get <- function(expr, max_tries = 3, error_message = NULL, default = NULL) {
   result <- NULL
@@ -942,14 +1056,19 @@ layerNames <- function(srt, assay = NULL) {
 #' Get data from Seurat object in a version-agnostic way
 #'
 #' This function extracts data from a Seurat object, handling both V4 and V5 formats.
+#' For V5 objects with multiple layers (e.g., split by sample), it automatically joins
+#' layers to ensure all cells are included, unless join_layers is set to FALSE.
 #'
 #' @param srt A Seurat object
 #' @param layer The layer to extract (e.g., "counts", "data", "scale.data")
 #' @param assay Name of the assay. If NULL, uses the default assay.
+#' @param join_layers Logical. For V5 objects with multiple layers, should layers be joined?
+#'   Default is TRUE to ensure all cells are included. Set to FALSE for per-sample operations.
 #'
 #' @return A matrix of the requested data
+#' @importFrom SeuratObject JoinLayers Layers
 #' @export
-get_seurat_data <- function(srt, layer = "data", assay = NULL) {
+get_seurat_data <- function(srt, layer = "data", assay = NULL, join_layers = TRUE) {
   if (!inherits(srt, "Seurat")) {
     stop("Input must be a Seurat object")
   }
@@ -958,9 +1077,37 @@ get_seurat_data <- function(srt, layer = "data", assay = NULL) {
   assay <- assay %||% DefaultAssay(srt)
 
   if (is_v5) {
-    return(LayerData(srt[[assay]], layer = layer))
+    assay_obj <- srt[[assay]]
+
+    # Check if multiple layers exist for this layer type
+    if (isTRUE(join_layers)) {
+      # Search for layers matching the requested layer name
+      matching_layers <- tryCatch({
+        SeuratObject::Layers(assay_obj, search = layer)
+      }, error = function(e) NULL)
+
+      # If multiple layers found, join them
+      if (!is.null(matching_layers) && length(matching_layers) > 1) {
+        message("Found ", length(matching_layers), " layers for '", layer, "': ",
+                paste(matching_layers, collapse = ", "))
+        message("Joining layers to include all cells. Set join_layers=FALSE to disable.")
+
+        # Join only the specific layers we need
+        assay_obj <- tryCatch({
+          SeuratObject::JoinLayers(assay_obj, layers = matching_layers)
+        }, error = function(e) {
+          warning("Failed to join layers: ", e$message,
+                  ". Returning first layer only.", call. = FALSE)
+          assay_obj
+        })
+      }
+    }
+
+    # Now extract the data
+    return(LayerData(assay_obj, layer = layer))
   } else {
-    return(GetAssayData(srt, layer = layer, assay = assay))
+    # V4: use GetAssayData with 'slot' parameter (V4 doesn't have 'layer')
+    return(GetAssayData(srt, slot = layer, assay = assay))
   }
 }
 
@@ -986,7 +1133,8 @@ set_seurat_data <- function(srt, data, layer = "data", assay = NULL) {
   if (is_v5) {
     LayerData(srt[[assay]], layer = layer) <- data
   } else {
-    srt <- SetAssayData(srt, layer = layer, new.data = data, assay = assay)
+    # V4: use SetAssayData with 'slot' parameter (V4 doesn't have 'layer')
+    srt <- SetAssayData(srt, slot = layer, new.data = data, assay = assay)
   }
 
   return(srt)
@@ -1321,12 +1469,10 @@ dir_size <- function(path) {
 
 #' Remove SCP Python environment
 #'
-#' This function removes the SCP Python environment from your system.
+#' This function removes the UV-based SCP Python environment (.venv) from your system.
 #' It will prompt for confirmation before deletion unless `prompt = FALSE`.
 #'
-#' @param envname The name of the conda environment to remove. Default is "SCP_env".
 #' @param prompt Whether to prompt for confirmation before removing. Default is TRUE.
-#' @param conda The path to conda executable. Default is "auto" which automatically finds conda.
 #'
 #' @return NULL (invisibly). Messages will indicate success or failure.
 #'
@@ -1340,55 +1486,43 @@ dir_size <- function(path) {
 #' }
 #'
 #' @export
-RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
-  # Check if environment exists
-  envs <- tryCatch(
-    {
-      reticulate::conda_list(conda = conda)
-    },
-    error = function(e) {
-      message("Could not find conda installation. Is conda installed?")
-      return(data.frame(name = character(), python = character()))
-    }
-  )
-
-  if (!envname %in% envs$name) {
-    message("Environment '", envname, "' not found.")
+RemoveEnv <- function(prompt = TRUE) {
+  # Check if UV environment exists
+  if (!uv_env_exists()) {
+    message("UV environment (.venv) not found.")
     return(invisible(NULL))
   }
 
-  # Get conda path and environment directory
-  conda_binary <- reticulate::conda_binary(conda)
-  envs_dir <- dirname(dirname(envs$python[envs$name == envname]))
-  if (basename(envs_dir) != "envs") {
-    # Try to find the envs directory
-    conda_info <- system2(conda_binary, c("info", "--json"), stdout = TRUE)
-    conda_info <- jsonlite::fromJSON(paste(conda_info, collapse = ""))
-    envs_dir <- conda_info$envs_dirs[1]
+  pkg_dir <- system.file("", package = "SCP")
+  if (pkg_dir == "") {
+    pkg_dir <- getwd()
   }
-
-  env_path <- paste0(envs_dir, "/", envname)
+  venv_path <- file.path(pkg_dir, ".venv")
 
   # Get environment information
-  env_info <- tryCatch(
-    {
-      python_path <- conda_python(conda = conda, envname = envname)
-      python_version <- reticulate:::python_version(python_path)
-      list(path = env_path, python = python_path, version = python_version)
-    },
-    error = function(e) {
-      list(path = env_path, python = NA, version = NA)
-    }
-  )
+  env_size <- dir_size(venv_path)
+
+  # Find Python executable
+  if (Sys.info()["sysname"] == "Windows") {
+    python_path <- file.path(venv_path, "Scripts", "python.exe")
+  } else {
+    python_path <- file.path(venv_path, "bin", "python")
+  }
+
+  python_version <- NA
+  if (file.exists(python_path)) {
+    python_version <- tryCatch({
+      system2(python_path, "--version", stdout = TRUE, stderr = TRUE)
+    }, error = function(e) NA)
+  }
 
   # Display environment information and prompt for confirmation
-  message("About to remove SCP Python environment:")
-  message("- Environment name: ", envname)
-  message("- Environment path: ", env_info$path)
-  if (!is.na(env_info$version)) {
-    message("- Python version: ", env_info$version)
+  message("About to remove SCP UV Python environment:")
+  message("- Environment path: ", venv_path)
+  if (!is.na(python_version)) {
+    message("- Python version: ", python_version)
   }
-  message("- Disk space to be freed: ", format_size(dir_size(env_info$path)))
+  message("- Disk space to be freed: ", format_size(env_size))
 
   proceed <- TRUE
   if (prompt && interactive()) {
@@ -1398,32 +1532,15 @@ RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
   }
 
   if (proceed) {
-    message("Removing environment '", envname, "'...")
+    message("Removing UV environment...")
 
-    # Try using conda remove first (cleaner)
-    success <- tryCatch(
-      {
-        result <- system2(conda, c("env", "remove", "-n", envname, "--yes"), stdout = TRUE, stderr = TRUE)
-        # Check if the command was successful
-        !any(grepl("error", result, ignore.case = TRUE))
-      },
-      error = function(e) FALSE
-    )
-
-    # If conda remove failed, try directly removing the directory
-    if (!success) {
-      message("Conda removal failed, attempting direct directory removal...")
-      success <- tryCatch(
-        {
-          unlink(env_path, recursive = TRUE)
-          !file.exists(env_path)
-        },
-        error = function(e) FALSE
-      )
-    }
+    success <- tryCatch({
+      unlink(venv_path, recursive = TRUE)
+      !file.exists(venv_path)
+    }, error = function(e) FALSE)
 
     if (success) {
-      message("[v] Successfully removed environment '", envname, "'")
+      message("Successfully removed UV environment")
       # Unset Python environment variables to avoid pointing to deleted environment
       Sys.unsetenv("RETICULATE_PYTHON")
       Sys.unsetenv("RETICULATE_PYTHON_ENV")
@@ -1434,8 +1551,8 @@ RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
         .globals$py_config <- NULL
       }
     } else {
-      message("[x] Failed to remove environment '", envname, "'")
-      message("You may need to manually delete: ", env_path)
+      message("Failed to remove environment")
+      message("You may need to manually delete: ", venv_path)
     }
   } else {
     message("Environment removal cancelled.")
@@ -1444,72 +1561,7 @@ RemoveEnv <- function(envname = "SCP_env", prompt = TRUE, conda = "auto") {
   return(invisible(NULL))
 }
 
-#' Test Python Compatibility
-#'
-#' Test compatibility with different Python versions for SCP environment setup.
-#' This function tests the specified Python versions on different platforms.
-#'
-#' @param versions Character vector of Python versions to test. Default is c("3.10", "3.11", "3.12").
-#' @param test_packages Logical. Whether to test package installation. Default is TRUE.
-#' @export
-#'
-TestPythonCompatibility <- function(versions = c("3.10", "3.11", "3.12"), test_packages = TRUE) {
-  results <- list()
-  
-  for (version in versions) {
-    cat("Testing Python", version, "compatibility...\n")
-    
-    # Test basic version support
-    version_result <- list(
-      version = version,
-      platform = Sys.info()[["sysname"]],
-      conda_available = FALSE,
-      packages_installable = FALSE
-    )
-    
-    # Test conda availability
-    tryCatch({
-      conda_path <- reticulate::conda_binary()
-      if (!is.null(conda_path) && file.exists(conda_path)) {
-        version_result$conda_available <- TRUE
-      }
-    }, error = function(e) {
-      version_result$conda_available <- FALSE
-    })
-    
-    # Test package installation (if requested and conda is available)
-    if (test_packages && version_result$conda_available) {
-      tryCatch({
-        test_env <- paste0("SCP_test_", gsub("\\.", "", version))
-        
-        # Try to create a test environment
-        reticulate::conda_create(
-          envname = test_env,
-          python_version = version,
-          packages = "numpy",  # Test with a simple package
-          forge = TRUE
-        )
-        
-        version_result$packages_installable <- TRUE
-        
-        # Clean up test environment
-        reticulate::conda_remove(envname = test_env)
-        
-      }, error = function(e) {
-        version_result$packages_installable <- FALSE
-        cat("  Warning: Package installation test failed for Python", version, "\n")
-      })
-    }
-    
-    results[[version]] <- version_result
-    
-    cat("  Platform:", version_result$platform, "\n")
-    cat("  Conda available:", version_result$conda_available, "\n")
-    if (test_packages) {
-      cat("  Packages installable:", version_result$packages_installable, "\n")
-    }
-    cat("\n")
-  }
-  
-  return(invisible(results))
-}
+# Removed ListEnv(), VerifyEnv(), and TestPythonCompatibility() functions
+# These diagnostic functions added unnecessary complexity without providing
+# essential functionality. Users can check environment with uv_env_exists()
+# and use_uv_env() directly.

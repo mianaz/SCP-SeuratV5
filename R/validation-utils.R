@@ -50,47 +50,6 @@ validate_group_parameter <- function(srt, group, param_name = "group",
 }
 
 
-#' Require one or more packages
-#'
-#' Checks that required packages are installed, provides helpful error message.
-#' This consolidates the 94 instances of package checking across the codebase.
-#'
-#' @param packages Character vector of package names
-#' @param context Optional context message explaining why packages are needed
-#' @param quietly Whether to check quietly
-#' @return Invisible TRUE if all packages available
-#' @keywords internal
-require_packages <- function(packages, context = NULL, quietly = TRUE) {
-  missing_packages <- character(0)
-
-  for (pkg in packages) {
-    if (!requireNamespace(pkg, quietly = quietly)) {
-      missing_packages <- c(missing_packages, pkg)
-    }
-  }
-
-  if (length(missing_packages) > 0) {
-    context_msg <- if (!is.null(context)) {
-      sprintf(" %s requires", context)
-    } else {
-      ""
-    }
-
-    install_msg <- if (length(missing_packages) == 1) {
-      sprintf("\n\nInstall with: install.packages('%s')", missing_packages[1])
-    } else {
-      sprintf("\n\nInstall with: install.packages(c(%s))",
-             paste0("'", missing_packages, "'", collapse = ", "))
-    }
-
-    stop(sprintf("Missing required package%s:%s %s%s",
-                if (length(missing_packages) > 1) "s" else "",
-                context_msg,
-                paste(missing_packages, collapse = ", "),
-                install_msg),
-         call. = FALSE)
-  }
-
-  invisible(TRUE)
-}
+# Removed require_packages() function - unnecessary abstraction layer
+# Use requireNamespace() directly in code where packages are needed
 

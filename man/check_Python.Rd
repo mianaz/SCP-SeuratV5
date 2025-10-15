@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{check_Python}
 \alias{check_Python}
-\title{Check if Python packages are available}
+\title{Deprecated: prefer check_Python(...)}
 \usage{
 check_Python(packages)
 }
@@ -13,5 +13,11 @@ check_Python(packages)
 Invisible NULL. Throws an error if packages are not available.
 }
 \description{
-This function checks if required Python packages are available in the current Python environment.
+This helper checks that required Python packages are available in the
+currently configured Python. For user-facing code, call
+`check_Python(c("mod1","mod2"))` to both activate the SCP UV
+environment and validate modules in one step.
+}
+\seealso{
+EnsureEnv
 }
