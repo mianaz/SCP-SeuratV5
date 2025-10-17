@@ -8,7 +8,7 @@ RunCSSMap(
   srt_query,
   srt_ref,
   query_assay = NULL,
-  ref_assay = srt_ref[[ref_css]]@assay.used,
+  ref_assay = NULL,
   ref_css = NULL,
   ref_umap = NULL,
   ref_group = NULL,

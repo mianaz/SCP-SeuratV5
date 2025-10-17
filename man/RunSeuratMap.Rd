@@ -8,7 +8,7 @@ RunSeuratMap(
   srt_query,
   srt_ref,
   query_assay = NULL,
-  ref_assay = srt_ref[[ref_pca]]@assay.used,
+  ref_assay = NULL,
   ref_pca = NULL,
   ref_dims = 1:30,
   ref_umap = NULL,

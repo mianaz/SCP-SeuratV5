@@ -21,7 +21,7 @@ PrepareEnv(
 \item{extras}{Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")).
 Default is NULL for minimal installation (core packages only).
 Use "all" for complete installation, or specify individual groups: "velocity", "trajectory", "deeplearning", "singlecell", "ml".
-You can install extras later with uv_install_extras().}
+You can install extras later with uv_install().}
 }
 \description{
 Install all python packages in the SCP environment automatically using UV.

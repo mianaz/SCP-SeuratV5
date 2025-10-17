@@ -345,7 +345,7 @@ GeneConvert <- function(geneID, geneID_from_IDtype = "symbol", geneID_to_IDtype 
               )
             },
             max_tries = max_tries,
-            error_message = "Get errors when retrieving information from the BioMart database"
+            error_message = "Got errors when retrieving information from the BioMart database"
           )
           geneID_res3 <- geneID_res3[, unique(c("ensembl_gene_id", to_attr)), drop = FALSE]
           geneID_res3 <- geneID_res3[geneID_res3[, "ensembl_gene_id"] %in% geneID_res2[, homolog_ensembl_gene], , drop = FALSE]
@@ -915,14 +915,92 @@ CellScoring <- function(srt, features = NULL, slot = "data", assay = NULL, split
   return(srt)
 }
 
-metap <- function(p, method = c("maximump", "minimump", "wilkinsonp", "meanp", "sump", "votep"), ...) {
-  method <- match.arg(method)
-  res <- do.call(method, args = list(p = p, ...))
-  return(res)
+#' Combine P-values
+#'
+#' Unified interface for all p-value combination methods
+#'
+#' @param p Vector of p-values
+#' @param method Combination method: "fisher", "stouffer", "wilkinson", "minimum", "maximum", "mean", "sum", "vote"
+#' @param weights Optional weights for each p-value
+#' @param alpha Alpha level for methods that require it
+#' @param r Parameter for wilkinson method
+#' @param log.p Logical, whether p-values are log-transformed
+#' @param ... Additional arguments passed to method-specific functions
+#'
+#' @return List containing combined p-value and method-specific results
+#' @export
+CombinePvalues <- function(p, method = "wilkinson", weights = NULL, alpha = 0.05, r = 1, log.p = FALSE, ...) {
+  
+  method <- match.arg(method, c("fisher", "stouffer", "wilkinson", "minimum", "maximum", "mean", "sum", "vote"))
+  
+  # Remove NAs
+  if (any(is.na(p))) {
+    warning("Removing ", sum(is.na(p)), " NA p-values")
+    p <- p[!is.na(p)]
+  }
+  
+  # Validate p-values
+  if (any(p < 0 | p > 1)) {
+    stop("All p-values must be between 0 and 1")
+  }
+  
+  # Dispatch to method-specific implementation
+  switch(method,
+    "fisher" = .combine_fisher(p, weights, log.p),
+    "stouffer" = .combine_stouffer(p, weights, log.p),
+    "wilkinson" = .combine_wilkinson(p, r, alpha, log.p),
+    "minimum" = .combine_minimum(p, alpha, log.p),
+    "maximum" = .combine_maximum(p, alpha, log.p),
+    "mean" = .combine_mean(p),
+    "sum" = .combine_sum(p),
+    "vote" = .combine_vote(p, alpha)
+  )
 }
 
-#' @importFrom stats pbeta
-wilkinsonp <- function(p, r = 1, alpha = 0.05, log.p = FALSE) {
+# Internal: Fisher's method
+.combine_fisher <- function(p, weights, log.p) {
+  if (is.null(weights)) {
+    weights <- rep(1, length(p))
+  }
+  if (length(weights) != length(p)) {
+    stop("Length of weights must match length of p-values")
+  }
+  
+  if (log.p) {
+    chi2 <- -2 * sum(weights * p)
+  } else {
+    chi2 <- -2 * sum(weights * log(p))
+  }
+  
+  df <- 2 * sum(weights)
+  p_combined <- pchisq(chi2, df, lower.tail = FALSE, log.p = log.p)
+  
+  list(p = p_combined, chi2 = chi2, df = df, method = "fisher", validp = p)
+}
+
+# Internal: Stouffer's method
+.combine_stouffer <- function(p, weights, log.p) {
+  if (is.null(weights)) {
+    weights <- rep(1, length(p))
+  }
+  if (length(weights) != length(p)) {
+    stop("Length of weights must match length of p-values")
+  }
+  
+  if (log.p) {
+    z <- qnorm(p, log.p = TRUE)
+  } else {
+    z <- qnorm(p, lower.tail = FALSE)
+  }
+  
+  z_combined <- sum(weights * z) / sqrt(sum(weights^2))
+  p_combined <- pnorm(z_combined, lower.tail = FALSE, log.p = log.p)
+  
+  list(p = p_combined, z = z_combined, method = "stouffer", validp = p)
+}
+
+# Internal: Wilkinson's method (original wilkinsonp)
+.combine_wilkinson <- function(p, r, alpha, log.p) {
   alpha <- ifelse(alpha > 1, alpha / 100, alpha)
   stopifnot(alpha > 0, alpha < 1)
   alpha <- ifelse(alpha > 0.5, 1 - alpha, alpha)
@@ -932,7 +1010,7 @@ wilkinsonp <- function(p, r = 1, alpha = 0.05, log.p = FALSE) {
     warning("Must have at least two valid p values")
     res <- list(
       p = NA_real_, pr = NA_real_, r = r, critp = NA_real_,
-      alpha = alpha, validp = p[keep]
+      alpha = alpha, validp = p[keep], method = "wilkinson"
     )
   } else {
     pi <- p[keep]
@@ -949,32 +1027,36 @@ wilkinsonp <- function(p, r = 1, alpha = 0.05, log.p = FALSE) {
     res <- list(
       p = pbeta(pr, r, k + 1 - r, log.p = log.p),
       pr = pr, r = r, critp = qbeta(alpha, r, k + 1 - r),
-      alpha = alpha, validp = pi
+      alpha = alpha, validp = pi, method = "wilkinson"
     )
   }
   res
 }
 
-maximump <- function(p, alpha = 0.05, log.p = FALSE) {
+# Internal: Minimum p-value (original minimump)
+.combine_minimum <- function(p, alpha, log.p) {
+  res <- .combine_wilkinson(p, r = 1, alpha, log.p)
+  res$method <- "minimum"
+  res
+}
+
+# Internal: Maximum p-value (original maximump)
+.combine_maximum <- function(p, alpha, log.p) {
   keep <- (p >= 0) & (p <= 1)
   validp <- p[keep]
   k <- length(validp)
-  res <- wilkinsonp(p, r = k, alpha, log.p)
+  res <- .combine_wilkinson(p, r = k, alpha, log.p)
+  res$method <- "maximum"
   res
 }
 
-minimump <- function(p, alpha = 0.05, log.p = FALSE) {
-  res <- wilkinsonp(p, r = 1, alpha, log.p)
-  res
-}
-
-#' @importFrom stats pnorm
-meanp <- function(p) {
+# Internal: Mean p-value (original meanp)
+.combine_mean <- function(p) {
   keep <- (p >= 0) & (p <= 1)
   invalid <- sum(1L * keep) < 4
   if (invalid) {
     warning("Must have at least four valid p values")
-    res <- list(z = NA_real_, p = NA_real_, validp = p[keep])
+    res <- list(z = NA_real_, p = NA_real_, validp = p[keep], method = "mean")
   } else {
     pi <- mean(p[keep])
     k <- length(p[keep])
@@ -984,19 +1066,19 @@ meanp <- function(p) {
     }
     res <- list(
       z = z, p = pnorm(z, lower.tail = FALSE),
-      validp = p[keep]
+      validp = p[keep], method = "mean"
     )
   }
   res
 }
 
-#' @importFrom stats pnorm
-sump <- function(p) {
+# Internal: Sum p-value (original sump)
+.combine_sum <- function(p) {
   keep <- (p >= 0) & (p <= 1)
   invalid <- sum(1L * keep) < 2
   if (invalid) {
     warning("Must have at least two valid p values")
-    res <- list(p = NA_real_, conservativep = NA_real_, validp = p[keep])
+    res <- list(p = NA_real_, conservativep = NA_real_, validp = p[keep], method = "sum")
   } else {
     sigmap <- sum(p[keep])
     k <- length(p[keep])
@@ -1006,8 +1088,7 @@ sump <- function(p) {
     psum <- 0
     terms <- vector("numeric", nterm)
     for (i in 1:nterm) {
-      terms[i] <- lchoose(k, i - 1) + k * log(sigmap -
-        i + 1) - denom
+      terms[i] <- lchoose(k, i - 1) + k * log(sigmap - i + 1) - denom
       pm <- 2 * (i %% 2) - 1
       psum <- psum + pm * exp(terms[i])
     }
@@ -1019,14 +1100,14 @@ sump <- function(p) {
     }
     res <- list(
       p = psum, conservativep = conservativep,
-      validp = p[keep]
+      validp = p[keep], method = "sum"
     )
   }
   res
 }
 
-#' @importFrom stats binom.test
-votep <- function(p, alpha = 0.5) {
+# Internal: Vote p-value (original votep)
+.combine_vote <- function(p, alpha) {
   alpha <- ifelse(alpha > 1, alpha / 100, alpha)
   stopifnot(alpha > 0, alpha < 1)
   keep <- (p >= 0) & (p <= 1)
@@ -1043,7 +1124,7 @@ votep <- function(p, alpha = 0.5) {
     warning("Must have at least two valid p values")
     res <- list(
       p = NA_real_, pos = NA_integer_, neg = NA_integer_,
-      alpha = alpha, validp = p[keep]
+      alpha = alpha, validp = p[keep], method = "vote"
     )
   } else {
     pi <- p[keep]
@@ -1055,19 +1136,64 @@ votep <- function(p, alpha = 0.5) {
     }
     if ((pos + neg) <= 0) {
       warning("All p values are within specified limits of alpha")
-      p <- 1
+      p_val <- 1
     } else {
-      p <- binom.test(pos, pos + neg, 0.5, alternative = "greater")$p.value
+      p_val <- binom.test(pos, pos + neg, 0.5, alternative = "greater")$p.value
     }
     res <- list(
-      p = p, pos = pos, neg = neg, alpha = alpha,
-      validp = pi
+      p = p_val, pos = pos, neg = neg, alpha = alpha,
+      validp = pi, method = "vote"
     )
   }
   res
 }
 
-#' @importFrom SeuratObject PackageCheck FetchData WhichCells SetIdent Idents
+# Backward compatibility: Keep old function names as thin wrappers
+#' @rdname CombinePvalues
+#' @export
+metap <- function(p, method = c("maximum", "minimum", "wilkinson", "mean", "sum", "vote"), ...) {
+  method <- match.arg(method)
+  res <- CombinePvalues(p = p, method = method, ...)
+  return(res)
+}
+
+#' @rdname CombinePvalues
+#' @export
+wilkinsonp <- function(p, r = 1, alpha = 0.05, log.p = FALSE) {
+  CombinePvalues(p = p, method = "wilkinson", r = r, alpha = alpha, log.p = log.p)
+}
+
+#' @rdname CombinePvalues
+#' @export
+maximump <- function(p, alpha = 0.05, log.p = FALSE) {
+  CombinePvalues(p = p, method = "maximum", alpha = alpha, log.p = log.p)
+}
+
+#' @rdname CombinePvalues
+#' @export
+minimump <- function(p, alpha = 0.05, log.p = FALSE) {
+  CombinePvalues(p = p, method = "minimum", alpha = alpha, log.p = log.p)
+}
+
+#' @rdname CombinePvalues
+#' @export
+meanp <- function(p) {
+  CombinePvalues(p = p, method = "mean")
+}
+
+#' @rdname CombinePvalues
+#' @export
+sump <- function(p) {
+  CombinePvalues(p = p, method = "sum")
+}
+
+#' @rdname CombinePvalues
+#' @export
+votep <- function(p, alpha = 0.5) {
+  CombinePvalues(p = p, method = "vote", alpha = alpha)
+}
+
+#' @importFrom SeuratObject FetchData WhichCells SetIdent Idents
 #' @importFrom Seurat FindMarkers FoldChange
 FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL, cells.1 = NULL, cells.2 = NULL, features = NULL,
                                   test.use = "wilcox", logfc.threshold = 0.25, base = 2, pseudocount.use = 1, mean.fxn = NULL,
@@ -1256,7 +1382,7 @@ FindConservedMarkers2 <- function(object, grouping.var, ident.1, ident.2 = NULL,
 #' head(markers)
 #' FeatureStatPlot(pancreas_sub, rownames(markers)[1], group.by = "Phase", add_point = TRUE)
 #' @importFrom Matrix rowSums
-#' @importFrom SeuratObject PackageCheck FetchData WhichCells SetIdent Idents
+#' @importFrom SeuratObject FetchData WhichCells SetIdent Idents
 #' @importFrom Seurat FindMarkers FoldChange Command
 #' @importFrom pbapply pbsapply
 #' @export
@@ -5504,7 +5630,10 @@ srt_to_adata <- function(srt, features = NULL,
                          assay_X = "RNA", slot_X = "counts",
                          assay_layers = c("spliced", "unspliced"), slot_layers = "counts",
                          convert_tools = FALSE, convert_misc = FALSE, verbose = TRUE) {
-  check_Python(c("scanpy", "numpy"))
+  use_uv_env()
+  if (!reticulate::py_module_available("scanpy") || !reticulate::py_module_available("numpy")) {
+    stop("Python modules 'scanpy' and 'numpy' are required. Install with: uv_install(packages = c('scanpy', 'numpy'))")
+  }
 
   if (!inherits(srt, "Seurat")) {
     stop("'srt' is not a Seurat object.")
@@ -5675,21 +5804,130 @@ adata_to_srt <- function(adata) {
   }
   sc <- import("scanpy", convert = TRUE)
   np <- import("numpy", convert = TRUE)
+  sp <- tryCatch(import("scipy.sparse", convert = FALSE), error = function(e) NULL)
 
-  x <- t(py_to_r_auto(adata$X))
-  if (!inherits(x, "dgCMatrix")) {
-    x <- as.sparse(x[1:nrow(x), , drop = FALSE])
+  # Get feature and cell names BEFORE converting matrix
+  feature_names <- py_to_r_auto(adata$var_names$values)
+  cell_names <- py_to_r_auto(adata$obs_names$values)
+
+  # CRITICAL: Seurat V5 does NOT allow underscores in feature names
+  # Replace them BEFORE any other processing
+  if (any(grepl("_", feature_names))) {
+    feature_names <- gsub("_", "-", feature_names)
   }
-  rownames(x) <- py_to_r_auto(adata$var_names$values)
-  colnames(x) <- py_to_r_auto(adata$obs_names$values)
 
+  # Make feature names unique IMMEDIATELY (required for Seurat V5)
+  if (any(duplicated(feature_names))) {
+    warning("Duplicate feature names detected. Making them unique.", immediate. = TRUE)
+    feature_names <- make.unique(feature_names)
+  }
+
+  # Convert matrix from Python
+  # Check if it's a scipy sparse matrix
+  is_sparse_python <- !is.null(sp) && inherits(adata$X, "python.builtin.object")
+
+  if (is_sparse_python) {
+    # For scipy sparse matrices, convert to dense first for reliability
+    # then convert to R sparse matrix
+    x_raw <- py_to_r_auto(adata$X$toarray())
+  } else {
+    x_raw <- py_to_r_auto(adata$X)
+  }
+
+  # Check if we need to transpose (adata$X is usually cells x features)
+  # After transpose: features x cells (required by Seurat)
+  if (nrow(x_raw) == length(cell_names) && ncol(x_raw) == length(feature_names)) {
+    x <- t(x_raw)
+  } else if (nrow(x_raw) == length(feature_names) && ncol(x_raw) == length(cell_names)) {
+    # Already in correct orientation
+    x <- x_raw
+  } else {
+    stop("Matrix dimensions (", nrow(x_raw), " x ", ncol(x_raw),
+         ") don't match expected dimensions (features: ", length(feature_names),
+         ", cells: ", length(cell_names), ")")
+  }
+
+  # Ensure we have a proper R matrix object
+  if (!is.matrix(x) && !inherits(x, "Matrix")) {
+    x <- as.matrix(x)
+  }
+
+  # Create a CLEAN sparse matrix by building from scratch
+  # This avoids any issues with numpy/reticulate matrix conversion artifacts
+  if (!inherits(x, "dgCMatrix")) {
+    # Convert to regular R matrix first
+    if (inherits(x, "Matrix") && !is.matrix(x)) {
+      x <- as.matrix(x)
+    }
+    # Now create sparse matrix using sparseMatrix constructor for clean structure
+    # Find non-zero entries
+    nz <- which(x != 0, arr.ind = TRUE)
+    if (nrow(nz) > 0) {
+      x <- Matrix::sparseMatrix(
+        i = nz[, 1],
+        j = nz[, 2],
+        x = x[nz],
+        dims = dim(x),
+        dimnames = list(NULL, NULL),  # Set dimnames separately later
+        repr = "C"  # Column-compressed format (dgCMatrix)
+      )
+    } else {
+      # All zeros - create empty sparse matrix
+      x <- Matrix::sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
+                               dims = c(length(feature_names), length(cell_names)),
+                               dimnames = list(NULL, NULL), repr = "C")
+    }
+  }
+
+  # Validate dimensions after sparse conversion
+  if (nrow(x) != length(feature_names) || ncol(x) != length(cell_names)) {
+    stop("Matrix dimensions changed during sparse conversion. Got: ",
+         nrow(x), " x ", ncol(x), ", Expected: ",
+         length(feature_names), " x ", length(cell_names))
+  }
+
+  # Set dimnames on the clean sparse matrix
+  rownames(x) <- feature_names
+  colnames(x) <- cell_names
+
+  # Final validation
+  if (is.null(rownames(x)) || is.null(colnames(x))) {
+    stop("Failed to set rownames or colnames on sparse matrix")
+  }
+  if (length(rownames(x)) != nrow(x) || length(colnames(x)) != ncol(x)) {
+    stop("Dimnames length doesn't match matrix dimensions")
+  }
+
+  # Prepare metadata
   metadata <- NULL
   if (length(adata$obs_keys()) > 0) {
     metadata <- as.data.frame(py_to_r_auto(adata$obs))
     colnames(metadata) <- make.names(colnames(metadata))
+    rownames(metadata) <- cell_names
   }
 
-  srt <- CreateSeuratObject(counts = x, meta.data = metadata)
+  # Create Seurat object - Seurat V5 expects counts as a named list for layers
+  # Try providing counts as a list
+  srt <- tryCatch({
+    CreateAssay5Object(counts = list(counts = x), min.cells = 0, min.features = 0)
+  }, error = function(e) {
+    # Fallback: Try without list wrapper
+    tryCatch({
+      CreateAssay5Object(counts = x, min.cells = 0, min.features = 0)
+    }, error = function(e2) {
+      stop("Failed to create Assay5 object. Error 1: ", e$message, ", Error 2: ", e2$message)
+    })
+  })
+
+  # Now wrap in Seurat object
+  srt <- new("Seurat",
+            assays = list(RNA = srt),
+            meta.data = metadata,
+            active.assay = "RNA",
+            active.ident = factor(rep("cell", ncol(x))),
+            project.name = "SeuratProject",
+            version = packageVersion("SeuratObject"))
+  names(srt@active.ident) <- colnames(x)
 
   if (inherits(adata$layers, "python.builtin.object")) {
     keys <- iterate(adata$layers$keys())
@@ -5698,17 +5936,37 @@ adata_to_srt <- function(adata) {
   }
   if (length(keys) > 0) {
     for (k in keys) {
-      layer <- py_to_r_auto(adata$layers[[k]])
-      if (!inherits(layer, c("Matrix", "matrix"))) {
-        stop(paste0("The object in '", k, "' layers is not a matrix: ", paste0(class(adata$layers[[k]]), collapse = ",")))
+      layer_raw <- py_to_r_auto(adata$layers[[k]])
+      if (!inherits(layer_raw, c("Matrix", "matrix"))) {
+        warning("Layer '", k, "' is not a matrix. Skipping.", immediate. = TRUE)
+        next
       }
-      layer <- t(layer)
+
+      # Check orientation and transpose if needed
+      if (nrow(layer_raw) == length(cell_names) && ncol(layer_raw) == length(feature_names)) {
+        layer <- t(layer_raw)
+      } else if (nrow(layer_raw) == length(feature_names) && ncol(layer_raw) == length(cell_names)) {
+        layer <- layer_raw
+      } else {
+        warning("Layer '", k, "' dimensions (", nrow(layer_raw), " x ", ncol(layer_raw),
+                ") don't match expected dimensions. Skipping.", immediate. = TRUE)
+        next
+      }
+
+      # Convert to sparse
       if (!inherits(layer, "dgCMatrix")) {
-        layer <- as.sparse(layer[1:nrow(layer), , drop = FALSE])
+        layer <- as.sparse(layer)
       }
-      rownames(layer) <- py_to_r_auto(adata$var_names$values)
-      colnames(layer) <- py_to_r_auto(adata$obs_names$values)
-      srt[[py_to_r_auto(k)]] <- CreateAssayObject(counts = layer)
+
+      # Set dimnames
+      dimnames(layer) <- list(feature_names, cell_names)
+
+      # Add as assay with error handling
+      tryCatch({
+        srt[[py_to_r_auto(k)]] <- CreateAssayObject(counts = layer, min.cells = 0, min.features = 0)
+      }, error = function(e) {
+        warning("Failed to add layer '", k, "': ", e$message, immediate. = TRUE)
+      })
     }
   }
 
@@ -5727,10 +5985,21 @@ adata_to_srt <- function(adata) {
       if (!inherits(obsm, "matrix")) {
         obsm <- as_matrix(obsm)
       }
+
+      # Validate dimensions match cells
+      if (nrow(obsm) != length(cell_names)) {
+        warning("obsm '", k, "' has ", nrow(obsm), " rows but expected ", length(cell_names), " cells. Skipping.")
+        next
+      }
+
       k <- gsub(pattern = "^X_", replacement = "", x = py_to_r_auto(k))
-      colnames(obsm) <- paste0(k, "_", seq_len(ncol(obsm)))
-      rownames(obsm) <- py_to_r_auto(adata$obs_names$values)
-      srt[[py_to_r_auto(k)]] <- CreateDimReducObject(embeddings = obsm, assay = "RNA", key = paste0(gsub(pattern = "_", replacement = "", x = k), "_"))
+      # Use dimnames for consistency
+      dimnames(obsm) <- list(cell_names, paste0(k, "_", seq_len(ncol(obsm))))
+      tryCatch({
+        srt[[py_to_r_auto(k)]] <- CreateDimReducObject(embeddings = obsm, assay = "RNA", key = paste0(gsub(pattern = "_", replacement = "", x = k), "_"))
+      }, error = function(e) {
+        warning("Failed to add reduction '", k, "': ", e$message, immediate. = TRUE)
+      })
     }
   }
 
@@ -5749,16 +6018,34 @@ adata_to_srt <- function(adata) {
       if (!inherits(obsp, "dgCMatrix")) {
         obsp <- as.sparse(obsp[1:nrow(obsp), , drop = FALSE])
       }
-      colnames(obsp) <- py_to_r_auto(adata$obs_names$values)
-      rownames(obsp) <- py_to_r_auto(adata$obs_names$values)
-      obsp <- as.Graph(obsp[seq_len(nrow(obsp)), , drop = FALSE])
-      DefaultAssay(object = obsp) <- "RNA"
-      srt[[py_to_r_auto(k)]] <- obsp
+
+      # Validate dimensions
+      if (nrow(obsp) != length(cell_names) || ncol(obsp) != length(cell_names)) {
+        warning("obsp '", k, "' dimensions don't match cell count. Skipping.", immediate. = TRUE)
+        next
+      }
+
+      # Use dimnames for consistency
+      dimnames(obsp) <- list(cell_names, cell_names)
+      tryCatch({
+        obsp <- as.Graph(obsp)
+        DefaultAssay(object = obsp) <- "RNA"
+        srt[[py_to_r_auto(k)]] <- obsp
+      }, error = function(e) {
+        warning("Failed to add graph '", k, "': ", e$message, immediate. = TRUE)
+      })
     }
   }
 
   if (length(adata$var_keys()) > 0) {
-    srt[["RNA"]] <- AddMetaData(srt[["RNA"]], metadata = as.data.frame(py_to_r_auto(adata$var)))
+    var_meta <- as.data.frame(py_to_r_auto(adata$var))
+    # Ensure var metadata has matching rownames
+    if (nrow(var_meta) == length(feature_names)) {
+      rownames(var_meta) <- feature_names
+      srt[["RNA"]] <- AddMetaData(srt[["RNA"]], metadata = var_meta)
+    } else {
+      warning("Variable metadata dimensions don't match features. Skipping.")
+    }
   }
 
   if (inherits(adata$varm, "python.builtin.object")) {
@@ -5776,9 +6063,20 @@ adata_to_srt <- function(adata) {
       if (!inherits(varm, "matrix")) {
         varm <- as_matrix(varm)
       }
-      colnames(varm) <- paste0(py_to_r_auto(k), "_", seq_len(ncol(varm)))
-      rownames(varm) <- py_to_r_auto(adata$var_names$values)
-      srt[["RNA"]]@misc[["feature.loadings"]][[py_to_r_auto(k)]] <- varm
+
+      # Validate dimensions match features
+      if (nrow(varm) != length(feature_names)) {
+        warning("varm '", k, "' dimensions don't match features. Skipping.", immediate. = TRUE)
+        next
+      }
+
+      # Use dimnames for consistency
+      dimnames(varm) <- list(feature_names, paste0(py_to_r_auto(k), "_", seq_len(ncol(varm))))
+      tryCatch({
+        srt[["RNA"]]@misc[["feature.loadings"]][[py_to_r_auto(k)]] <- varm
+      }, error = function(e) {
+        warning("Failed to add feature loading '", k, "': ", e$message, immediate. = TRUE)
+      })
     }
   }
 
@@ -5797,8 +6095,15 @@ adata_to_srt <- function(adata) {
       if (!inherits(varp, "matrix")) {
         varp <- as_matrix(varp)
       }
-      colnames(varp) <- py_to_r_auto(adata$var_names$values)
-      rownames(varp) <- py_to_r_auto(adata$var_names$values)
+
+      # Validate dimensions
+      if (nrow(varp) != length(feature_names) || ncol(varp) != length(feature_names)) {
+        warning("varp '", k, "' dimensions don't match feature count. Skipping.")
+        next
+      }
+
+      colnames(varp) <- feature_names  # Use validated feature names
+      rownames(varp) <- feature_names
       srt[["RNA"]]@misc[["feature.graphs"]][[py_to_r_auto(k)]] <- varp
     }
   }
@@ -5942,7 +6247,10 @@ RunPAGA <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers
                     palette = "Paired", palcolor = NULL,
                     show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                     return_seurat = !is.null(srt)) {
-  check_Python(c("scanpy", "anndata"))
+  use_uv_env()
+  if (!reticulate::py_module_available("scanpy") || !reticulate::py_module_available("anndata")) {
+    stop("Python modules 'scanpy' and 'anndata' are required. Install with: uv_install(packages = c('scanpy', 'anndata'))")
+  }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -5983,17 +6291,55 @@ RunPAGA <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
   adata <- do.call(SCP_analysis$PAGA, args)
 
   if (isTRUE(return_seurat)) {
-    srt_out <- adata_to_srt(adata)
+    # WORKAROUND for Seurat V5 CreateSeuratObject bug
+    # Instead of full adata_to_srt conversion, extract only PAGA results
+    # and add them to the original Seurat object
     if (is.null(srt)) {
+      # If no original Seurat object, must do full conversion (will fail for now)
+      srt_out <- adata_to_srt(adata)
       return(srt_out)
     } else {
-      srt_out1 <- SrtAppend(srt_raw = srt, srt_append = srt_out)
-      srt_out2 <- SrtAppend(srt_raw = srt_out1, srt_append = srt_out, pattern = "(paga)|(distances)|(connectivities)|(draw_graph)", overwrite = TRUE, verbose = FALSE)
-      return(srt_out2)
+      # Extract PAGA results and add to original object
+      # Get PAGA results from uns
+      if ("paga" %in% names(py_to_r_auto(adata$uns))) {
+        srt@misc$paga <- py_to_r_auto(adata$uns[["paga"]])
+      }
+
+      # Extract any new reductions from obsm (like draw_graph)
+      obsm_keys <- reticulate::iterate(adata$obsm$keys())
+      for (k in obsm_keys) {
+        if (grepl("draw_graph", k)) {
+          obsm <- tryCatch(py_to_r_auto(adata$obsm[[k]]), error = function(e) NULL)
+          if (!is.null(obsm) && is.matrix(obsm)) {
+            k_clean <- gsub(pattern = "^X_", replacement = "", x = k)
+            rownames(obsm) <- colnames(srt)
+            colnames(obsm) <- paste0(k_clean, "_", seq_len(ncol(obsm)))
+            tryCatch({
+              srt[[k_clean]] <- CreateDimReducObject(
+                embeddings = obsm,
+                assay = DefaultAssay(srt),
+                key = paste0(gsub("_", "", k_clean), "_")
+              )
+            }, error = function(e) {
+              warning("Failed to add reduction '", k_clean, "': ", e$message, immediate. = TRUE)
+            })
+          }
+        }
+      }
+
+      # Add any new metadata from obs
+      obs_df <- as.data.frame(py_to_r_auto(adata$obs))
+      for (col in colnames(obs_df)) {
+        if (!col %in% colnames(srt@meta.data)) {
+          srt[[make.names(col)]] <- obs_df[[col]][match(colnames(srt), rownames(obs_df))]
+        }
+      }
+
+      return(srt)
     }
   } else {
     return(adata)
@@ -6058,11 +6404,14 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
                       return_seurat = !is.null(srt)) {
   # Ensure Python environment for velocity
   result <- tryCatch({
-    check_Python(c("scvelo", "anndata"))
+    use_uv_env()
+    if (!reticulate::py_module_available("scvelo") || !reticulate::py_module_available("anndata")) {
+      stop("Required Python modules not available")
+    }
     NULL
   }, error = function(e) {
-    message("Python module 'scvelo' is required for velocity analysis but is not installed.")
-    message("To install, run: PrepareEnv() and then check_Python('scvelo')")
+    message("Python modules 'scvelo' and 'anndata' are required for velocity analysis but not installed.")
+    message("To install, run: PrepareEnv() or use uv_install(packages = c('scvelo', 'anndata'))")
     return(e)
   })
   
@@ -6072,11 +6421,14 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   
   if (isTRUE(magic_impute)) {
     result <- tryCatch({
-      check_Python(c("magic-impute"))
+      use_uv_env()
+      if (!reticulate::py_module_available("magic")) {
+        stop("Required Python module not available")
+      }
       NULL
     }, error = function(e) {
       message("Python module 'magic-impute' is required for imputation but is not installed.")
-      message("To install, run: PrepareEnv() and then check_Python('magic-impute')")
+      message("To install, run: uv_install(packages = 'magic-impute')")
       return(e)
     })
     
@@ -6136,7 +6488,7 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
 
   # Import Python module with better error handling
   SCP_analysis <- tryCatch({
-    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
   }, error = function(e) {
     message("Failed to import SCP_analysis Python module: ", e$message)
     message("This may indicate an issue with your Python environment setup.")
@@ -6208,7 +6560,10 @@ RunPalantir <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
                         point_size = 20, palette = "Paired", palcolor = NULL,
                         show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                         return_seurat = !is.null(srt)) {
-  check_Python(c("palantir", "anndata"))
+  use_uv_env()
+  if (!reticulate::py_module_available("palantir") || !reticulate::py_module_available("anndata")) {
+    stop("Python modules 'palantir' and 'anndata' are required. Install with: uv_install(packages = c('palantir', 'anndata'))")
+  }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -6252,7 +6607,7 @@ RunPalantir <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
   adata <- do.call(SCP_analysis$Palantir, args)
 
   if (isTRUE(return_seurat)) {
@@ -6289,7 +6644,10 @@ RunWOT <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers 
                    palette = "Paired", palcolor = NULL,
                    show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                    return_seurat = !is.null(srt)) {
-  check_Python(c("wot"))
+  use_uv_env()
+  if (!reticulate::py_module_available("wot")) {
+    stop("Python module 'wot' is required. Install with: uv_install(packages = 'wot')")
+  }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
   }
@@ -6337,8 +6695,11 @@ RunWOT <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers 
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  check_Python(c("wot", "anndata"))
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  use_uv_env()
+  if (!reticulate::py_module_available("wot") || !reticulate::py_module_available("anndata")) {
+    stop("Python modules 'wot' and 'anndata' are required. Install with: uv_install(packages = c('wot', 'anndata'))")
+  }
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
   adata <- do.call(SCP_analysis$WOT, args)
 
   if (isTRUE(return_seurat)) {
@@ -6367,9 +6728,15 @@ RunCellRank <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
                         denoise = FALSE, kinetics = FALSE, axis = "equal",
                         show_plot = TRUE, save = FALSE, dpi = 300, dirpath = "./", fileprefix = "",
                         return_seurat = !is.null(srt)) {
-  check_Python(c("cellrank", "anndata"))
+  use_uv_env()
+  if (!reticulate::py_module_available("cellrank") || !reticulate::py_module_available("anndata")) {
+    stop("Python modules 'cellrank' and 'anndata' are required. Install with: uv_install(packages = c('cellrank', 'anndata'))")
+  }
   if (isTRUE(magic_impute)) {
-    check_Python(c("magic-impute"))
+    use_uv_env()
+    if (!reticulate::py_module_available("magic")) {
+      stop("Python module 'magic-impute' is required. Install with: uv_install(packages = 'magic-impute')")
+    }
   }
   if (all(is.null(srt), is.null(adata))) {
     stop("One of 'srt', 'adata' must be provided.")
@@ -6412,7 +6779,7 @@ RunCellRank <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCP", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
   adata <- do.call(SCP_analysis$CellRank, args)
 
   if (isTRUE(return_seurat)) {

@@ -1,7 +1,7 @@
-Package: SCP
+Package: SCPNext
 Type: Package
-Title: Single Cell Pipeline
-Version: 0.7.0
+Title: Next-Generation Single Cell Pipeline
+Version: 0.1.0
 Authors@R: c(
     person(given = "Hao",
            family = "Zhang",
@@ -14,7 +14,7 @@ Authors@R: c(
            email = "mianaz@users.noreply.github.com",
            comment = "Seurat V5 adaptation, Python 3.12 support, and UV integration"))
 Maintainer: Miana Z <mianaz@users.noreply.github.com>
-Description: An end-to-end Single-Cell Pipeline designed to facilitate comprehensive analysis and exploration of single-cell data. This version adds full Seurat V5 compatibility, Python 3.12 support with updated dependencies, enhanced M-silicon Mac compatibility, and modern Python dependency management with UV.
+Description: Next-generation Single-Cell Pipeline with Seurat V5 compatibility, Python 3.12 support, UV-based dependency management, and enhanced M-silicon Mac compatibility. Evolution of the original SCP package optimized for modern single-cell analysis workflows.
 SystemRequirements: Python (>= 3.10, < 3.14)
 License: GPL (>= 3)
 Encoding: UTF-8

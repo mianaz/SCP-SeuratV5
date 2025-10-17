@@ -97,11 +97,14 @@ db_Scrublet <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 * 0.01, .
   }
   # Check for scrublet availability with better error handling
   result <- tryCatch({
-    check_Python(c("scrublet"))
+    use_uv_env()
+    if (!reticulate::py_module_available("scrublet")) {
+      stop("Required Python module not available")
+    }
     NULL
   }, error = function(e) {
     message("Python module 'scrublet' is required for doublet detection but is not installed.")
-    message("To install, run: PrepareEnv() and then EnsureEnv(required='scrublet')")
+    message("To install, run: uv_install(packages = 'scrublet')")
     return(e)
   })
   
@@ -159,11 +162,14 @@ db_DoubletDetection <- function(srt, assay = "RNA", db_rate = ncol(srt) / 1000 *
   }
   # Check for doubletdetection availability with better error handling
   result <- tryCatch({
-    check_Python(c("doubletdetection"))
+    use_uv_env()
+    if (!reticulate::py_module_available("doubletdetection")) {
+      stop("Required Python module not available")
+    }
     NULL
   }, error = function(e) {
     message("Python module 'doubletdetection' is required for DoubletDetection but is not installed.")
-    message("To install, run: PrepareEnv() and then EnsureEnv(required='doubletdetection')")
+    message("To install, run: uv_install(packages = 'doubletdetection')")
     return(e)
   })
   
@@ -414,7 +420,13 @@ RunCellQC <- function(srt, assay = "RNA", split.by = NULL, return_filtered = FAL
         }
         for (dbm in db_method) {
           srt <- RunDoubletCalling(srt = srt, db_method = dbm, db_rate = db_rate)
-          db_qc <- unique(c(db_qc, colnames(srt)[srt[[paste0("db.", dbm, "_class"), drop = TRUE]] == "doublet"]))
+          # Check if the doublet calling was successful
+          class_col <- paste0("db.", dbm, "_class")
+          if (class_col %in% colnames(srt@meta.data)) {
+            db_qc <- unique(c(db_qc, colnames(srt)[srt[[class_col, drop = TRUE]] == "doublet"]))
+          } else {
+            warning("Doublet calling with method '", dbm, "' failed or column '", class_col, "' not found. Skipping.", immediate. = TRUE)
+          }
         }
       }
     }

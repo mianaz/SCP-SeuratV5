@@ -270,11 +270,10 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
 #' @importFrom Seurat Reductions GetAssayData CreateDimReducObject ProjectUMAP
 #' @importFrom SeuratObject LayerData
 #' @export
-RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
+RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
                       ref_pca = NULL, ref_dims = 1:30, ref_umap = NULL, ref_group = NULL,
                       projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
   query_assay <- query_assay %||% DefaultAssay(srt_query)
-  ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
     srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
   }
@@ -287,6 +286,7 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
       message("Set ref_pca to ", ref_pca)
     }
   }
+  ref_assay <- ref_assay %||% srt_ref[[ref_pca]]@assay.used
   if (is.null(ref_umap)) {
     ref_umap <- sort(Reductions(srt_ref)[grep("umap", Reductions(srt_ref), ignore.case = TRUE)])[1]
     if (length(ref_umap) == 0) {
@@ -361,13 +361,12 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 #'
 #' @importFrom Seurat Reductions FindTransferAnchors TransferData IntegrateEmbeddings ProjectUMAP
 #' @export
-RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
+RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
                          ref_pca = NULL, ref_dims = 1:30, ref_umap = NULL, ref_group = NULL,
                          normalization.method = "LogNormalize", reduction_project_method = "pcaproject",
                          k.anchor = 5, k.filter = 200, k.score = 30, k.weight = 100,
                          projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
   query_assay <- query_assay %||% DefaultAssay(srt_query)
-  ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   weight.reduction <- switch(reduction_project_method,
     "pcaproject" = "pcaproject",
     "lsiproject" = "lsiproject",
@@ -384,6 +383,7 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt
     }
     cat("Set the ref_pca to '", ref_pca, "'\n", sep = "")
   }
+  ref_assay <- ref_assay %||% srt_ref[[ref_pca]]@assay.used
   if (is.null(ref_umap)) {
     ref_umap <- sort(Reductions(srt_ref)[grep("umap", Reductions(srt_ref), ignore.case = TRUE)])[1]
     if (length(ref_umap) == 0) {
@@ -450,12 +450,11 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt
 #'
 #' @importFrom Seurat Reductions CreateDimReducObject ProjectUMAP
 #' @export
-RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_css]]@assay.used,
+RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
                       ref_css = NULL, ref_umap = NULL, ref_group = NULL,
                       projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
   require_packages("simspec")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
-  ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
     srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     ref_group <- "ref_group"
@@ -471,6 +470,7 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
       }
     }
   }
+  ref_assay <- ref_assay %||% srt_ref[[ref_css]]@assay.used
   if (is.null(ref_umap)) {
     ref_umap <- sort(Reductions(srt_ref)[grep("umap", Reductions(srt_ref), ignore.case = TRUE)])[1]
     if (length(ref_umap) == 0) {
@@ -488,7 +488,6 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  ref_assay <- srt_ref[[ref_css]]@assay.used
   status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
   status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
@@ -535,12 +534,11 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_re
 #' @importFrom SeuratObject LayerData
 #' @importFrom stats sd
 #' @export
-RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = srt_ref[[ref_pca]]@assay.used,
+RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
                            ref_pca = NULL, ref_harmony = NULL, ref_umap = NULL, ref_group = NULL,
                            projection_method = c("model", "knn"), nn_method = NULL, k = 30, distance_metric = "cosine", vote_fun = "mean") {
   require_packages("symphony")
   query_assay <- query_assay %||% DefaultAssay(srt_query)
-  ref_assay <- ref_assay %||% DefaultAssay(srt_ref)
   if (!is.null(ref_group)) {
     srt_ref <- validate_group_parameter(srt_ref, ref_group, param_name = "ref_group", target_slot = "ref_group")
     ref_group <- "ref_group"
@@ -553,6 +551,7 @@ RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = s
       message("Set ref_pca to ", ref_pca)
     }
   }
+  ref_assay <- ref_assay %||% srt_ref[[ref_pca]]@assay.used
   if (is.null(ref_harmony)) {
     ref_harmony <- sort(Reductions(srt_ref)[grep("harmony", Reductions(srt_ref), ignore.case = TRUE)])[1]
     if (length(ref_harmony) == 0) {

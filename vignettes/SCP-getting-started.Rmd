@@ -1,0 +1,944 @@
+---
+title: "Getting Started with SCPNext"
+author: "mianaz"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Getting Started with SCPNext}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+  #warning = FALSE,
+  #message = FALSE
+)
+```
+
+# Introduction
+
+SCP2 provides a comprehensive set of tools for single-cell data processing and downstream analysis. It is developed on the basis of SCP (Single-Cell Pipeline), but with full support for Seurat V5 and later, and enhanced python package management using [uv](https://github.com/astral-sh/uv).
+
+# Installation
+
+## Prerequisites
+
+You will need uv for managing the Python environment. 
+To install, run the following command in your terminal:
+
+```{bash}
+# On macOS and Linux.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```{bash}
+# On Windows.
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Or from PyPI:
+```{bash}
+# With pip.
+pip install uv
+# Or pipx.
+pipx install uv
+```
+
+## R version requirement
+- R>4.1.0
+- Seurat>4.1.0
+
+## Install from GitHub
+
+```{r install, eval=FALSE}
+# Install devtools if needed
+install.packages("devtools")
+
+# Install SCP
+devtools::install_github("mianaz/SCP-SeuratV5")
+```
+
+## Python Environment Setup (One-Time Only)
+
+To speed up and simplify the installation of Python dependencies, SCPNext uses uv to create and manage a dedicated Python environment.
+
+```{r python_setup, eval=FALSE}
+library(SCP)
+
+# Install core dependencies only (~5 seconds)
+PrepareEnv()
+
+# OR install all features (~60 seconds)
+PrepareEnv(extras = "all")
+
+# OR install specific features
+PrepareEnv(extras = c("velocity", "trajectory", "spatial"))
+```
+
+**In future R sessions**, run:
+
+```{r activate_env}
+library(SCP)
+use_uv_env()  # Activate Python environment
+```
+
+# Quick Start
+
+## Data Exploration
+
+```{r load}
+library(SCP)
+library(BiocParallel)
+register(MulticoreParam(workers = 8, progressbar = TRUE))
+
+data("pancreas_sub")
+print(pancreas_sub)
+```
+
+```{r}
+CellDimPlot(
+  srt = pancreas_sub, group.by = c("CellType", "SubCellType"),
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+CellDimPlot(
+  srt = pancreas_sub, group.by = "SubCellType", stat.by = "Phase",
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+FeatureDimPlot(
+  srt = pancreas_sub, features = c("Sox9", "Neurog3", "Fev", "Rbp4"),
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+FeatureDimPlot(
+  srt = pancreas_sub, features = c("Ins1", "Gcg", "Sst", "Ghrl"),
+  compare_features = TRUE, label = TRUE, label_insitu = TRUE,
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+ht <- GroupHeatmap(
+  srt = pancreas_sub,
+  features = c(
+    "Sox9", "Anxa2", # Ductal
+    "Neurog3", "Hes6", # EPs
+    "Fev", "Neurod1", # Pre-endocrine
+    "Rbp4", "Pyy", # Endocrine
+    "Ins1", "Gcg", "Sst", "Ghrl" # Beta, Alpha, Delta, Epsilon
+  ),
+  group.by = c("CellType", "SubCellType"),
+  heatmap_palette = "YlOrRd",
+  cell_annotation = c("Phase", "G2M_score", "Cdh2"),
+  cell_annotation_palette = c("Dark2", "Paired", "Paired"),
+  show_row_names = TRUE, row_names_side = "left",
+  add_dot = TRUE, add_reticle = TRUE
+)
+print(ht$grob)
+```
+
+## CellQC
+```{r}
+pancreas_sub <- RunCellQC(srt = pancreas_sub)
+CellDimPlot(srt = pancreas_sub, group.by = "CellQC", reduction = "UMAP")
+```
+```{r}
+CellStatPlot(srt = pancreas_sub, stat.by = "CellQC", group.by = "CellType", label = TRUE)
+```
+```{r}
+CellStatPlot(
+  srt = pancreas_sub,
+  stat.by = c(
+    "db_qc", "outlier_qc", "umi_qc", "gene_qc",
+    "mito_qc", "ribo_qc", "ribo_mito_ratio_qc", "species_qc"
+  ),
+  plot_type = "upset", stat_level = "Fail"
+)
+```
+
+## Standard Pipeline
+```{r}
+pancreas_sub <- Standard_SCP(srt = pancreas_sub)
+CellDimPlot(
+  srt = pancreas_sub, group.by = c("CellType", "SubCellType"),
+  reduction = "StandardUMAP2D", theme_use = "theme_blank"
+)
+```
+
+```{r}
+CellDimPlot3D(srt = pancreas_sub, group.by = "SubCellType")
+```
+
+```{r}
+FeatureDimPlot3D(srt = pancreas_sub, features = c("Sox9", "Neurog3", "Fev", "Rbp4"))
+```
+
+## Integration Pipeline
+not tested.  separately
+```{r}
+# needs to be tested separately, too slow
+data("panc8_sub")
+panc8_sub <- Integration_SCP(srtMerge = panc8_sub, batch = "tech", integration_method = "Seurat")
+CellDimPlot(
+  srt = panc8_sub, group.by = c("celltype", "tech"), reduction = "SeuratUMAP2D",
+  title = "Seurat", theme_use = "theme_blank"
+)
+```
+
+## Cell projection between single-cell datasets
+
+```{r}
+old_names <- rownames(panc8_sub[["RNA"]])
+new_names <- make.unique(capitalize(old_names, force_tolower = TRUE))
+names(new_names) <- old_names
+panc8_rename <- RenameFeatures(
+    srt = panc8_sub,
+    newnames = new_names,
+    assays = "RNA"
+  )
+srt_query <- RunKNNMap(srt_query = pancreas_sub, srt_ref = panc8_rename, ref_umap = "SeuratUMAP2D")
+ProjectionPlot(
+  srt_query = srt_query, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype"
+)
+```
+
+## Cell annotation using bulk RNA-seq datasets
+```{r}
+data("ref_scMCA")
+pancreas_sub <- RunKNNPredict(srt_query = pancreas_sub, bulk_ref = ref_scMCA, filter_lowfreq = 20)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+## Cell annotation using single-cell datasets
+```{r}
+pancreas_sub <- RunKNNPredict(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  ref_group = "celltype", filter_lowfreq = 20
+)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+```{r}
+pancreas_sub <- RunKNNPredict(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype",
+  return_full_distance_matrix = TRUE
+)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+```{r}
+ht <- CellCorHeatmap(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype",
+  nlabel = 3, label_by = "row",
+  show_row_names = TRUE, show_column_names = TRUE
+)
+print(ht$plot)
+```
+
+## PAGA analysis
+```{r}
+pancreas_sub <- RunPAGA(
+  srt = pancreas_sub, group_by = "SubCellType",
+  linear_reduction = "PCA", nonlinear_reduction = "UMAP"
+)
+PAGAPlot(srt = pancreas_sub, reduction = "UMAP", label = TRUE, label_insitu = TRUE, label_repel = TRUE)
+```
+
+## Velocity analysis
+```{r}
+pancreas_sub <- RunSCVELO(
+  srt = pancreas_sub, group_by = "SubCellType",
+  linear_reduction = "PCA", nonlinear_reduction = "UMAP"
+)
+VelocityPlot(srt = pancreas_sub, reduction = "UMAP", group_by = "SubCellType")
+```
+
+```{r}
+VelocityPlot(srt = pancreas_sub, reduction = "UMAP", plot_type = "stream")
+```
+
+add: loom file loading?
+
+## Differential Expression
+```{r}
+pancreas_sub <- RunDEtest(srt = pancreas_sub, group_by = "CellType", fc.threshold = 1, only.pos = FALSE)
+VolcanoPlot(srt = pancreas_sub, group_by = "CellType")
+```
+
+
+```{r}
+DEGs <- pancreas_sub@tools$DEtest_CellType$AllMarkers_wilcox
+DEGs <- DEGs[with(DEGs, avg_log2FC > 1 & p_val_adj < 0.05), ]
+# Annotate features with transcription factors and surface proteins
+pancreas_sub <- AnnotateFeatures(pancreas_sub, species = "Mus_musculus", db = c("TF", "CSPA"))
+ht <- FeatureHeatmap(
+  srt = pancreas_sub, group.by = "CellType", features = DEGs$gene, feature_split = DEGs$group1,
+  species = "Mus_musculus", db = c("GO_BP", "KEGG", "WikiPathway"), anno_terms = TRUE,
+  feature_annotation = c("TF", "CSPA"), feature_annotation_palcolor = list(c("gold", "steelblue"), c("forestgreen")),
+  height = 5, width = 4
+)
+print(ht$plot)
+```
+
+## Enrichment analysis (over-representation)
+```{r}
+pancreas_sub <- RunEnrichment(
+  srt = pancreas_sub, group_by = "CellType", db = "GO_BP", species = "Mus_musculus",
+  DE_threshold = "avg_log2FC > log2(1.5) & p_val_adj < 0.05"
+)
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "bar"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "wordcloud"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "wordcloud", word_type = "feature"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Ductal",
+  plot_type = "network"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Ductal",
+  plot_type = "enrichmap"
+)
+```
+
+```{r}
+EnrichmentPlot(srt = pancreas_sub, group_by = "CellType", plot_type = "comparison")
+```
+
+## Enrichment analysis (GSEA)
+```{r}
+GSEAPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Endocrine", plot_type = "bar",
+  direction = "both", topTerm = 20
+)
+```
+
+```{r}
+GSEAPlot(srt = pancreas_sub, group_by = "CellType", plot_type = "comparison")
+```
+
+## Trajectory inference
+```{r}
+pancreas_sub <- RunSlingshot(srt = pancreas_sub, group.by = "SubCellType", reduction = "UMAP")
+```
+
+```{r}
+FeatureDimPlot(pancreas_sub, features = paste0("Lineage", 1:3), reduction = "UMAP", theme_use = "theme_blank")
+```
+
+```{r}
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP", lineages = paste0("Lineage", 1:3), lineages_span = 0.1)
+```
+
+## Dynamic features
+```{r}
+pancreas_sub <- RunDynamicFeatures(srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"), n_candidates = 200)
+ht <- DynamicHeatmap(
+  srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"),
+  use_fitted = TRUE, n_split = 6, reverse_ht = "Lineage1",
+  species = "Mus_musculus", db = "GO_BP", anno_terms = TRUE, anno_keys = TRUE, anno_features = TRUE,
+  heatmap_palette = "viridis", cell_annotation = "SubCellType",
+  separate_annotation = list("SubCellType", c("Nnat", "Irx1")), separate_annotation_palette = c("Paired", "Set1"),
+  feature_annotation = c("TF", "CSPA"), feature_annotation_palcolor = list(c("gold", "steelblue"), c("forestgreen")),
+  pseudotime_label = 25, pseudotime_label_color = "red",
+  height = 5, width = 2
+)
+print(ht$plot)
+```
+
+```{r}
+DynamicPlot(
+  srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"), group.by = "SubCellType",
+  features = c("Plk1", "Hes1", "Neurod2", "Ghrl", "Gcg", "Ins2"),
+  compare_lineages = TRUE, compare_features = FALSE
+)
+```
+
+```{r}
+FeatureStatPlot(
+  srt = pancreas_sub, group.by = "SubCellType", bg.by = "CellType",
+  stat.by = c("Sox9", "Neurod2", "Isl1", "Rbp4"), add_box = TRUE,
+  comparisons = list(
+    c("Ductal", "Ngn3 low EP"),
+    c("Ngn3 high EP", "Pre-endocrine"),
+    c("Alpha", "Beta")
+  )
+)
+```
+
+## Interactive data visualization with SCExplorer
+```{r}
+PrepareSCExplorer(list(mouse_pancreas = pancreas_sub, human_pancreas = panc8_sub), base_dir = "./SCExplorer")
+app <- RunSCExplorer(base_dir = "./SCExplorer")
+list.files("./SCExplorer") # This directory can be used as site directory for Shiny Server.
+
+if (interactive()) {
+  shiny::runApp(app)
+}
+```
+
+
+# Visualization Tuning
+
+## Cell Dimensionality Reduction Plots
+
+### Basic Plotting
+
+```{r celldim_basic, eval=FALSE}
+data("pancreas_sub")
+
+# Basic plot
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP")
+
+# Custom themes
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",theme_use = "theme_blank")
+```
+
+### Highlighting Cells
+
+```{r celldim_highlight, eval=FALSE}
+# Highlight specific cells
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  cells.highlight = colnames(pancreas_sub)[pancreas_sub$SubCellType == "Epsilon"]
+)
+
+# Highlight cells by split
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", split.by = "Phase", reduction = "UMAP",
+  cells.highlight = TRUE, theme_use = "theme_blank", legend.position = "none"
+)
+```
+
+### Adding Labels
+
+```{r celldim_labels, eval=FALSE}
+# Basic labels
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            label = TRUE)
+
+# Customized labels
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  label = TRUE, label.fg = "orange", label.bg = "red", label.size = 5
+)
+
+# In-situ labels
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  label = TRUE, label_insitu = TRUE
+)
+
+# Repelled labels
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  label = TRUE, label_insitu = TRUE, label_repel = TRUE,
+  label_segment_color = "red"
+)
+```
+
+### Adding Marks and Shapes
+
+```{r celldim_marks, eval=FALSE}
+# Hull marks
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE)
+
+# Customize marks
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE, mark_expand = unit(1, "mm"))
+
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE, mark_alpha = 0.3)
+
+# Different mark types
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE, mark_type = "ellipse")
+
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE, mark_type = "rect")
+
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_mark = TRUE, mark_type = "circle")
+```
+
+### Adding Density Layers
+
+```{r celldim_density, eval=FALSE}
+# Density contours
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_density = TRUE)
+
+# Filled density
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            add_density = TRUE, density_filled = TRUE)
+
+# Custom color palette
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  add_density = TRUE, density_filled = TRUE,
+  density_filled_palette = "Blues",
+  cells.highlight = TRUE
+)
+```
+
+### Statistical Charts
+
+```{r celldim_stat, eval=FALSE}
+# Pie charts
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            stat.by = "Phase")
+
+# Ring charts with labels
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            stat.by = "Phase", stat_plot_type = "ring",
+            stat_plot_label = TRUE, stat_plot_size = 0.15)
+
+# Bar charts
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            stat.by = "Phase", stat_plot_type = "bar",
+            stat_type = "count", stat_plot_position = "dodge")
+```
+
+### Hexagonal Binning
+
+```{r celldim_hex, eval=FALSE}
+# Basic hexbin
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            hex = TRUE)
+
+# Adjust bin size
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            hex = TRUE, hex.bins = 20)
+
+# Without counts
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            hex = TRUE, hex.count = FALSE)
+```
+
+### Network Graphs
+
+```{r celldim_graph, eval=FALSE}
+pancreas_sub <- Standard_SCP(pancreas_sub)
+
+# Show neighbor connections
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            graph = "Standardpca_SNN")
+
+# Customize edge color
+CellDimPlot(pancreas_sub, group.by = "CellType", reduction = "UMAP",
+            graph = "Standardpca_SNN", edge_color = "grey80")
+```
+
+## Feature Dimensionality Reduction Plots
+
+### Basic Feature Plotting
+
+```{r featdim_basic, eval=FALSE}
+data("pancreas_sub")
+
+# Plot single feature
+FeatureDimPlot(pancreas_sub, features = "G2M_score", reduction = "UMAP")
+
+# Remove background cutoff
+FeatureDimPlot(pancreas_sub, features = "G2M_score", reduction = "UMAP",
+               bg_cutoff = -Inf)
+
+# Different themes
+FeatureDimPlot(pancreas_sub, features = "G2M_score", reduction = "UMAP",
+               theme_use = "theme_blank")
+
+FeatureDimPlot(pancreas_sub, features = "G2M_score", reduction = "UMAP",
+               theme_use = ggplot2::theme_classic,
+               theme_args = list(base_size = 16))
+```
+
+### Multiple Features
+
+```{r featdim_multiple, eval=FALSE}
+pancreas_sub <- Standard_SCP(pancreas_sub)
+
+# Plot PCs
+FeatureDimPlot(pancreas_sub,
+               features = c("StandardPC_1", "StandardPC_2"),
+               reduction = "UMAP", bg_cutoff = -Inf)
+```
+
+### Labels and Highlighting
+
+```{r featdim_highlight, eval=FALSE}
+# Label high expression cells
+FeatureDimPlot(pancreas_sub,
+  features = "Rbp4", reduction = "UMAP", label = TRUE,
+  cells.highlight = colnames(pancreas_sub)[pancreas_sub$SubCellType == "Delta"]
+)
+
+# Split by variable with highlighting
+FeatureDimPlot(pancreas_sub,
+  features = "Rbp4", split.by = "Phase", reduction = "UMAP",
+  cells.highlight = TRUE, theme_use = "theme_blank"
+)
+```
+
+### Adding Density
+
+```{r featdim_density, eval=FALSE}
+# Density contours
+FeatureDimPlot(pancreas_sub, features = "Rbp4", reduction = "UMAP",
+               label = TRUE, add_density = TRUE)
+
+# Filled density
+FeatureDimPlot(pancreas_sub, features = "Rbp4", reduction = "UMAP",
+               label = TRUE, add_density = TRUE, density_filled = TRUE)
+```
+
+### Hexagonal Binning
+
+```{r featdim_hex, eval=FALSE}
+# Basic hex plot
+FeatureDimPlot(pancreas_sub, features = "Rbp4", reduction = "UMAP",
+               hex = TRUE)
+
+# Adjust bins
+FeatureDimPlot(pancreas_sub, features = "Rbp4", reduction = "UMAP",
+               hex = TRUE, hex.bins = 20)
+```
+
+### Named Feature Lists
+
+```{r featdim_named, eval=FALSE}
+# Define marker lists
+markers <- list(
+  "Ductal" = c("Sox9", "Anxa2", "Bicc1"),
+  "EPs" = c("Neurog3", "Hes6"),
+  "Pre-endocrine" = c("Fev", "Neurod1"),
+  "Endocrine" = c("Rbp4", "Pyy"),
+  "Beta" = "Ins1",
+  "Alpha" = "Gcg",
+  "Delta" = "Sst",
+  "Epsilon" = "Ghrl"
+)
+
+# Plot organized by category
+FeatureDimPlot(pancreas_sub,
+  features = markers, reduction = "UMAP",
+  theme_use = "theme_blank",
+  theme_args = list(
+    plot.subtitle = ggplot2::element_text(size = 10),
+    strip.text = ggplot2::element_text(size = 8)
+  )
+)
+```
+
+### Scale Control
+
+```{r featdim_scale, eval=FALSE}
+endocrine_markers <- c(
+  "Beta" = "Ins1",
+  "Alpha" = "Gcg",
+  "Delta" = "Sst",
+  "Epsilon" = "Ghrl"
+)
+
+# Default feature-wise scaling
+FeatureDimPlot(pancreas_sub, endocrine_markers, reduction = "UMAP")
+
+# Adjust quantile cutoffs
+FeatureDimPlot(pancreas_sub, endocrine_markers, reduction = "UMAP",
+               lower_quantile = 0, upper_quantile = 0.8)
+
+# Absolute cutoffs
+FeatureDimPlot(pancreas_sub, endocrine_markers, reduction = "UMAP",
+               lower_cutoff = 1, upper_cutoff = 4)
+
+# Background + cutoffs
+FeatureDimPlot(pancreas_sub, endocrine_markers, reduction = "UMAP",
+               bg_cutoff = 2, lower_cutoff = 2, upper_cutoff = 4)
+
+# Universal scaling across all features
+FeatureDimPlot(pancreas_sub, endocrine_markers, reduction = "UMAP",
+               keep_scale = "all")
+
+# Feature scaling with split
+FeatureDimPlot(pancreas_sub,
+               c("Delta" = "Sst", "Epsilon" = "Ghrl"),
+               split.by = "Phase", reduction = "UMAP",
+               keep_scale = "feature")
+```
+
+### Compare Multiple Features
+
+```{r featdim_compare, eval=FALSE}
+# Blend multiple features
+FeatureDimPlot(pancreas_sub,
+  features = endocrine_markers, pt.size = 1,
+  compare_features = TRUE, color_blend_mode = "blend",
+  label = TRUE, label_insitu = TRUE
+)
+
+# Different blend modes
+FeatureDimPlot(pancreas_sub,
+  features = c("S_score", "G2M_score"), pt.size = 1,
+  palcolor = c("red", "green"),
+  compare_features = TRUE, color_blend_mode = "blend",
+  title = "blend",
+  label = TRUE, label_insitu = TRUE
+)
+
+FeatureDimPlot(pancreas_sub,
+  features = c("S_score", "G2M_score"), pt.size = 1,
+  palcolor = c("red", "green"),
+  compare_features = TRUE, color_blend_mode = "average",
+  title = "average",
+  label = TRUE, label_insitu = TRUE
+)
+
+FeatureDimPlot(pancreas_sub,
+  features = c("S_score", "G2M_score"), pt.size = 1,
+  palcolor = c("red", "green"),
+  compare_features = TRUE, color_blend_mode = "screen",
+  title = "screen",
+  label = TRUE, label_insitu = TRUE
+)
+
+FeatureDimPlot(pancreas_sub,
+  features = c("S_score", "G2M_score"), pt.size = 1,
+  palcolor = c("red", "green"),
+  compare_features = TRUE, color_blend_mode = "multiply",
+  title = "multiply",
+  label = TRUE, label_insitu = TRUE
+)
+```
+
+# Trajectory Analysis
+
+## Slingshot Lineages
+
+```{r slingshot, eval=FALSE}
+# Run Slingshot trajectory inference
+pancreas_sub <- RunSlingshot(pancreas_sub,
+                              group.by = "SubCellType",
+                              reduction = "UMAP",
+                              show_plot = FALSE)
+
+# Visualize pseudotime
+FeatureDimPlot(pancreas_sub,
+               features = paste0("Lineage", 1:3),
+               reduction = "UMAP")
+
+# Show lineages on cell plot
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            lineages = paste0("Lineage", 1:3))
+
+# Add whiskers
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            lineages = paste0("Lineage", 1:3), lineages_whiskers = TRUE)
+
+# Adjust smoothing
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            lineages = paste0("Lineage", 1:3), lineages_span = 0.1)
+
+# Feature plot with lineages
+FeatureDimPlot(pancreas_sub, features = "Lineage3", reduction = "UMAP",
+               lineages = "Lineage3")
+
+FeatureDimPlot(pancreas_sub, features = "Lineage3", reduction = "UMAP",
+               lineages = "Lineage3", lineages_whiskers = TRUE)
+
+FeatureDimPlot(pancreas_sub, features = "Lineage3", reduction = "UMAP",
+               lineages = "Lineage3", lineages_span = 0.1)
+```
+
+# Python-Based Analysis
+
+## RNA Velocity (scVelo)
+
+```{r scvelo, eval=FALSE}
+library(SCP)
+use_uv_env()  # Activate Python environment
+
+# Run RNA velocity
+srt <- RunScvelo(srt,
+  group.by = "cell_type",
+  linear_reduction = "pca",
+  nonlinear_reduction = "umap"
+)
+```
+
+## PAGA Analysis
+
+```{r paga, eval=FALSE}
+# Run PAGA
+pancreas_sub <- RunPAGA(
+  srt = pancreas_sub,
+  group_by = "SubCellType",
+  linear_reduction = "PCA",
+  nonlinear_reduction = "UMAP",
+  return_seurat = TRUE
+)
+
+# Basic PAGA plot
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            paga = pancreas_sub@misc$paga)
+
+# Tree structure
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            paga = pancreas_sub@misc$paga,
+            paga_type = "connectivities_tree")
+
+# Customized PAGA plot
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  pt.size = 5, pt.alpha = 0.2,
+  label = TRUE, label_repel = TRUE, label_insitu = TRUE,
+  label_segment_color = "transparent",
+  paga = pancreas_sub@misc$paga, paga_edge_threshold = 0.1,
+  paga_edge_color = "black", paga_edge_alpha = 1,
+  legend.position = "none", theme_use = "theme_blank"
+)
+```
+
+## RNA Velocity Visualization
+
+```{r velocity_viz, eval=FALSE}
+# Run scVelo
+pancreas_sub <- RunSCVELO(
+  srt = pancreas_sub,
+  group_by = "SubCellType",
+  linear_reduction = "PCA",
+  nonlinear_reduction = "UMAP",
+  mode = "stochastic",
+  return_seurat = TRUE
+)
+
+# Show transitions
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            paga = pancreas_sub@misc$paga, paga_show_transition = TRUE)
+
+# Arrow velocity plot
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            pt.size = NA, velocity = "stochastic")
+
+# Grid velocity
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            pt.size = 5, pt.alpha = 0.2,
+            velocity = "stochastic", velocity_plot_type = "grid")
+
+# Adjust velocity scale
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            pt.size = 5, pt.alpha = 0.2,
+            velocity = "stochastic", velocity_plot_type = "grid",
+            velocity_scale = 1.5)
+
+# Stream plot
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP",
+            pt.size = 5, pt.alpha = 0.2,
+            velocity = "stochastic", velocity_plot_type = "stream")
+
+# Customized stream plot
+CellDimPlot(pancreas_sub,
+  group.by = "SubCellType", reduction = "UMAP",
+  pt.size = 5, pt.alpha = 0.2,
+  label = TRUE, label_insitu = TRUE,
+  velocity = "stochastic", velocity_plot_type = "stream",
+  velocity_arrow_color = "yellow",
+  velocity_density = 2, velocity_smooth = 1,
+  streamline_n = 20, streamline_color = "black",
+  legend.position = "none", theme_use = "theme_blank"
+)
+```
+
+## Trajectory with Palantir
+
+```{r palantir, eval=FALSE}
+# Run Palantir trajectory inference
+srt <- RunPalantir(srt,
+  start_cell = "CELL_001",
+  num_waypoints = 500
+)
+```
+
+## Cell Fate with CellRank
+
+```{r cellrank, eval=FALSE}
+srt <- RunCellRank(srt,
+  group.by = "cell_type",
+  linear_reduction = "pca"
+)
+```
+
+# Troubleshooting
+
+## Python Environment Issues
+
+```{r troubleshoot_python, eval=FALSE}
+# Remove and recreate environment
+RemoveEnv()
+PrepareEnv(force = TRUE, extras = "all")
+
+# Verify installation
+library(SCP)
+use_uv_env()
+reticulate::py_config()
+reticulate::py_module_available("scanpy")
+```
+
+## Adding Python Dependencies Later
+
+```{r add_deps, eval=FALSE}
+# Install specific feature groups to existing environment
+uv_install(extras = c("velocity", "trajectory"))
+
+# Or install individual packages
+uv_install(packages = "scvelo")
+
+# Or install both
+uv_install(extras = "velocity", packages = "custom_package")
+
+# Or reinstall with new extras
+PrepareEnv(extras = c("velocity", "trajectory", "spatial"), update = TRUE)
+```
+
+# Session Info
+
+```{r session_info}
+sessionInfo()
+```

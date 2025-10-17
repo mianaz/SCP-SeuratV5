@@ -5,7 +5,7 @@
 #' @importFrom utils askYesNo head installed.packages menu modifyList packageVersion read.csv read.table setTxtProgressBar tail txtProgressBar download.file
 #' @importFrom grDevices col2rgb colorRampPalette dev.cur dev.interactive dev.new dev.off devAskNewPage palette pdf recordPlot rgb
 #' @importFrom SeuratObject DefaultAssay CreateAssayObject CreateDimReducObject
-#' @importFrom SeuratObject LayerData JoinLayers Layers
+#' @importFrom SeuratObject JoinLayers Layers
 #' @importFrom Seurat as.CellDataSet
 #' @importFrom tidyr unnest
 #' @importFrom stringr str_wrap
@@ -44,118 +44,91 @@ utils::globalVariables(c(
   "avg.exp", "avg.exp.scaled"
 ))
 
-#' Deprecated: prefer check_Python(...)
-#'
-#' This helper checks that required Python packages are available in the
-#' currently configured Python. For user-facing code, call
-#' `check_Python(c("mod1","mod2"))` to both activate the SCP UV
-#' environment and validate modules in one step.
-#'
-#' @param packages Character vector of Python package names to check
-#' @return Invisible NULL. Throws an error if packages are not available.
-#' @seealso EnsureEnv
-#' @export
-check_Python <- function(packages) {
-  # Ensure Python is available
-  if (!reticulate::py_available()) {
-    stop("Python is not available. Please configure Python with use_python() or PrepareEnv()")
-  }
-
-  # Force Python initialization by getting the config
-  py_config <- tryCatch({
-    reticulate::py_config()
-  }, error = function(e) {
-    stop("Failed to initialize Python: ", e$message,
-         "\nPlease run PrepareEnv() or use_python() to configure Python.")
-  })
-
-  if (is.null(py_config$python)) {
-    stop("Python is not available. Please set up Python environment with PrepareEnv() or use_python()")
-  }
-
-  # Check each package by actually trying to import it (more reliable than py_module_available)
-  for (pkg in packages) {
-    module_available <- tryCatch({
-      # Try to actually import the module
-      reticulate::import(pkg, convert = FALSE)
-      TRUE
-    }, error = function(e) {
-      FALSE
-    })
-
-    if (!module_available) {
-      # Try py_module_available as fallback
-      module_available <- tryCatch({
-        reticulate::py_module_available(pkg)
-      }, error = function(e) {
-        FALSE
-      })
-    }
-
-    if (!module_available) {
-      stop("Python package '", pkg, "' is required but not installed or not accessible.\n",
-           "Current Python: ", py_config$python, "\n",
-           "To install it:\n",
-           "  1. Run PrepareEnv() to set up the SCP environment with all dependencies\n",
-           "  2. Or install manually: uv pip install ", pkg, "\n",
-           "  3. After installation, restart R and run library(SCP); use_uv_env()")
-    }
-  }
-
-  return(invisible(NULL))
-}
-
-#' Ensure SCP Python environment is ready
-#'
-#' Internal helper function to ensure the UV Python environment is configured
-#' and ready for use. Automatically calls use_uv_env() if needed.
-#'
-#' @return Invisible NULL
-#' @keywords internal
-ensure_scp_python <- function() {
-  # Check if UV environment exists
-  if (!uv_env_exists()) {
-    stop("UV Python environment not found.\n",
-         "Please run PrepareEnv() to set up the Python environment first.")
-  }
-
-  # Configure reticulate to use UV environment
-  tryCatch({
-    use_uv_env()
-  }, error = function(e) {
-    stop("Failed to configure Python environment: ", e$message, "\n",
-         "Try running use_uv_env() manually.")
-  })
-
-  return(invisible(NULL))
-}
-
+# Removed check_Python() function - exported but never used
+# Removed ensure_scp_python() function - internal helper that was never called
 # Removed EnsureEnv() function - unnecessary wrapper
 # Use use_uv_env() directly when Python environment is needed
 
+#' Unified Color Palette System
+#'
+#' Consolidated color palette functions for SCPNext package
+#'
+#' @param type Character, palette type: "default", "category", "dimplot", or "custom"
+#' @param n Integer, number of colors to return
+#' @param custom_colors Character vector, custom color palette
+#' @return Character vector of color codes
 #' @export
-palette_default <- c(
-  "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
-  "#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
-  "#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5",
-  "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#E78AC3", "#A6D854", "#FFD92F", "#E5C494",
-  "#B3B3B3", "#8DA0CB", "#FC8D62", "#66C2A5", "#E6F5C9", "#FFF2AE", "#F4CAE4", "#F1E2CC"
-)
+GetPalette <- function(type = "default", n = NULL, custom_colors = NULL) {
+  
+  # Define base palettes
+  palettes <- list(
+    default = c(
+      "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
+      "#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
+      "#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5",
+      "#D9D9D9", "#BC80BD", "#CCEBC5", "#FFED6F", "#E78AC3", "#A6D854", "#FFD92F", "#E5C494",
+      "#B3B3B3", "#8DA0CB", "#FC8D62", "#66C2A5", "#E6F5C9", "#FFF2AE", "#F4CAE4", "#F1E2CC"
+    ),
+    category = c(
+      "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF", "#999999",
+      "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9",
+      "#E5C494", "#E78AC3", "#A6D854", "#FFD92F", "#FC8D62", "#66C2A5", "#BC80BD", "#CCEBC5"
+    ),
+    dimplot = c(
+      "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF",
+      "#E78AC3", "#A6D854", "#FFD92F", "#FC8D62", "#66C2A5", "#8DA0CB", "#E5C494",
+      "#B3B3B3", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69",
+      "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#F4CAE4", "#F1E2CC", "#CCCCCC"
+    )
+  )
+  
+  # Validate type
+  if (!type %in% c("default", "category", "dimplot", "custom")) {
+    stop("'type' must be one of: 'default', 'category', 'dimplot', 'custom'")
+  }
+  
+  # Get base palette
+  if (type == "custom") {
+    if (is.null(custom_colors)) {
+      stop("'custom_colors' must be provided when type = 'custom'")
+    }
+    base_palette <- custom_colors
+  } else {
+    base_palette <- palettes[[type]]
+  }
+  
+  # Adjust length if needed
+  if (!is.null(n)) {
+    if (n <= length(base_palette)) {
+      palette <- base_palette[1:n]
+    } else {
+      palette <- grDevices::colorRampPalette(base_palette)(n)
+    }
+  } else {
+    palette <- base_palette
+  }
+  
+  return(palette)
+}
 
+# Backward compatibility: Keep old function names as thin wrappers
+#' @rdname GetPalette
 #' @export
-palette_category <- c(
-  "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF", "#999999",
-  "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69", "#FCCDE5", "#D9D9D9",
-  "#E5C494", "#E78AC3", "#A6D854", "#FFD92F", "#FC8D62", "#66C2A5", "#BC80BD", "#CCEBC5"
-)
+palette_default <- function(n = NULL) {
+  GetPalette(type = "default", n = n)
+}
 
+#' @rdname GetPalette
 #' @export
-palette_dimplot <- c(
-  "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628", "#F781BF",
-  "#E78AC3", "#A6D854", "#FFD92F", "#FC8D62", "#66C2A5", "#8DA0CB", "#E5C494",
-  "#B3B3B3", "#8DD3C7", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462", "#B3DE69",
-  "#FCCDE5", "#D9D9D9", "#BC80BD", "#CCEBC5", "#F4CAE4", "#F1E2CC", "#CCCCCC"
-)
+palette_category <- function(n = NULL) {
+  GetPalette(type = "category", n = n)
+}
+
+#' @rdname GetPalette
+#' @export
+palette_dimplot <- function(n = NULL) {
+  GetPalette(type = "dimplot", n = n)
+}
 
 # Color palette for visualization
 # Credit to Erica for the color palette (used in VoxHunt)
@@ -181,6 +154,17 @@ scp_colorname <- function() {
     grDevices::hcl.pals()
   )
   return(cnames)
+}
+
+#' Convert color to hex format
+#'
+#' Replacement for gplots::col2hex using base R functions
+#' @param colors Character vector of color names or specifications
+#' @return Character vector of hex color codes
+#' @keywords internal
+col2hex <- function(colors) {
+  rgb_matrix <- col2rgb(colors)
+  rgb(rgb_matrix[1, ], rgb_matrix[2, ], rgb_matrix[3, ], maxColorValue = 255)
 }
 
 CheckMatrix <- function(matrix, cells = NULL, features = NULL, n = NULL) {
@@ -323,6 +307,61 @@ set_scp_palette <- function(x, palette = "default", palcolor = NULL, matched = F
 # check_DataType function has been moved to SCP-workflow.R to avoid duplication
 # and improve V5 compatibility
 
+#' Require packages with helpful error messages
+#'
+#' @param packages Character vector of package names to require
+#' @param context Optional context string for error message
+#' @param quietly Logical, whether to suppress package startup messages
+#' @keywords internal
+require_packages <- function(packages, context = NULL, quietly = TRUE) {
+  missing_packages <- character(0)
+
+  for (pkg in packages) {
+    if (!requireNamespace(pkg, quietly = quietly)) {
+      missing_packages <- c(missing_packages, pkg)
+    }
+  }
+
+  if (length(missing_packages) > 0) {
+    context_msg <- if (!is.null(context)) {
+      sprintf(" %s requires", context)
+    } else {
+      ""
+    }
+
+    install_msg <- if (length(missing_packages) == 1) {
+      sprintf("\n\nInstall with: install.packages('%s')", missing_packages[1])
+    } else {
+      sprintf("\n\nInstall with: install.packages(c(%s))",
+             paste0("'", missing_packages, "'", collapse = ", "))
+    }
+
+    stop(sprintf("Missing required package%s:%s %s%s",
+                if (length(missing_packages) > 1) "s" else "",
+                context_msg,
+                paste(missing_packages, collapse = ", "),
+                install_msg),
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
+#' Invoke a function with arguments
+#'
+#' Wrapper around do.call that handles character function names
+#'
+#' @param .fn Function or character name of function to call
+#' @param .args List of arguments to pass to function
+#' @param ... Additional arguments (merged with .args)
+#' @keywords internal
+invoke <- function(.fn, .args = list(), ...) {
+  if (is.character(.fn)) {
+    .fn <- get(.fn)
+  }
+  args <- modifyList(.args, list(...))
+  do.call(.fn, args)
+}
 
 as_matrix <- function(x, ...) {
   UseMethod(generic = "as_matrix", object = x)
@@ -354,6 +393,14 @@ as_matrix.data.frame <- function(x) {
   return(as.matrix(x = x))
 }
 
+#' Capitalize strings
+#'
+#' Capitalizes the first letter of each word in a string
+#'
+#' @param x Character vector to capitalize
+#' @param force_tolower Logical, whether to convert to lowercase first
+#' @return Character vector with capitalized strings
+#' @export
 capitalize <- function(x, force_tolower = FALSE) {
   if (force_tolower) {
     x <- tolower(x)
@@ -363,6 +410,17 @@ capitalize <- function(x, force_tolower = FALSE) {
 
 layer <- function(object, name = NULL) {
   if (!is.null(name)) {
+    # For Seurat v5 Assay5 objects, handle data/counts/scale.data as layers
+    if (inherits(object, "Assay5") && name %in% c("counts", "data", "scale.data")) {
+      # Use LayerData for actual data layers in v5
+      # Check if layer exists
+      if (name %in% SeuratObject::Layers(object)) {
+        return(SeuratObject::LayerData(object, layer = name))
+      } else {
+        return(NULL)
+      }
+    }
+    # For everything else (meta.features, var.features, etc.), use slot
     return(slot(object, name))
   }
   return(SeuratObject::Layers(object))
@@ -370,6 +428,13 @@ layer <- function(object, name = NULL) {
 
 `layer<-` <- function(object, name = NULL, value) {
   if (!is.null(name)) {
+    # For Seurat v5 Assay5 objects, handle data/counts/scale.data as layers
+    if (inherits(object, "Assay5") && name %in% c("counts", "data", "scale.data")) {
+      # Use LayerData<- for actual data layers in v5
+      SeuratObject::LayerData(object, layer = name) <- value
+      return(object)
+    }
+    # For everything else, use slot
     slot(object, name) <- value
   }
   return(object)
@@ -408,9 +473,9 @@ show_colors <- function(pal, label = TRUE) {
 show_palettes <- function(palettes = NULL, label = TRUE, palettes_label = TRUE) {
   if (is.null(palettes)) {
     palettes <- list(
-      "palette_default" = palette_default,
-      "palette_category" = palette_category,
-      "palette_dimplot" = palette_dimplot,
+      "palette_default" = GetPalette("default"),
+      "palette_category" = GetPalette("category"),
+      "palette_dimplot" = GetPalette("dimplot"),
       "ggplot_default" = rev(scales::hue_pal()(20)),
       "grey" = colorRampPalette(c("grey80", "grey20"))(20),
       "hue" = colorRampPalette(grDevices::hcl(h = seq(15, 375, length = 3), l = 65, c = 100)[seq_len(3)])(20)
@@ -471,16 +536,8 @@ show_palettes <- function(palettes = NULL, label = TRUE, palettes_label = TRUE) 
   }
 }
 
-
-getpalette <- function(n, random = FALSE) {
-  palette <- palette_scp(n = n, palette = "set1")
-
-  out <- palette[1:n]
-  if (random) {
-    out <- sample(out, n)
-  }
-  return(out)
-}
+# Removed quiet_ggplot2_scales() function - no longer needed as root cause of scale warnings
+# has been fixed by properly configuring manual scales with drop=FALSE and explicit breaks
 
 panel_fix_single <- function(x) {
   stopifnot(inherits(x, "ggplot"))
@@ -515,39 +572,9 @@ panel_fix <- function(x) {
   return(x)
 }
 
-replicate_n <- function(x, n) {
-  if (inherits(x, "list")) {
-    x_out <- list()
-    for (l in seq_along(x)) {
-      x_out[[l]] <- rep(x[l], times = n)
-    }
-    x_out <- unlist(x_out, recursive = FALSE)
-    return(x_out)
-  } else {
-    return(rep(list(x), times = n))
-  }
-}
-
-#' Invoke a function with a list of arguments
-#'
-#' This is a utility function to call a function with arguments provided as a list.
-#' Similar to do.call but with more flexibility for parameter handling.
-#'
-#' @param .fn Function to call, can be a function object or function name as string
-#' @param .args List of arguments to pass to the function
-#' @param ... Additional arguments passed to the function
-#' @return Result of the function call
-#' @export
-invoke <- function(.fn, .args = list(), ...) {
-  if (is.character(.fn)) {
-    .fn <- get(.fn)
-  }
-  args <- modifyList(.args, list(...))
-  do.call(.fn, args)
-}
-
 
 # Removed SCP_present() function - no longer needed with UV-only approach
+# Removed invoke() function - unused wrapper around do.call()
 
 # ============================================================================
 # UV Environment Helper Functions
@@ -558,8 +585,10 @@ invoke <- function(.fn, .args = list(), ...) {
 #' @return Character, path to SCP package directory
 #' @keywords internal
 get_scp_pkg_dir <- function() {
-  pkg_dir <- system.file("", package = "SCP")
+  pkg_dir <- system.file("", package = "SCPNext")
   if (pkg_dir == "") pkg_dir <- getwd()
+  # Remove trailing slash to avoid double slashes in file.path()
+  pkg_dir <- sub("/$", "", pkg_dir)
   pkg_dir
 }
 
@@ -571,7 +600,7 @@ find_pyproject_toml <- function() {
   locations <- c(
     "pyproject.toml",
     file.path("inst", "pyproject.toml"),
-    system.file("pyproject.toml", package = "SCP")
+    system.file("pyproject.toml", package = "SCPNext")
   )
   for (loc in locations) {
     if (file.exists(loc)) return(loc)
@@ -686,7 +715,7 @@ uv_create_env <- function(python_version = "3.10") {
   python_version_locations <- c(
     ".python-version",  # Current directory
     file.path("inst", ".python-version"),  # In inst directory
-    system.file(".python-version", package = "SCP")  # Installed location
+    system.file(".python-version", package = "SCPNext")  # Installed location
   )
 
   for (loc in python_version_locations) {
@@ -704,20 +733,56 @@ uv_create_env <- function(python_version = "3.10") {
     stop("Failed to create UV virtual environment")
   }
 
+  # Fix missing libpython symlink on macOS (common UV issue)
+  if (Sys.info()["sysname"] == "Darwin") {
+    venv_path <- file.path(pkg_dir, ".venv")
+
+    # Read pyvenv.cfg to find the actual Python installation
+    pyvenv_cfg <- file.path(venv_path, "pyvenv.cfg")
+    if (file.exists(pyvenv_cfg)) {
+      cfg_lines <- readLines(pyvenv_cfg)
+      home_line <- grep("^home\\s*=", cfg_lines, value = TRUE)
+
+      if (length(home_line) > 0) {
+        # Extract the home directory path
+        python_home <- trimws(sub("^home\\s*=\\s*", "", home_line[1]))
+
+        # Determine Python version from the venv
+        python_bin <- file.path(venv_path, "bin", "python")
+        if (file.exists(python_bin)) {
+          # Check what library version is expected
+          otool_output <- tryCatch({
+            system2("otool", args = c("-L", python_bin), stdout = TRUE, stderr = FALSE)
+          }, error = function(e) NULL)
+
+          if (!is.null(otool_output)) {
+            # Look for libpython reference
+            libpython_line <- grep("libpython.*\\.dylib", otool_output, value = TRUE)
+            if (length(libpython_line) > 0) {
+              # Extract the library name (e.g., libpython3.10.dylib)
+              lib_name <- sub(".*/(libpython[0-9.]+\\.dylib).*", "\\1", libpython_line[1])
+
+              # Source: actual Python installation lib directory
+              source_lib <- file.path(dirname(python_home), "lib", lib_name)
+              # Target: venv lib directory
+              target_lib <- file.path(venv_path, "lib", lib_name)
+
+              # Create symlink if source exists and target doesn't
+              if (file.exists(source_lib) && !file.exists(target_lib)) {
+                file.symlink(source_lib, target_lib)
+                message("Created symlink for ", lib_name)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return(invisible(TRUE))
 }
 
-#' Remove UV virtual environment
-#'
-#' @export
-uv_remove_env <- function() {
-  venv_path <- file.path(get_scp_pkg_dir(), ".venv")
-
-  if (dir.exists(venv_path)) {
-    unlink(venv_path, recursive = TRUE)
-    message("UV environment removed.")
-  }
-}
+# uv_remove_env() removed - use RemoveEnv(prompt = FALSE) instead
 
 #' Sync Python dependencies using UV
 #'
@@ -777,37 +842,46 @@ uv_sync_deps <- function(extras = "all") {
   return(invisible(TRUE))
 }
 
-#' Install optional dependency extras to existing UV environment
+#' Install Python dependencies to existing UV environment
 #'
-#' This function installs additional optional dependencies to an existing UV environment
-#' without recreating it. Use this after running PrepareEnv() with minimal dependencies
-#' to add specific feature groups like velocity analysis or deep learning tools.
+#' This function installs Python dependencies to an existing UV environment.
+#' You can install feature groups (extras) from pyproject.toml and/or individual packages.
 #'
-#' @param extras Character vector of extra dependency groups to install.
-#'   Options include: "velocity", "trajectory", "deeplearning", "singlecell", "ml", "all".
-#'   Example: c("velocity", "deeplearning") or "velocity"
+#' @param extras Character vector of extra dependency groups to install from pyproject.toml.
+#'   Options include: "velocity", "trajectory", "deeplearning", "singlecell", "ml", "spatial", "all".
+#'   Can be NULL to skip installing extras.
+#' @param packages Character vector of individual Python package names to install.
+#'   Can include version specifications (e.g., "numpy>=1.20.0").
+#'   Can be NULL to skip installing individual packages.
 #'
 #' @return Invisible TRUE if successful
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # After installing base environment
-#' PrepareEnv(method = "uv")
+#' # Install feature groups only
+#' uv_install(extras = "velocity")
+#' uv_install(extras = c("velocity", "trajectory"))
 #'
-#' # Later, add velocity analysis tools
-#' uv_install_extras("velocity")
+#' # Install individual packages only
+#' uv_install(packages = "requests")
+#' uv_install(packages = c("requests>=2.28.0", "beautifulsoup4"))
 #'
-#' # Or add multiple extras
-#' uv_install_extras(c("velocity", "trajectory"))
+#' # Install both extras and packages
+#' uv_install(extras = "velocity", packages = "custom_package")
 #' }
-uv_install_extras <- function(extras) {
+uv_install <- function(extras = NULL, packages = NULL) {
+  # Validate inputs
+  if (is.null(extras) && is.null(packages)) {
+    stop("At least one of 'extras' or 'packages' must be provided.")
+  }
+
   if (!check_uv()) {
     stop("UV is not installed. Please install UV first with install_uv()")
   }
 
   if (!uv_env_exists()) {
-    stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
+    stop("UV environment not found. Please run PrepareEnv() first.")
   }
 
   pkg_dir <- get_scp_pkg_dir()
@@ -817,80 +891,50 @@ uv_install_extras <- function(extras) {
   on.exit(setwd(old_wd))
   setwd(pkg_dir)
 
-  # Find pyproject.toml
-  pyproject_path <- find_pyproject_toml()
-  if (is.null(pyproject_path)) {
-    stop("pyproject.toml not found. Cannot install extras.")
+  # Install extras if provided
+  if (!is.null(extras)) {
+    # Find pyproject.toml
+    pyproject_path <- find_pyproject_toml()
+    if (is.null(pyproject_path)) {
+      stop("pyproject.toml not found. Cannot install extras.")
+    }
+
+    # Copy pyproject.toml to current directory if needed
+    if (pyproject_path != "pyproject.toml") {
+      file.copy(pyproject_path, "pyproject.toml", overwrite = TRUE)
+    }
+
+    # Install the extras
+    message("Installing Python extras: ", paste(extras, collapse = ", "))
+
+    if (length(extras) == 1 && extras == "all") {
+      extras_str <- "[all]"
+    } else {
+      extras_str <- paste0("[", paste(extras, collapse = ","), "]")
+    }
+
+    result <- system2("uv", args = c("pip", "install", "-e", paste0(".", extras_str)), wait = TRUE)
+
+    if (result != 0) {
+      stop("Failed to install extras. Check UV installation and pyproject.toml.")
+    }
+
+    message("Extras installed successfully.")
   }
 
-  # Copy pyproject.toml to current directory if needed
-  if (pyproject_path != "pyproject.toml") {
-    file.copy(pyproject_path, "pyproject.toml", overwrite = TRUE)
+  # Install individual packages if provided
+  if (!is.null(packages)) {
+    message("Installing Python packages: ", paste(packages, collapse = ", "))
+
+    result <- system2("uv", args = c("pip", "install", packages), wait = TRUE)
+
+    if (result != 0) {
+      stop("Failed to install packages: ", paste(packages, collapse = ", "))
+    }
+
+    message("Packages installed successfully.")
   }
 
-  # Install the extras
-  message("Installing Python extras: ", paste(extras, collapse = ", "))
-
-  if (length(extras) == 1 && extras == "all") {
-    extras_str <- "[all]"
-  } else {
-    extras_str <- paste0("[", paste(extras, collapse = ","), "]")
-  }
-
-  result <- system2("uv", args = c("pip", "install", "-e", paste0(".", extras_str)), wait = TRUE)
-
-  if (result != 0) {
-    stop("Failed to install extras. Check UV installation and pyproject.toml.")
-  }
-
-  message("Extras installed successfully.")
-  return(invisible(TRUE))
-}
-
-#' Install additional Python packages to existing UV environment
-#'
-#' This function installs individual Python packages to an existing UV environment.
-#' Use this for installing packages that are not part of the predefined extras.
-#'
-#' @param packages Character vector of Python package names to install.
-#'   Can include version specifications (e.g., "numpy>=1.20.0")
-#'
-#' @return Invisible TRUE if successful
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' # Install individual packages
-#' uv_install_packages("requests")
-#'
-#' # Install multiple packages with versions
-#' uv_install_packages(c("requests>=2.28.0", "beautifulsoup4"))
-#' }
-uv_install_packages <- function(packages) {
-  if (!check_uv()) {
-    stop("UV is not installed. Please install UV first with install_uv()")
-  }
-
-  if (!uv_env_exists()) {
-    stop("UV environment not found. Please run PrepareEnv(method='uv') first.")
-  }
-
-  pkg_dir <- get_scp_pkg_dir()
-
-  # Change to package directory
-  old_wd <- getwd()
-  on.exit(setwd(old_wd))
-  setwd(pkg_dir)
-
-  message("Installing Python packages: ", paste(packages, collapse = ", "))
-
-  result <- system2("uv", args = c("pip", "install", packages), wait = TRUE)
-
-  if (result != 0) {
-    stop("Failed to install packages: ", paste(packages, collapse = ", "))
-  }
-
-  message("Packages installed successfully.")
   return(invisible(TRUE))
 }
 
@@ -900,7 +944,7 @@ uv_install_packages <- function(packages) {
 use_uv_env <- function() {
   venv_path <- file.path(get_scp_pkg_dir(), ".venv")
   if (!dir.exists(venv_path)) {
-    stop("UV environment not found. Run PrepareEnv(method='uv') first.")
+    stop("UV environment not found. Run PrepareEnv() first.")
   }
 
   # Get Python executable path
@@ -910,8 +954,69 @@ use_uv_env <- function() {
     stop("Python executable not found in UV environment")
   }
 
+  # Suppress deprecation warnings and set environment variables
+  # 1. Suppress pkg_resources deprecation warning from reticulate
+  Sys.setenv(PYTHONWARNINGS = "ignore::DeprecationWarning:pkg_resources")
+
+  # 2. Fix OpenMP deprecation warning by using new API
+  Sys.setenv(OMP_NUM_THREADS = "1")  # Avoid nested parallelism issues
+  Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")  # macOS OpenMP compatibility
+
+  # Fix missing libpython symlink on macOS if needed (for existing environments)
+  if (Sys.info()["sysname"] == "Darwin") {
+    # Check if Python binary can run
+    test_run <- tryCatch({
+      system2(python_path, "--version", stdout = TRUE, stderr = TRUE)
+    }, error = function(e) NULL, warning = function(w) NULL)
+
+    # If Python binary fails to run (likely missing library), create symlink
+    if (is.null(test_run) || length(test_run) == 0) {
+      pyvenv_cfg <- file.path(venv_path, "pyvenv.cfg")
+      if (file.exists(pyvenv_cfg)) {
+        cfg_lines <- readLines(pyvenv_cfg)
+        home_line <- grep("^home\\s*=", cfg_lines, value = TRUE)
+
+        if (length(home_line) > 0) {
+          python_home <- trimws(sub("^home\\s*=\\s*", "", home_line[1]))
+
+          otool_output <- tryCatch({
+            system2("otool", args = c("-L", python_path), stdout = TRUE, stderr = FALSE)
+          }, error = function(e) NULL)
+
+          if (!is.null(otool_output)) {
+            libpython_line <- grep("libpython.*\\.dylib", otool_output, value = TRUE)
+            if (length(libpython_line) > 0) {
+              lib_name <- sub(".*/(libpython[0-9.]+\\.dylib).*", "\\1", libpython_line[1])
+              source_lib <- file.path(dirname(python_home), "lib", lib_name)
+              target_lib <- file.path(venv_path, "lib", lib_name)
+
+              if (file.exists(source_lib) && !file.exists(target_lib)) {
+                file.symlink(source_lib, target_lib)
+                message("Fixed missing Python library symlink")
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  # Set environment variables to fix numba caching issues in venv
+  # Numba has trouble with file locators in some venv setups
+  Sys.setenv(NUMBA_CACHE_DIR = tempdir())
+  Sys.setenv(NUMBA_DISABLE_JIT = "0")  # Keep JIT enabled but use temp cache
+
   # Use the UV environment
   reticulate::use_python(python_path, required = TRUE)
+
+  # Force Python initialization to ensure it's ready
+  tryCatch({
+    reticulate::py_config()
+  }, error = function(e) {
+    stop("Failed to initialize Python: ", e$message,
+         "\nTry rebuilding the environment with PrepareEnv(force = TRUE)",
+         call. = FALSE)
+  })
 
   invisible(TRUE)
 }
@@ -927,7 +1032,7 @@ use_uv_env <- function() {
 #' @param extras Character vector of extra dependency groups to install (e.g., c("velocity", "trajectory")).
 #'   Default is NULL for minimal installation (core packages only).
 #'   Use "all" for complete installation, or specify individual groups: "velocity", "trajectory", "deeplearning", "singlecell", "ml".
-#'   You can install extras later with uv_install_extras().
+#'   You can install extras later with uv_install().
 #' @export
 #'
 PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", extras = NULL) {
@@ -944,7 +1049,7 @@ PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", e
   if (!uv_env_exists() || isTRUE(force)) {
     if (isTRUE(force) && uv_env_exists()) {
       message("Removing existing UV environment...")
-      uv_remove_env()
+      RemoveEnv(prompt = FALSE)
     }
 
     message("Creating UV environment with Python ", python_version, "...")
@@ -953,7 +1058,7 @@ PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", e
     message("Installing Python dependencies with UV...")
     if (is.null(extras) || length(extras) == 0) {
       message("Installing minimal (core) Python packages only.")
-      message("To add extras later, use: uv_install_extras('velocity') or similar.")
+      message("To add extras later, use: uv_install(extras = 'velocity') or similar.")
     }
     uv_sync_deps(extras = extras)
 
@@ -965,67 +1070,13 @@ PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", e
       uv_sync_deps(extras = extras)
     } else {
       message("UV environment already exists. Use force=TRUE to reinstall or update=TRUE to update packages.")
-      message("To add extras: uv_install_extras('velocity') or similar.")
+      message("To add extras: uv_install(extras = 'velocity') or similar.")
     }
   }
 }
 
 # Removed install_py() function - no longer needed with UV-only approach
-
-try_get <- function(expr, max_tries = 3, error_message = NULL, default = NULL) {
-  result <- NULL
-  for (i in 1:max_tries) {
-    result <- tryCatch(expr, error = function(e) {
-      if (i < max_tries) {
-        message("Attempt ", i, " failed. Retrying...")
-        Sys.sleep(1)
-      } else if (!is.null(error_message)) {
-        message(error_message)
-      }
-      return(NULL)
-    })
-    if (!is.null(result)) {
-      return(result)
-    }
-  }
-  return(default)
-}
-
-wait_for_file <- function(file_path, interval = 0.1, timeout = 5) {
-  elapsed <- 0
-  while (!file.exists(file_path) && elapsed < timeout) {
-    Sys.sleep(interval)
-    elapsed <- elapsed + interval
-  }
-  return(file.exists(file_path))
-}
-
-strwrap2 <- function(x = NULL, width = 50, whitespace_only = TRUE) {
-  if (is.null(x) || length(x) == 0) {
-    return(NULL)
-  }
-  if (inherits(x, "factor")) {
-    x <- as.character(x)
-  }
-  x_wrap <- unlist(lapply(x, function(i) paste0(strwrap(i, width = width), collapse = "\n")))
-  return(x_wrap)
-}
-
-tochunks <- function(x, nchunks) {
-  split(x, cut(seq_along(x), nchunks, labels = FALSE))
-}
-
-iterchunks <- function(x, nchunks) {
-  chunks <- tochunks(x, nchunks)
-  i <- 0L
-  function() {
-    if (i >= length(chunks)) {
-      return(NULL)
-    }
-    i <<- i + 1L
-    x[chunks[[i]]]
-  }
-}
+# Removed try_get() function - unused retry wrapper
 
 layerNames <- function(srt, assay = NULL) {
   if (!inherits(srt, "Seurat")) {
@@ -1079,40 +1130,45 @@ get_seurat_data <- function(srt, layer = "data", assay = NULL, join_layers = TRU
     stop("Input must be a Seurat object")
   }
 
-  is_v5 <- IsSeurat5(srt)
   assay <- assay %||% DefaultAssay(srt)
 
-  if (is_v5) {
+  # Check SeuratObject package version to determine parameter name
+  sobj_version <- tryCatch(packageVersion("SeuratObject"), error = function(e) NULL)
+  use_layer_param <- !is.null(sobj_version) && sobj_version >= "5.0.0"
+
+  # For V5 objects with multiple layers, join them if requested
+  is_v5 <- IsSeurat5(srt)
+  if (is_v5 && isTRUE(join_layers)) {
     assay_obj <- srt[[assay]]
 
-    # Check if multiple layers exist for this layer type
-    if (isTRUE(join_layers)) {
-      # Search for layers matching the requested layer name
-      matching_layers <- tryCatch({
-        SeuratObject::Layers(assay_obj, search = layer)
-      }, error = function(e) NULL)
+    # Search for layers matching the requested layer name
+    matching_layers <- tryCatch({
+      SeuratObject::Layers(assay_obj, search = layer)
+    }, error = function(e) NULL)
 
-      # If multiple layers found, join them
-      if (!is.null(matching_layers) && length(matching_layers) > 1) {
-        message("Found ", length(matching_layers), " layers for '", layer, "': ",
-                paste(matching_layers, collapse = ", "))
-        message("Joining layers to include all cells. Set join_layers=FALSE to disable.")
+    # If multiple layers found, join them
+    if (!is.null(matching_layers) && length(matching_layers) > 1) {
+      message("Found ", length(matching_layers), " layers for '", layer, "': ",
+              paste(matching_layers, collapse = ", "))
+      message("Joining layers to include all cells. Set join_layers=FALSE to disable.")
 
-        # Join only the specific layers we need
-        assay_obj <- tryCatch({
-          SeuratObject::JoinLayers(assay_obj, layers = matching_layers)
-        }, error = function(e) {
-          warning("Failed to join layers: ", e$message,
-                  ". Returning first layer only.", call. = FALSE)
-          assay_obj
-        })
-      }
+      # Join only the specific layers we need
+      srt[[assay]] <- tryCatch({
+        SeuratObject::JoinLayers(assay_obj, layers = matching_layers)
+      }, error = function(e) {
+        warning("Failed to join layers: ", e$message,
+                ". Returning first layer only.", call. = FALSE)
+        assay_obj
+      })
     }
+  }
 
-    # Now extract the data
-    return(LayerData(assay_obj, layer = layer))
+  # Extract data using appropriate parameter name based on package version
+  if (use_layer_param) {
+    # SeuratObject >= 5.0.0: use 'layer' parameter
+    return(GetAssayData(srt, layer = layer, assay = assay))
   } else {
-    # V4: use GetAssayData with 'slot' parameter (V4 doesn't have 'layer')
+    # SeuratObject < 5.0.0: use 'slot' parameter
     return(GetAssayData(srt, slot = layer, assay = assay))
   }
 }
@@ -1133,13 +1189,18 @@ set_seurat_data <- function(srt, data, layer = "data", assay = NULL) {
     stop("Input must be a Seurat object")
   }
 
-  is_v5 <- IsSeurat5(srt)
   assay <- assay %||% DefaultAssay(srt)
 
-  if (is_v5) {
-    LayerData(srt[[assay]], layer = layer) <- data
+  # Check SeuratObject package version to determine parameter name
+  sobj_version <- tryCatch(packageVersion("SeuratObject"), error = function(e) NULL)
+  use_layer_param <- !is.null(sobj_version) && sobj_version >= "5.0.0"
+
+  # Set data using appropriate parameter name based on package version
+  if (use_layer_param) {
+    # SeuratObject >= 5.0.0: use 'layer' parameter
+    srt <- SetAssayData(srt, layer = layer, new.data = data, assay = assay)
   } else {
-    # V4: use SetAssayData with 'slot' parameter (V4 doesn't have 'layer')
+    # SeuratObject < 5.0.0: use 'slot' parameter
     srt <- SetAssayData(srt, slot = layer, new.data = data, assay = assay)
   }
 
@@ -1383,14 +1444,15 @@ RemoveEnv <- function(prompt = TRUE) {
   if (file.exists(python_path)) {
     python_version <- tryCatch({
       system2(python_path, "--version", stdout = TRUE, stderr = TRUE)
-    }, error = function(e) NA)
+    }, error = function(e) NA, warning = function(w) NA)
   }
 
   # Display environment information and prompt for confirmation
   message("About to remove SCP UV Python environment:")
   message("- Environment path: ", venv_path)
-  if (!is.na(python_version)) {
-    message("- Python version: ", python_version)
+  # Safely check python_version - handle vectors and NAs
+  if (length(python_version) > 0 && !is.na(python_version[1])) {
+    message("- Python version: ", python_version[1])
   }
   message("- Disk space to be freed: ", format_size(env_size))
 

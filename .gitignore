@@ -10,44 +10,14 @@ renv.lock
 tmaps
 src/*.so
 src/*.o
-test.R
-test_SCP_comprehensive.R
-test_SCP_quick.R
-.DS_Store
 
-# Backup of original SCP repository
-SCP_original_backup/
-
-# Spatial functions backup
-spatial_backup/
-
-# Test results and temporary files
-test_results_*.rds
-*.log
-comprehensive_test_results_*.txt
-fast_test_*.rds
-fast_test_*.txt
-
-# Progress tracking (local development only)
-PROGRESS_LOG.md
-
-# Development and test files
-CODEBASE_STRUCTURE.md
-ENVIRONMENT_SETUP_GUIDE.md
-REPRODUCTION_PLAN.md
-REPRODUCTION_RESULTS.md
-test_SCP_V5_comprehensive.Rmd
-test_SCP_V5_comprehensive.html
-run_comprehensive_tests.R
-run_quick_tests.R
 
 # R package build artifacts
 *.tar.gz
 *.Rcheck/
 
-# UV generated files
-requirements.txt
-inst/requirements.txt
+# uv artifacts
+inst/.venv/
 
 # Temporary files
 *~
@@ -71,21 +41,10 @@ ehthumbs.db
 Desktop.ini
 
 # Test scripts and outputs
-test_scp_v5_*.R
 test_outputs/
 tests/*.rds
 
 # Documentation files (development only)
 CLAUDE.md
 agents.md
-DEPENDENCY_AUDIT.md
-DEPENDENCY_UPDATES.md
-DEPENDENCY_UPDATE_COMPLETE.md
-TESTING_UV.md
 
-# Test scripts (temporary/development)
-test_local.R
-test_ssl_download.R
-test_uv_integration.R
-test_clean_install.R
-inst/.venv/

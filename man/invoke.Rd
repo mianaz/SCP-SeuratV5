@@ -2,21 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{invoke}
 \alias{invoke}
-\title{Invoke a function with a list of arguments}
+\title{Invoke a function with arguments}
 \usage{
 invoke(.fn, .args = list(), ...)
 }
 \arguments{
-\item{.fn}{Function to call, can be a function object or function name as string}
+\item{.fn}{Function or character name of function to call}
 
-\item{.args}{List of arguments to pass to the function}
+\item{.args}{List of arguments to pass to function}
 
-\item{...}{Additional arguments passed to the function}
-}
-\value{
-Result of the function call
+\item{...}{Additional arguments (merged with .args)}
 }
 \description{
-This is a utility function to call a function with arguments provided as a list.
-Similar to do.call but with more flexibility for parameter handling.
+Wrapper around do.call that handles character function names
 }
+\keyword{internal}

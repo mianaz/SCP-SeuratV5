@@ -1223,7 +1223,10 @@ RunPaCMAP.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python(c("pacmap"))
+  use_uv_env()
+  if (!reticulate::py_module_available("pacmap")) {
+    stop("Python module 'pacmap' is required. Install with: uv_install(packages = 'pacmap')")
+  }
   pacmap <- import("pacmap")
 
   operator <- pacmap$PaCMAP(
@@ -1354,7 +1357,10 @@ RunPHATE.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python(c("phate"))
+  use_uv_env()
+  if (!reticulate::py_module_available("phate")) {
+    stop("Python module 'phate' is required. Install with: uv_install(packages = 'phate')")
+  }
   phate <- import("phate")
 
   if (is.numeric(knn_max) && length(knn_max) > 0) {
@@ -1505,7 +1511,10 @@ RunTriMap.default <- function(object, assay = NULL,
     set.seed(seed = seed.use)
   }
 
-  check_Python(c("trimap"))
+  use_uv_env()
+  if (!reticulate::py_module_available("trimap")) {
+    stop("Python module 'trimap' is required. Install with: uv_install(packages = 'trimap')")
+  }
   trimap <- import("trimap")
 
   operator <- trimap$TRIMAP(

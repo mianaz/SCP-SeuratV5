@@ -1,0 +1,632 @@
+---
+title: "Integration Methods Comparison"
+author: "SCP"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Integration Methods Comparison}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6
+)
+```
+
+# Introduction
+
+This vignette demonstrates all integration methods supported in SCP using the `panc8_sub` dataset. We'll test each method systematically and compare their performance.
+
+# Setup
+
+```{r load_libraries}
+library(SCP)
+library(ggplot2)
+
+# Activate Python environment for methods that require it
+use_uv_env()
+
+# Load test dataset
+data("panc8_sub")
+print(panc8_sub)
+```
+
+```{r explore_data}
+# Examine batch structure
+table(panc8_sub$tech)
+table(panc8_sub$celltype)
+
+# Visualize uncorrected data
+CellDimPlot(
+  srt = panc8_sub,
+  group.by = c("celltype", "tech"),
+  reduction = "UMAP",
+  theme_use = "theme_blank"
+)
+```
+
+# Integration Methods
+
+## 1. Uncorrected (Baseline)
+
+No batch correction, serves as baseline for comparison.
+
+```{r uncorrected, eval=FALSE}
+panc8_uncorrected <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Uncorrected",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_uncorrected,
+  group.by = c("celltype", "tech"),
+  reduction = "UncorrectedUMAP2D",
+  title = "Uncorrected",
+  theme_use = "theme_blank"
+)
+```
+
+## 2. Seurat Integration (v4 workflow)
+
+Traditional Seurat anchor-based integration using CCA.
+
+```{r seurat_v4, eval=FALSE}
+# Force v4 workflow
+panc8_seurat_v4 <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = FALSE,
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v4,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v4 Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 3. Seurat Integration (v5 workflow)
+
+Modern Seurat v5 layer-based integration with multiple sub-methods.
+
+### 3.1 CCA Integration (default)
+
+```{r seurat_v5_cca, eval=FALSE}
+panc8_seurat_v5_cca <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = TRUE,
+  IntegrateLayers_params = list(method = "CCAIntegration"),
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v5_cca,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v5 CCA Integration",
+  theme_use = "theme_blank"
+)
+```
+
+### 3.2 RPCA Integration
+
+```{r seurat_v5_rpca, eval=FALSE}
+panc8_seurat_v5_rpca <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = TRUE,
+  IntegrateLayers_params = list(method = "RPCAIntegration"),
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v5_rpca,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v5 RPCA Integration",
+  theme_use = "theme_blank"
+)
+```
+
+### 3.3 Harmony Integration (via Seurat v5)
+
+```{r seurat_v5_harmony, eval=FALSE}
+panc8_seurat_v5_harmony <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = TRUE,
+  IntegrateLayers_params = list(method = "HarmonyIntegration"),
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v5_harmony,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v5 Harmony Integration",
+  theme_use = "theme_blank"
+)
+```
+
+### 3.4 FastMNN Integration (via Seurat v5)
+
+Note: Requires SeuratWrappers package.
+
+```{r seurat_v5_fastmnn, eval=FALSE}
+# Install SeuratWrappers if not available
+# remotes::install_github('satijalab/seurat-wrappers')
+
+panc8_seurat_v5_fastmnn <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = TRUE,
+  IntegrateLayers_params = list(method = "FastMNNIntegration"),
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v5_fastmnn,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v5 FastMNN Integration",
+  theme_use = "theme_blank"
+)
+```
+
+### 3.5 JointPCA Integration
+
+```{r seurat_v5_jointpca, eval=FALSE}
+panc8_seurat_v5_jointpca <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Seurat",
+  use_v5_workflow = TRUE,
+  IntegrateLayers_params = list(method = "JointPCAIntegration"),
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_seurat_v5_jointpca,
+  group.by = c("celltype", "tech"),
+  reduction = "SeuratUMAP2D",
+  title = "Seurat v5 JointPCA Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 4. Harmony (Standalone R Package)
+
+Fast integration method based on iterative clustering.
+
+```{r harmony, eval=FALSE}
+panc8_harmony <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Harmony",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_harmony,
+  group.by = c("celltype", "tech"),
+  reduction = "HarmonyUMAP2D",
+  title = "Harmony Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 5. scVI (Python - scvi-tools)
+
+Deep learning-based variational inference.
+
+```{r scvi, eval=FALSE}
+# Requires scvi-tools: uv_install(packages = "scvi-tools")
+panc8_scvi <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "scVI",
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_scvi,
+  group.by = c("celltype", "tech"),
+  reduction = "scviUMAP2D",
+  title = "scVI Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 6. SCANVI (Python - scvi-tools)
+
+Semi-supervised extension of scVI with cell type labels.
+
+```{r scanvi, eval=FALSE}
+# Requires scvi-tools and a labels_key column
+panc8_scanvi <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "SCANVI",
+  labels_key = "celltype",
+  unlabeled_category = "Unknown",
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_scanvi,
+  group.by = c("celltype", "tech"),
+  reduction = "scanviUMAP2D",
+  title = "SCANVI Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 7. MNN (R/Bioconductor - batchelor)
+
+Mutual nearest neighbors correction on expression matrix.
+
+```{r mnn, eval=FALSE}
+# Requires batchelor package
+panc8_mnn <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "MNN",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_mnn,
+  group.by = c("celltype", "tech"),
+  reduction = "MNNUMAP2D",
+  title = "MNN Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 8. fastMNN (R/Bioconductor - batchelor)
+
+Fast mutual nearest neighbors on PCA space.
+
+```{r fastmnn, eval=FALSE}
+# Requires batchelor package
+panc8_fastmnn <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "fastMNN",
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_fastmnn,
+  group.by = c("celltype", "tech"),
+  reduction = "fastMNNUMAP2D",
+  title = "fastMNN Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 9. Scanorama (Python - scanpy)
+
+Panoramic stitching of heterogeneous single-cell datasets.
+
+```{r scanorama, eval=FALSE}
+# Requires scanorama: uv_install(packages = "scanorama")
+panc8_scanorama <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Scanorama",
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_scanorama,
+  group.by = c("celltype", "tech"),
+  reduction = "ScanoramaUMAP2D",
+  title = "Scanorama Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 10. BBKNN (Python - scanpy)
+
+Batch balanced k-nearest neighbors.
+
+```{r bbknn, eval=FALSE}
+# Requires bbknn: uv_install(packages = "bbknn")
+panc8_bbknn <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "BBKNN",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_bbknn,
+  group.by = c("celltype", "tech"),
+  reduction = "BBKNNUMAP2D",
+  title = "BBKNN Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 11. CSS (R - simspec)
+
+Cluster similarity spectrum for batch correction.
+
+```{r css, eval=FALSE}
+# Requires simspec package
+panc8_css <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "CSS",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_css,
+  group.by = c("celltype", "tech"),
+  reduction = "CSSUMAP2D",
+  title = "CSS Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 12. LIGER (R - rliger)
+
+Integrative non-negative matrix factorization.
+
+```{r liger, eval=FALSE}
+# Requires rliger package
+panc8_liger <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "LIGER",
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_liger,
+  group.by = c("celltype", "tech"),
+  reduction = "LIGERUMAP2D",
+  title = "LIGER Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 13. Conos (R - conos)
+
+Clustering on network of samples.
+
+```{r conos, eval=FALSE}
+# Requires conos package
+panc8_conos <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "Conos",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_conos,
+  group.by = c("celltype", "tech"),
+  reduction = "ConosUMAP2D",
+  title = "Conos Integration",
+  theme_use = "theme_blank"
+)
+```
+
+## 14. ComBat (R/Bioconductor - sva)
+
+Empirical Bayes batch effect correction.
+
+```{r combat, eval=FALSE}
+# Requires sva package
+panc8_combat <- Integration_SCP(
+  srtMerge = panc8_sub,
+  batch = "tech",
+  integration_method = "ComBat",
+  linear_reduction = "pca",
+  linear_reduction_dims = 30,
+  nonlinear_reduction = "umap",
+  cluster_resolution = 0.6,
+  seed = 11
+)
+
+CellDimPlot(
+  srt = panc8_combat,
+  group.by = c("celltype", "tech"),
+  reduction = "ComBatUMAP2D",
+  title = "ComBat Integration",
+  theme_use = "theme_blank"
+)
+```
+
+# Comparison
+
+## Side-by-Side Visualization
+
+```{r comparison, eval=FALSE}
+# Collect all integration results
+integration_methods <- list(
+  "Uncorrected" = panc8_uncorrected,
+  "Seurat_v4" = panc8_seurat_v4,
+  "Seurat_v5_CCA" = panc8_seurat_v5_cca,
+  "Seurat_v5_RPCA" = panc8_seurat_v5_rpca,
+  "Harmony" = panc8_harmony,
+  "scVI" = panc8_scvi,
+  "fastMNN" = panc8_fastmnn,
+  "Scanorama" = panc8_scanorama,
+  "BBKNN" = panc8_bbknn,
+  "LIGER" = panc8_liger,
+  "ComBat" = panc8_combat
+)
+
+# Create comparison plots
+plots_tech <- lapply(names(integration_methods), function(method) {
+  srt <- integration_methods[[method]]
+  reduction_name <- grep("UMAP2D", Reductions(srt), value = TRUE)[1]
+
+  CellDimPlot(
+    srt = srt,
+    group.by = "tech",
+    reduction = reduction_name,
+    title = method,
+    theme_use = "theme_blank",
+    legend.position = "none"
+  )
+})
+
+plots_celltype <- lapply(names(integration_methods), function(method) {
+  srt <- integration_methods[[method]]
+  reduction_name <- grep("UMAP2D", Reductions(srt), value = TRUE)[1]
+
+  CellDimPlot(
+    srt = srt,
+    group.by = "celltype",
+    reduction = reduction_name,
+    title = method,
+    theme_use = "theme_blank",
+    legend.position = "none"
+  )
+})
+
+# Display comparison grid
+library(patchwork)
+wrap_plots(plots_tech, ncol = 4)
+wrap_plots(plots_celltype, ncol = 4)
+```
+
+## Quantitative Metrics
+
+```{r metrics, eval=FALSE}
+# Calculate integration metrics for each method
+# This would require additional metrics packages like:
+# - lisi (Local Inverse Simpson's Index)
+# - scib (Single-cell integration benchmarking)
+
+# Example placeholder for metrics calculation
+metrics_df <- data.frame(
+  Method = names(integration_methods),
+  Runtime = NA,
+  BatchMixing = NA,
+  CellTypePurity = NA,
+  row.names = NULL
+)
+
+print(metrics_df)
+```
+
+# Summary
+
+This vignette demonstrated all 13 integration methods supported by SCP:
+
+**Seurat Native/Wrappers:**
+- Seurat v4 (CCA-based)
+- Seurat v5 (CCA, RPCA, Harmony, FastMNN, JointPCA)
+
+**Python/Scanpy Ecosystem:**
+- scVI
+- SCANVI
+- Scanorama
+- BBKNN
+
+**R/Bioconductor:**
+- MNN
+- fastMNN
+- ComBat
+
+**Standalone R Packages:**
+- Harmony
+- CSS
+- LIGER
+- Conos
+
+Each method has different strengths:
+- **Speed**: Harmony, fastMNN, ComBat
+- **Scalability**: scVI, SCANVI, BBKNN
+- **Preservation of biological variation**: Seurat CCA/RPCA, LIGER
+- **Complex batch effects**: scVI, LIGER, Conos
+
+# Session Info
+
+```{r session_info}
+sessionInfo()
+```

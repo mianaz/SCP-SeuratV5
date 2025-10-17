@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // asMatrix
 NumericMatrix asMatrix(NumericVector rp, NumericVector cp, NumericVector z, int nrows, int ncols);
-RcppExport SEXP _SCP_asMatrix(SEXP rpSEXP, SEXP cpSEXP, SEXP zSEXP, SEXP nrowsSEXP, SEXP ncolsSEXP) {
+RcppExport SEXP _SCPNext_asMatrix(SEXP rpSEXP, SEXP cpSEXP, SEXP zSEXP, SEXP nrowsSEXP, SEXP ncolsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -27,11 +27,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_SCP_asMatrix", (DL_FUNC) &_SCP_asMatrix, 5},
+    {"_SCPNext_asMatrix", (DL_FUNC) &_SCPNext_asMatrix, 5},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_SCP(DllInfo *dll) {
+RcppExport void R_init_SCPNext(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

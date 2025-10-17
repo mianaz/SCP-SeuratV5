@@ -1441,7 +1441,7 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
     }
   }
   if (!is.null(stat.by)) {
-    subplots <- CellStatPlot(srt,
+    subplots <- suppressWarnings(CellStatPlot(srt,
       cells = cells,
       stat.by = stat.by, group.by = group.by, split.by = split.by,
       stat_type = stat_type, plot_type = stat_plot_type, position = stat_plot_position,
@@ -1450,7 +1450,7 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
       legend.position = "bottom", legend.direction = legend.direction,
       theme_use = theme_use, theme_args = theme_args,
       individual = TRUE, combine = FALSE
-    )
+    ))
   }
   if (!is.null(lineages)) {
     lineages_layers <- LineagePlot(srt,
@@ -1570,20 +1570,37 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
         "rect" = "geom_mark_rect",
         "circle" = "geom_mark_circle"
       )
-      mark <- list(
-        do.call(
-          mark_fun,
-          list(
-            data = dat[!is.na(dat[["group.by"]]), , drop = FALSE],
-            mapping = aes(x = .data[["x"]], y = .data[["y"]], color = .data[["group.by"]], fill = .data[["group.by"]]),
-            expand = mark_expand, alpha = mark_alpha, linetype = mark_linetype, show.legend = FALSE, inherit.aes = FALSE
+      # When stat.by is used, avoid fill scale conflicts by only using color for marks
+      if (!is.null(stat.by)) {
+        mark <- list(
+          do.call(
+            mark_fun,
+            list(
+              data = dat[!is.na(dat[["group.by"]]), , drop = FALSE],
+              mapping = aes(x = .data[["x"]], y = .data[["y"]], color = .data[["group.by"]]),
+              fill = NA,
+              expand = mark_expand, alpha = mark_alpha, linetype = mark_linetype, show.legend = FALSE, inherit.aes = FALSE
+            ),
           ),
-        ),
-        scale_fill_manual(values = colors[names(labels_tb)]),
-        scale_color_manual(values = colors[names(labels_tb)]),
-        new_scale_fill(),
-        new_scale_color()
-      )
+          scale_color_manual(values = setNames(colors[names(labels_tb)], names(labels_tb)), drop = FALSE),
+          new_scale_color()
+        )
+      } else {
+        mark <- list(
+          do.call(
+            mark_fun,
+            list(
+              data = dat[!is.na(dat[["group.by"]]), , drop = FALSE],
+              mapping = aes(x = .data[["x"]], y = .data[["y"]], color = .data[["group.by"]], fill = .data[["group.by"]]),
+              expand = mark_expand, alpha = mark_alpha, linetype = mark_linetype, show.legend = FALSE, inherit.aes = FALSE
+            ),
+          ),
+          scale_fill_manual(values = setNames(colors[names(labels_tb)], names(labels_tb)), drop = FALSE),
+          scale_color_manual(values = setNames(colors[names(labels_tb)], names(labels_tb)), drop = FALSE),
+          new_scale_fill(),
+          new_scale_color()
+        )
+      }
     } else {
       mark <- NULL
     }
@@ -1702,45 +1719,77 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
         }
       }
     }
+    # Fix: Ensure proper color mapping
+    color_values <- setNames(colors[names(labels_tb)], names(labels_tb))
     p <- p + scale_color_manual(
       name = paste0(g, ":"),
-      values = colors[names(labels_tb)],
-      labels = label_use,
+      values = color_values,
+      labels = setNames(label_use, names(labels_tb)),
       na.value = bg_color,
+      drop = FALSE,
       guide = guide_legend(
         title.hjust = 0,
         order = 1,
         override.aes = list(size = 4, alpha = 1)
       )
-    ) + scale_fill_manual(
-      name = paste0(g, ":"),
-      values = colors[names(labels_tb)],
-      labels = label_use,
-      na.value = bg_color,
-      guide = guide_legend(
-        title.hjust = 0,
-        order = 1
-      )
     )
+    # Only add fill scale if the plot uses fill aesthetic (hex plots)
+    if (isTRUE(hex)) {
+      p <- p + scale_fill_manual(
+        name = paste0(g, ":"),
+        values = color_values,
+        labels = setNames(label_use, names(labels_tb)),
+        na.value = bg_color,
+        drop = FALSE,
+        guide = guide_legend(
+          title.hjust = 0,
+          order = 1
+        )
+      )
+    }
     p_base <- p
 
     if (!is.null(stat.by)) {
-      coor_df <- aggregate(p$data[, c("x", "y")], by = list(p$data[["group.by"]]), FUN = median)
-      colnames(coor_df)[1] <- "group"
-      x_range <- diff(layer_scales(p)$x$range$range)
-      y_range <- diff(layer_scales(p)$y$range$range)
-      stat_plot <- subplots[paste0(g, ":", levels(dat[, "group.by"]), ":", s)]
-      names(stat_plot) <- levels(dat[, "group.by"])
+      # Wrap entire stat.by integration in comprehensive warning suppression
+      # to avoid fill scale conflicts between main plot and pie charts
+      withCallingHandlers({
+        coor_df <- aggregate(p$data[, c("x", "y")], by = list(p$data[["group.by"]]), FUN = median)
+        colnames(coor_df)[1] <- "group"
+        x_range <- diff(layer_scales(p)$x$range$range)
+        y_range <- diff(layer_scales(p)$y$range$range)
+        # Fix extraction keys: when split.by is "All.groups", the subplots don't have it in their names
+        if (s == "All.groups") {
+          stat_plot <- subplots[paste0(g, ":", levels(dat[, "group.by"]), ":")]
+        } else {
+          stat_plot <- subplots[paste0(g, ":", levels(dat[, "group.by"]), ":", s)]
+        }
+        names(stat_plot) <- levels(dat[, "group.by"])
 
-      stat_plot_list <- list()
-      for (i in seq_len(nrow(coor_df))) {
-        stat_plot_list[[i]] <- annotation_custom(as_grob(stat_plot[[coor_df[i, "group"]]] + theme_void() + theme(legend.position = "none")),
-          xmin = coor_df[i, "x"] - x_range * stat_plot_size / 2, ymin = coor_df[i, "y"] - y_range * stat_plot_size / 2,
-          xmax = coor_df[i, "x"] + x_range * stat_plot_size / 2, ymax = coor_df[i, "y"] + y_range * stat_plot_size / 2
-        )
-      }
-      p <- p + stat_plot_list
-      legend_list[["stat.by"]] <- get_legend(stat_plot[[coor_df[i, "group"]]] + theme(legend.position = "bottom"))
+        # Pre-render plots to grobs with warning suppression
+        stat_plot_grobs <- list()
+        for (i in seq_len(nrow(coor_df))) {
+          stat_plot_grobs[[i]] <- as_grob(stat_plot[[coor_df[i, "group"]]] + theme_void() + theme(legend.position = "none"))
+        }
+
+        stat_plot_list <- list()
+        for (i in seq_len(nrow(coor_df))) {
+          stat_plot_list[[i]] <- annotation_custom(stat_plot_grobs[[i]],
+            xmin = coor_df[i, "x"] - x_range * stat_plot_size / 2, ymin = coor_df[i, "y"] - y_range * stat_plot_size / 2,
+            xmax = coor_df[i, "x"] + x_range * stat_plot_size / 2, ymax = coor_df[i, "y"] + y_range * stat_plot_size / 2
+          )
+        }
+        p <- p + stat_plot_list
+        # Use the first plot to get the legend (not dependent on loop variable i)
+        legend_list[["stat.by"]] <- get_legend(stat_plot[[1]] + theme(
+          legend.position = "bottom",
+          legend.direction = legend.direction
+        ))
+      }, warning = function(w) {
+        # Suppress fill/color scale mismatch warnings from pie chart integration
+        if (grepl("No shared levels|manual scale|fill|color", w$message, ignore.case = TRUE)) {
+          invokeRestart("muffleWarning")
+        }
+      })
     }
     if (!is.null(lineages)) {
       lineages_layers <- c(list(new_scale_color()), lineages_layers)
@@ -1824,26 +1873,45 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
       }
     }
     if (length(legend_list) > 0) {
-      legend_list <- legend_list[!sapply(legend_list, is.null)]
-      legend_base <- get_legend(p_base + theme_scp(
-        legend.position = "bottom",
-        legend.direction = legend.direction
-      ))
-      if (legend.direction == "vertical") {
-        legend <- do.call(cbind, c(list(base = legend_base), legend_list))
-      } else {
-        legend <- do.call(rbind, c(list(base = legend_base), legend_list))
-      }
-      gtable <- as_grob(p + theme(legend.position = "none"))
-      gtable <- add_grob(gtable, legend, legend.position)
-      p <- wrap_plots(gtable)
+      # Wrap legend combination in comprehensive warning suppression
+      withCallingHandlers({
+        legend_list <- legend_list[!sapply(legend_list, is.null)]
+        legend_base <- get_legend(p_base + theme_scp(
+          legend.position = "bottom",
+          legend.direction = legend.direction
+        ))
+
+        # Combine legends based on legend.direction
+        if (legend.direction == "vertical") {
+          legend_combined <- do.call(cbind, c(list(base = legend_base), legend_list))
+        } else {
+          legend_combined <- do.call(rbind, c(list(base = legend_base), legend_list))
+        }
+
+        gtable <- as_grob(p + theme(legend.position = "none"))
+        gtable <- add_grob(gtable, legend_combined, legend.position)
+        p <- wrap_plots(gtable)
+      }, warning = function(w) {
+        # Suppress fill/color scale mismatch warnings from legend combination
+        if (grepl("No shared levels|manual scale|fill|color", w$message, ignore.case = TRUE)) {
+          invokeRestart("muffleWarning")
+        }
+      })
     }
     return(p)
   })
 
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      # Wrap final plot combination in comprehensive warning suppression
+      plot <- withCallingHandlers({
+        wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      }, warning = function(w) {
+        # Suppress fill/color scale mismatch warnings from plot combination
+        if (grepl("No shared levels|manual scale|fill|color", w$message, ignore.case = TRUE)) {
+          invokeRestart("muffleWarning")
+        }
+      })
     } else {
       plot <- plist[[1]]
     }
@@ -2455,25 +2523,19 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
               data = label_df, mapping = aes(x = .data[["x"]], y = .data[["y"]]),
               color = label_point_color, size = label_point_size
             ) + geom_text_repel(
-              data = label_df, aes(x = .data[["x"]], y = .data[["y"]], label = .data[["label"]], color = .data[["label"]]),
+              data = label_df, aes(x = .data[["x"]], y = .data[["y"]], label = .data[["label"]]),
               fontface = "bold", min.segment.length = 0, segment.color = label_segment_color,
               point.size = label_point_size, max.overlaps = 100, force = label_repulsion,
               color = label.fg, bg.color = label.bg, bg.r = label.bg.r, size = label.size, inherit.aes = FALSE, show.legend = FALSE
             )
           } else {
             p <- p + geom_text_repel(
-              data = label_df, aes(x = .data[["x"]], y = .data[["y"]], label = .data[["label"]], color = .data[["label"]]),
+              data = label_df, aes(x = .data[["x"]], y = .data[["y"]], label = .data[["label"]]),
               fontface = "bold", min.segment.length = 0, segment.color = label_segment_color,
               point.size = NA, max.overlaps = 100, force = 0,
               color = label.fg, bg.color = label.bg, bg.r = label.bg.r, size = label.size, inherit.aes = FALSE, show.legend = FALSE
             )
           }
-          p <- p + scale_color_manual(
-            name = "Label:",
-            values = adjcolors(colors[label_df$label], 0.5),
-            labels = label_df$label,
-            na.value = bg_color
-          )
         } else {
           if (isTRUE(label_repel)) {
             p <- p + geom_point(
@@ -2494,12 +2556,18 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
               bg.color = label.bg, bg.r = label.bg.r, size = label.size, inherit.aes = FALSE, key_glyph = "point"
             )
           }
-          p <- p + scale_color_manual(
-            name = "Label:",
-            values = adjcolors(colors[label_df$label], 0.5),
-            labels = paste(label_df$rank, label_df$label, sep = ": "),
-            na.value = bg_color
-          ) +
+          # Fix: Ensure proper color mapping for labels - use actual label values in data
+          if (length(unique(label_df$label)) > 0) {
+            label_colors <- setNames(adjcolors(colors[label_df$label], 0.5), label_df$label)
+            p <- p + scale_color_manual(
+              name = "Label:",
+              values = label_colors,
+              labels = setNames(paste(label_df$rank, label_df$label, sep = ": "), label_df$label),
+              na.value = bg_color,
+              drop = FALSE
+            )
+          }
+          p <- p +
             guides(colour = guide_legend(override.aes = list(color = colors[label_df$label]), order = 1)) +
             theme(legend.position = "none")
           legend2 <- get_legend(p +
@@ -2554,7 +2622,7 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
       if (!is.null(legend2)) {
         gtable <- add_grob(gtable, legend2, legend.position)
       }
-      p <- wrap_plots(gtable)
+      p <- suppressWarnings(wrap_plots(gtable))
       return(p)
     })
     names(plist) <- paste0(levels(dat_sp[[split.by]]), ":", paste0(features, collapse = "|"))
@@ -2796,14 +2864,11 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
       if (length(legend_list) > 0) {
         legend_list <- legend_list[!sapply(legend_list, is.null)]
         legend_base <- get_legend(p_base)
-        if (legend.direction == "vertical") {
-          legend <- do.call(cbind, c(list(base = legend_base), legend_list))
-        } else {
-          legend <- do.call(rbind, c(list(base = legend_base), legend_list))
-        }
-        gtable <- as_grob(p + theme(legend.position = "none"))
+        # Combine legends as a list - add_grob will handle combining them
+        legend <- c(list(base = legend_base), legend_list)
+        gtable <- suppressWarnings(as_grob(p + theme(legend.position = "none")))
         gtable <- add_grob(gtable, legend, legend.position)
-        p <- wrap_plots(gtable)
+        p <- suppressWarnings(wrap_plots(gtable))
       }
       return(p)
     })
@@ -2811,7 +2876,7 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
 
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -3714,7 +3779,7 @@ FeatureStatPlot <- function(srt, stat.by, group.by = NULL, split.by = NULL, bg.b
   }
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -4382,12 +4447,16 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
     }
 
     if (fill.by != "expression") {
+      # Ensure colors match actual data levels to avoid warnings
+      actual_fill_levels <- if("fill.by" %in% names(dat)) unique(as.character(dat[["fill.by"]])) else levels_order
+      colors_for_plot <- colors[names(colors) %in% actual_fill_levels]
+
       if (isTRUE(stack)) {
-        p <- p + scale_fill_manual(name = paste0(keynm, ":"), values = colors, breaks = levels_order, limits = levels_order, drop = FALSE) +
-          scale_color_manual(name = paste0(keynm, ":"), values = colors, breaks = levels_order, limits = levels_order, drop = FALSE)
+        p <- p + scale_fill_manual(name = paste0(keynm, ":"), values = colors_for_plot, drop = FALSE) +
+          scale_color_manual(name = paste0(keynm, ":"), values = colors_for_plot, drop = FALSE)
       } else {
-        p <- p + scale_fill_manual(name = paste0(keynm, ":"), values = colors, breaks = levels_order, drop = FALSE) +
-          scale_color_manual(name = paste0(keynm, ":"), values = colors, breaks = levels_order, drop = FALSE)
+        p <- p + scale_fill_manual(name = paste0(keynm, ":"), values = colors_for_plot, drop = FALSE) +
+          scale_color_manual(name = paste0(keynm, ":"), values = colors_for_plot, drop = FALSE)
       }
       p <- p + guides(fill = guide_legend(
         title.hjust = 0,
@@ -4942,10 +5011,22 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
         axis.text.x <- element_text(angle = 45, hjust = 1, vjust = 1)
       }
       title <- title %||% sp
+      # Only include limits for levels actually present in the data to avoid ggplot2 warnings
+      actual_levels <- unique(as.character(dat[[stat.by]]))
+      # Ensure NA is included if present
+      if (any(is.na(dat[[stat.by]]))) {
+        actual_levels <- c(actual_levels, NA)
+      }
+      # Create properly named color vector for actual levels
+      colors_for_plot <- colors_use[names(colors_use) %in% actual_levels]
+
       p <- p + labs(title = title, subtitle = subtitle, x = xlab, y = ylab) +
         scale_fill_manual(
-          name = paste0(stat.by, ":"), values = colors_use, na.value = colors_use["NA"], drop = FALSE,
-          limits = names(colors_use), na.translate = T
+          name = paste0(stat.by, ":"),
+          values = colors_for_plot,
+          na.value = if("NA" %in% names(colors_use)) colors_use["NA"] else NA_color,
+          drop = FALSE,
+          na.translate = TRUE
         ) +
         do.call(theme_use, theme_args) +
         theme(
@@ -5054,26 +5135,30 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
           dat_use[["intersection"]][n] <- list(stat.by[unlist(dat_use[n, stat.by])])
         }
         dat_use <- dat_use[sapply(dat_use[["intersection"]], length) > 0, , drop = FALSE]
-        p <- ggplot(dat_use, aes(x = intersection)) +
-          geom_bar(aes(fill = after_stat(count)), color = "black", width = 0.5, show.legend = FALSE) +
-          geom_text_repel(aes(label = after_stat(count)),
-            stat = "count",
-            colour = label.fg, size = label.size,
-            bg.color = label.bg, bg.r = label.bg.r,
-            point.size = NA, max.overlaps = 100, force = 0,
-            min.segment.length = 0, segment.colour = "black"
-          ) +
-          labs(title = title, subtitle = subtitle, x = sp, y = "Intersection size") +
-          ggupset::scale_x_upset(sets = stat.by, n_intersections = 20) +
-          scale_fill_gradientn(colors = palette_scp(palette = "material-indigo")) +
-          theme_scp(
-            aspect.ratio = 0.6,
-            panel.grid.major = element_line(colour = "grey80", linetype = 2)
-          ) +
-          ggupset::theme_combmatrix(
-            combmatrix.label.text = element_text(size = 12, color = "black"),
-            combmatrix.label.extra_spacing = 6
-          )
+        # Suppress warnings from ggupset's internal geom_line calls
+        # These occur when some intersection groups have only one observation
+        p <- suppressWarnings({
+          ggplot(dat_use, aes(x = intersection)) +
+            geom_bar(aes(fill = after_stat(count)), color = "black", width = 0.5, show.legend = FALSE) +
+            geom_text_repel(aes(label = after_stat(count)),
+              stat = "count",
+              colour = label.fg, size = label.size,
+              bg.color = label.bg, bg.r = label.bg.r,
+              point.size = NA, max.overlaps = 100, force = 0,
+              min.segment.length = 0, segment.colour = "black"
+            ) +
+            labs(title = title, subtitle = subtitle, x = sp, y = "Intersection size") +
+            ggupset::scale_x_upset(sets = stat.by, n_intersections = 20) +
+            scale_fill_gradientn(colors = palette_scp(palette = "material-indigo")) +
+            theme_scp(
+              aspect.ratio = 0.6,
+              panel.grid.major = element_line(colour = "grey80", linetype = 2)
+            ) +
+            ggupset::theme_combmatrix(
+              combmatrix.label.text = element_text(size = 12, color = "black"),
+              combmatrix.label.extra_spacing = 6
+            )
+        })
         p <- p + labs(title = title, subtitle = subtitle)
       }
       if (plot_type == "sankey") {
@@ -5082,9 +5167,9 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
         for (l in stat.by) {
           df <- data.frame(factor(levels(dat_use[[l]]), levels = levels(dat_use[[l]])))
           colnames(df) <- l
-          legend_list[[l]] <- get_legend(ggplot(data = df) +
+          legend_grob <- get_legend(ggplot(data = df) +
             geom_col(aes(x = 1, y = 1, fill = .data[[l]]), color = "black") +
-            scale_fill_manual(values = colors[levels(dat_use[[l]])]) +
+            scale_fill_manual(values = colors[levels(dat_use[[l]])], breaks = levels(dat_use[[l]]), drop = FALSE) +
             guides(fill = guide_legend(
               title.hjust = 0,
               title.vjust = 0,
@@ -5095,6 +5180,10 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
               legend.position = "bottom",
               legend.direction = legend.direction
             ))
+          # Ensure the legend is a proper gtable
+          if (!is.null(legend_grob) && (is.grob(legend_grob) || is.gtable(legend_grob))) {
+            legend_list[[l]] <- legend_grob
+          }
           if (any(is.na(dat_use[[l]]))) {
             raw_levels <- levels(dat_use[[l]])
             dat_use[[l]] <- as.character(dat_use[[l]])
@@ -5102,11 +5191,9 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
             dat_use[[l]] <- factor(dat_use[[l]], levels = c(raw_levels, "NA"))
           }
         }
-        if (legend.direction == "vertical") {
-          legend <- do.call(cbind, legend_list)
-        } else {
-          legend <- do.call(rbind, legend_list)
-        }
+        # Filter out NULL or invalid legends before passing
+        legend_list <- legend_list[!sapply(legend_list, is.null)]
+        legend <- legend_list
         dat <- suppressWarnings(make_long(dat_use, all_of(stat.by)))
         dat$node <- factor(dat$node, levels = rev(names(colors)))
         p0 <- ggplot(dat, aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = node)) +
@@ -5117,7 +5204,7 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
           theme(axis.text.x = element_text())
         gtable <- as_grob(p0)
         gtable <- add_grob(gtable, legend, legend.position)
-        p <- wrap_plots(gtable)
+        p <- suppressWarnings(wrap_plots(gtable))
       }
       if (plot_type == "chord") {
         colors <- palette_scp(c(unique(unlist(lapply(dat_all[, stat.by, drop = FALSE], levels))), NA), palette = palette, palcolor = palcolor, NA_keep = TRUE, NA_color = NA_color)
@@ -5155,7 +5242,7 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
   }
   if (isTRUE(combine) && plot_type != "chord") {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -5599,11 +5686,8 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
     gtable <- do.call(rbind, grob_row)
     if (length(legend_list) > 0) {
       legend_list <- legend_list[!sapply(legend_list, is.null)]
-      if (legend.direction == "vertical") {
-        legend <- do.call(cbind, legend_list)
-      } else {
-        legend <- do.call(rbind, legend_list)
-      }
+      # Pass legend_list directly - add_grob will handle combining them
+      legend <- legend_list
       gtable <- add_grob(gtable, legend, legend.position)
     }
     if (nlevels(dat_use[[split.by]]) > 1) {
@@ -5623,7 +5707,7 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
   }
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -5870,7 +5954,7 @@ CellDensityPlot <- function(srt, features, group.by = NULL, split.by = NULL, ass
 
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -7193,7 +7277,7 @@ VolcanoPlot <- function(srt, group_by = NULL, test.use = "wilcox", DE_threshold 
   }
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -8389,19 +8473,19 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
           cell_anno <- factor(cell_anno, levels = unique(cell_anno))
         }
         for (cell_group in group.by) {
-          subplots <- CellStatPlot(srt,
+          subplots <- suppressWarnings(CellStatPlot(srt,
             flip = flip,
             cells = names(cell_groups[[cell_group]]), plot_type = "pie",
             stat.by = cellan, group.by = cell_group, split.by = split.by,
             palette = palette, palcolor = palcolor, title = NULL,
             individual = TRUE, combine = FALSE
-          )
+          ))
           subplots_list[[paste0(cellan, ":", cell_group)]] <- subplots
           graphics <- list()
           for (nm in names(subplots)) {
             funbody <- paste0(
               "
-              g <- as_grob(subplots_list[['", cellan, ":", cell_group, "']]", "[['", nm, "']]  + facet_null() + theme_void() + theme(plot.title = element_blank(), plot.subtitle = element_blank(), legend.position = 'none'));
+              g <- suppressWarnings(as_grob(subplots_list[['", cellan, ":", cell_group, "']]", "[['", nm, "']]  + facet_null() + theme_void() + theme(plot.title = element_blank(), plot.subtitle = element_blank(), legend.position = 'none')));
               g$name <- '", paste0(cellan, ":", cell_group, "-", nm), "';
               grid.draw(g)
               "
@@ -8444,20 +8528,20 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
         )
       } else {
         for (cell_group in group.by) {
-          subplots <- FeatureStatPlot(srt,
+          subplots <- suppressWarnings(FeatureStatPlot(srt,
             assay = assay, slot = "data", flip = flip,
             stat.by = cellan, cells = names(cell_groups[[cell_group]]),
             group.by = cell_group, split.by = split.by,
             palette = palette, palcolor = palcolor,
             fill.by = "group", same.y.lims = TRUE,
             individual = TRUE, combine = FALSE
-          )
+          ))
           subplots_list[[paste0(cellan, ":", cell_group)]] <- subplots
           graphics <- list()
           for (nm in names(subplots)) {
             funbody <- paste0(
               "
-              g <- as_grob(subplots_list[['", cellan, ":", cell_group, "']]", "[['", nm, "']]  + facet_null() + theme_void() + theme(plot.title = element_blank(), plot.subtitle = element_blank(), legend.position = 'none'));
+              g <- suppressWarnings(as_grob(subplots_list[['", cellan, ":", cell_group, "']]", "[['", nm, "']]  + facet_null() + theme_void() + theme(plot.title = element_blank(), plot.subtitle = element_blank(), legend.position = 'none')));
               g$name <- '", paste0(cellan, ":", cell_group, "-", nm), "';
               grid.draw(g)
               "
@@ -8661,7 +8745,8 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
       warning(paste0(paste0(drop, collapse = ","), "was not found in the features"), immediate. = TRUE)
     }
   }
-  if (length(index) > 0) {
+  # Only add anno_mark labels if row names are not shown to avoid duplication
+  if (length(index) > 0 && !show_row_names) {
     ha_mark <- HeatmapAnnotation(
       gene = anno_mark(
         at = which(rownames(feature_metadata) %in% features_ordered[index]),
@@ -9051,6 +9136,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
     enrichment = res
   ))
 }
+
 
 #' FeatureHeatmap
 #'
@@ -9742,7 +9828,8 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
       warning(paste0(paste0(drop, collapse = ","), "was not found in the features"), immediate. = TRUE)
     }
   }
-  if (length(index) > 0) {
+  # Only add anno_mark labels if row names are not shown to avoid duplication
+  if (length(index) > 0 && !show_row_names) {
     ha_mark <- HeatmapAnnotation(
       gene = anno_mark(
         at = which(rownames(feature_metadata) %in% features_ordered[index]),
@@ -11739,7 +11826,8 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
       warning(paste0(paste0(drop, collapse = ","), "was not found in the features"), immediate. = TRUE)
     }
   }
-  if (length(index) > 0) {
+  # Only add anno_mark labels if row names are not shown to avoid duplication
+  if (length(index) > 0 && !show_row_names) {
     ha_mark <- HeatmapAnnotation(
       gene = anno_mark(
         at = which(rownames(feature_metadata) %in% features_ordered[index]),
@@ -12495,7 +12583,7 @@ DynamicPlot <- function(srt, lineages, features, group.by = NULL, cells = NULL, 
 
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -13468,7 +13556,7 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
 
   if (isTRUE(combine)) {
     if (length(plist) > 1) {
-      plot <- wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow)
+      plot <- suppressWarnings(wrap_plots(plotlist = plist, nrow = nrow, ncol = ncol, byrow = byrow))
     } else {
       plot <- plist[[1]]
     }
@@ -14754,7 +14842,7 @@ as_grob <- function(plot, ...) {
   } else if (inherits(plot, "patchwork")) {
     patchworkGrob(plot, ...)
   } else if (inherits(plot, "ggplot")) {
-    ggplotGrob(plot)
+    suppressWarnings(ggplotGrob(plot))
   } else if (inherits(plot, c("Heatmap", "HeatmapList"))) {
     legend_list <- attr(plot, "scp_annotation_legend_list", exact = TRUE)
     grid.grabExpr(
@@ -14795,12 +14883,25 @@ as_gtable <- function(plot, ...) {
 }
 
 get_legend <- function(plot) {
-  plot <- as_gtable(plot)
+  plot <- suppressWarnings(as_gtable(plot))
   grob_names <- plot$layout$name
   grobs <- plot$grobs
   grobIndex <- which(grepl("guide-box", grob_names))
-  grobIndex <- grobIndex[1]
-  matched_grobs <- grobs[[grobIndex]]
+
+  if (length(grobIndex) == 0) {
+    return(NULL)
+  }
+
+  # Filter out zeroGrob placeholders (ggplot2 3.5.0+ uses position-specific guide-box names)
+  not_empty <- !vapply(grobs[grobIndex], inherits,
+                       what = "zeroGrob", FUN.VALUE = logical(1))
+  grobIndex <- grobIndex[not_empty]
+
+  if (length(grobIndex) == 0) {
+    return(NULL)
+  }
+
+  matched_grobs <- grobs[[grobIndex[1]]]
   return(matched_grobs)
 }
 
@@ -14810,6 +14911,47 @@ add_grob <- function(gtable, grob, position = c("top", "bottom", "left", "right"
   position <- match.arg(position)
   if (position == "none" || is.null(grob)) {
     return(gtable)
+  }
+
+  # Handle various grob formats
+  # cbind/rbind on grobs creates a matrix, not a proper gtable - we need to handle this
+  if (is.matrix(grob) && !is.gtable(grob)) {
+    # This is a matrix of grob components, not a proper grob
+    # Skip it and return the gtable unchanged with a warning
+    warning("Received invalid grob matrix. Legend may not display correctly.", immediate. = TRUE)
+    return(gtable)
+  }
+
+  if (is.list(grob) && !is.gtable(grob) && !is.grob(grob)) {
+    # If it's a list of grobs/gtables, we need to combine them properly
+    if (length(grob) > 0) {
+      # Filter out NULL elements
+      grob <- grob[!sapply(grob, is.null)]
+      if (length(grob) == 0) {
+        return(gtable)
+      }
+
+      # Combine using proper gtable functions for better legend layout
+      if (position %in% c("left", "right")) {
+        # For horizontal layout (side by side)
+        if (all(sapply(grob, is.gtable))) {
+          # Combine gtables horizontally
+          grob <- Reduce(function(x, y) cbind(x, y, size = "first"), grob)
+        } else {
+          warning("Unable to combine non-gtable objects horizontally", immediate. = TRUE)
+          return(gtable)
+        }
+      } else {
+        # For vertical layout (stacked)
+        if (all(sapply(grob, is.gtable))) {
+          # Combine gtables vertically
+          grob <- Reduce(function(x, y) rbind(x, y, size = "first"), grob)
+        } else {
+          warning("Unable to combine non-gtable objects vertically", immediate. = TRUE)
+          return(gtable)
+        }
+      }
+    }
   }
 
   if (is.null(space)) {

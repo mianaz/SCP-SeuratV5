@@ -1,7 +1,7 @@
 [project]
-name = "scp-python-deps"
-version = "0.7.0"
-description = "Python dependencies for SCP R package"
+name = "scpnext-python-deps"
+version = "0.1.0"
+description = "Python dependencies for SCPNext R package"
 requires-python = ">=3.10,<3.14"  # Align with inst/pyproject.toml
 
 dependencies = [
