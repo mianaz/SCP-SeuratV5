@@ -121,17 +121,15 @@ uv_install(extras = "all")
 
 ## Quick Start
 
-See our comprehensive [getting-started vignette](vignettes/getting-started.Rmd) for a complete walkthrough with 94 working examples covering:
+See our comprehensive [getting-started vignette](vignettes/getting-started.Rmd) for a complete walkthrough.
 
-- Data loading and quality control
-- Normalization and dimension reduction
-- Clustering and cell type annotation
-- Differential expression analysis
-- Pathway enrichment (GO/KEGG/GSEA)
-- RNA velocity and trajectory inference
-- Integration across datasets
-- Visualization and interactive exploration
-
+## Known limitations and To-Dos
+- Most functions mentioned in [getting-started vignette](vignettes/getting-started.Rmd) should work ok now with a comprehensive debugging effort. 
+- A refactoring for the integration module is underway, and have not been thoroughly tested.
+- Some trajectory methods (Monocle, CellRank, Palatir, Monocle3, etc) have not been thoroughly tested.
+- scANVI integration is new and has not been thoroughly tested.
+- Added imputation methods (ALRA, MAGIC) but have not been thoroughly tested.
+- Enrichment part has been rewritten to replace deprecated packages. RunGSEA, feature annotation functions should work fine. EnrichPlot will produce empty plots for unknown reasons. Also I was not able to fully reproduce EnrichPlots in original SCP. Needs investigation.
 
 ## Requirements
 
