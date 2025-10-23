@@ -2,7 +2,7 @@
 % Please edit documentation in R/SCP-workflow.R
 \name{Seurat_integrate_v5}
 \alias{Seurat_integrate_v5}
-\title{Seurat_integrate_v5}
+\title{Seurat V5 Integration (Deprecated - use Seurat_integrate)}
 \usage{
 Seurat_integrate_v5(
   srtMerge = NULL,
@@ -101,13 +101,31 @@ Seurat_integrate_v5(
 
 \item{cluster_resolution}{The resolution parameter to use for clustering. Larger values result in fewer clusters (default is 0.6).}
 
-\item{integration_method}{Integration method to use. Options are "CCAIntegration", "RPCAIntegration",
-"HarmonyIntegration", "FastMNNIntegration", "JointPCAIntegration". Default is "CCAIntegration".}
+\item{integration_method}{For V5 workflow, integration method to use. Options:
+"CCAIntegration", "RPCAIntegration", "HarmonyIntegration", "FastMNNIntegration", "JointPCAIntegration".
+For V4 workflow, uses traditional FindIntegrationAnchors + IntegrateData.}
 
-\item{IntegrateLayers_params}{A list of parameters for the Seurat::IntegrateLayers function, default is an empty list.}
+\item{IntegrateLayers_params}{List of parameters for IntegrateLayers (V5 only)}
 
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
+
+\item{use_v5_workflow}{Logical or NULL. If NULL, auto-detect Seurat version.
+If TRUE, force V5 layer-based workflow. If FALSE, force V4 list-based workflow.}
+
+\item{FindIntegrationAnchors_params}{List of parameters for FindIntegrationAnchors (V4 only)}
+
+\item{IntegrateData_params}{List of parameters for IntegrateData (V4 only)}
+
+\item{IntegrateEmbeddings_params}{List of parameters for IntegrateEmbeddings (V4 only)}
+}
+\value{
+A \code{Seurat} object with integrated data.
+
+A Seurat object with integrated data
 }
 \description{
-Seurat integration using v5 layer-based workflow with IntegrateLayers
+This function is deprecated. Use Seurat_integrate with use_v5_workflow = TRUE.
+}
+\details{
+Seurat_integrate
 }

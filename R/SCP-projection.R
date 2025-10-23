@@ -103,9 +103,9 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
     }
   } else {
     message("Use the features to calculate distance metric.")
-    status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+    status_query <- check_DataType(srt = NULL, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
     message("Detected srt_query data type: ", status_query)
-    status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+    status_ref <- check_DataType(srt = NULL, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
     message("Detected srt_ref data type: ", status_ref)
     if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
       warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -172,14 +172,14 @@ RunKNNMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL, 
         }
         distance_metric <- "correlation"
       }
-      d <- 1 - simil(
+      d <- 1 - proxyC::simil(
         x = as.sparse(ref),
         y = as.sparse(query),
         method = distance_metric,
         use_nan = TRUE
       )
     } else if (distance_metric %in% dist_method) {
-      d <- dist(
+      d <- proxyC::dist(
         x = as.sparse(ref),
         y = as.sparse(query),
         method = distance_metric,
@@ -305,9 +305,9 @@ RunPCAMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
   }
 
   pca.out <- srt_ref[[ref_pca]]
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = NULL, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = NULL, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -401,9 +401,9 @@ RunSeuratMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NUL
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = NULL, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = NULL, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -488,9 +488,9 @@ RunCSSMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = NULL,
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = NULL, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = NULL, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)
@@ -579,9 +579,9 @@ RunSymphonyMap <- function(srt_query, srt_ref, query_assay = NULL, ref_assay = N
     stop("distance_metric must be one of euclidean, cosine, manhattan, and hamming when projection_method='model'")
   }
 
-  status_query <- check_DataType(data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
+  status_query <- check_DataType(srt = NULL, data = get_seurat_data(srt_query, layer = "data", assay = query_assay))
   message("Detected srt_query data type: ", status_query)
-  status_ref <- check_DataType(data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
+  status_ref <- check_DataType(srt = NULL, data = get_seurat_data(srt_ref, layer = "data", assay = ref_assay))
   message("Detected srt_ref data type: ", status_ref)
   if (status_ref != status_query || any(status_query == "unknown", status_ref == "unknown")) {
     warning("Data type is unknown or different between srt_query and srt_ref.", immediate. = TRUE)

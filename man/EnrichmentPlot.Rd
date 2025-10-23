@@ -91,7 +91,7 @@ If not specified, the \code{res} arguments must be provided.}
 
 \item{word_size}{The size range for words in wordcloud. Default is c(2, 8).}
 
-\item{words_excluded}{Words to be excluded from the wordcloud. The default value is NULL, which means that the built-in words (SCP::words_excluded) will be used.}
+\item{words_excluded}{Words to be excluded from the wordcloud. The default value is NULL, which means that the built-in words (SCPNext::words_excluded) will be used.}
 
 \item{network_layout}{The layout algorithm to use for network plot. Options are "fr", "kk","random", "circle", "tree", "grid", or other algorithm from 'igraph' package. Default is "fr".}
 

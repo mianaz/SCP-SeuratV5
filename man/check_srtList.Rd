@@ -18,7 +18,8 @@ check_srtList(
   HVF = NULL,
   vars_to_regress = NULL,
   seed = 11,
-  check_v5 = TRUE
+  check_v5 = TRUE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -47,6 +48,10 @@ check_srtList(
 \item{vars_to_regress}{A vector of variable names to include as additional regression variables. Default is NULL.}
 
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
+
+\item{check_v5}{Logical. Whether to check and update Seurat object versions. Default is TRUE.}
+
+\item{verbose}{Logical. Whether to print progress messages. Default is TRUE.}
 }
 \value{
 A list containing the preprocessed seurat objects, the highly variable features, the assay name, and the type of assay (e.g., "RNA" or "Chromatin").

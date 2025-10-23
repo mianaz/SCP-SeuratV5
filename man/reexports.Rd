@@ -3,7 +3,6 @@
 \docType{import}
 \name{reexports}
 \alias{reexports}
-\alias{\%||\%}
 \alias{\%>\%}
 \alias{unit}
 \alias{arrow}
@@ -18,7 +17,5 @@ below to see their documentation.
   \item{dplyr}{\code{\link[dplyr:reexports]{\%>\%}}}
 
   \item{grid}{\code{\link[grid]{arrow}}, \code{\link[grid]{gpar}}, \code{\link[grid]{unit}}}
-
-  \item{rlang}{\code{\link[rlang:op-null-default]{\%||\%}}}
 }}
 

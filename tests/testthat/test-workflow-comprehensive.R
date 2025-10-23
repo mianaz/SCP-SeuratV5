@@ -1,6 +1,6 @@
-# Basic workflow tests for SCP package
+# Basic workflow tests for SCPNext package
 library(testthat)
-library(SCP)
+library(SCPNext)
 library(Seurat)
 
 # Helper to create simple test data

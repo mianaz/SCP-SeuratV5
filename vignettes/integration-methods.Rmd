@@ -29,29 +29,24 @@ This vignette demonstrates all integration methods supported in SCP using the `p
 # Setup
 
 ```{r load_libraries}
-library(SCP)
+library(SCPNext)
 library(ggplot2)
-
+#library(BiocParallel)
+#register(MulticoreParam(workers = 8, progressbar = TRUE))
 # Activate Python environment for methods that require it
+#PrepareEnv(extras="all")
 use_uv_env()
 
 # Load test dataset
 data("panc8_sub")
 print(panc8_sub)
+IsSeurat5(panc8_sub)
 ```
 
 ```{r explore_data}
 # Examine batch structure
 table(panc8_sub$tech)
 table(panc8_sub$celltype)
-
-# Visualize uncorrected data
-CellDimPlot(
-  srt = panc8_sub,
-  group.by = c("celltype", "tech"),
-  reduction = "UMAP",
-  theme_use = "theme_blank"
-)
 ```
 
 # Integration Methods
@@ -69,7 +64,8 @@ panc8_uncorrected <- Integration_SCP(
   linear_reduction_dims = 30,
   nonlinear_reduction = "umap",
   cluster_resolution = 0.6,
-  seed = 11
+  seed = 11,
+  verbose=TRUE
 )
 
 CellDimPlot(
@@ -86,7 +82,7 @@ CellDimPlot(
 Traditional Seurat anchor-based integration using CCA.
 
 ```{r seurat_v4, eval=FALSE}
-# Force v4 workflow
+# Force v4 workflow, very slow!
 panc8_seurat_v4 <- Integration_SCP(
   srtMerge = panc8_sub,
   batch = "tech",
@@ -125,6 +121,7 @@ panc8_seurat_v5_cca <- Integration_SCP(
   linear_reduction_dims = 30,
   nonlinear_reduction = "umap",
   cluster_resolution = 0.6,
+  verbose=TRUE,
   seed = 11
 )
 

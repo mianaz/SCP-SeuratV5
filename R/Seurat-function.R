@@ -650,6 +650,7 @@ RunUMAP2.Seurat <- function(object,
   } else {
     stop("Please specify one of dims, features, neighbor, or graph")
   }
+
   object[[reduction.name]] <- RunUMAP2(
     object = data.use, assay = assay,
     umap.method = umap.method, reduction.model = reduction.model,
@@ -659,7 +660,8 @@ RunUMAP2.Seurat <- function(object,
     a = a, b = b, learning.rate = learning.rate, repulsion.strength = repulsion.strength,
     seed.use = seed.use, verbose = verbose, reduction.key = reduction.key
   )
-  object <- LogSeuratCommand(object = object)
+  # Skip LogSeuratCommand - causes 55+ second hang in Seurat V5
+  # object <- LogSeuratCommand(object = object)
   return(object)
 }
 

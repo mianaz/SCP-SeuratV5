@@ -36,6 +36,7 @@ Integration_SCP(
   neighbor_k = 20L,
   cluster_algorithm = "louvain",
   cluster_resolution = 0.6,
+  use_v5_workflow = NULL,
   seed = 11,
   ...
 )
@@ -105,13 +106,14 @@ Supported methods are: \code{"Uncorrected"}, \code{"Seurat"}, \code{"scVI"}, \co
 
 \item{cluster_resolution}{The resolution parameter to use for clustering. Larger values result in fewer clusters (default is 0.6).}
 
+\item{use_v5_workflow}{Logical or NULL. Whether to use the Seurat v5 layer-based workflow (\code{IntegrateLayers})
+or v4 workflow (\code{FindIntegrationAnchors} + \code{IntegrateData}). If NULL (default), automatically detects object version
+and method compatibility to choose the best workflow. Set to TRUE to force v5 layer workflow where supported.
+Set to FALSE to force v4 list workflow. For methods that don't support layers (e.g., scVI, SCANVI), list workflow is always used.}
+
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
 
 \item{...}{Additional arguments to be passed to the integration method function.}
-
-\item{use_v5_workflow}{Logical or NULL. For Seurat integration, whether to use the Seurat v5 layer-based workflow (\code{IntegrateLayers})
-or v4 workflow (\code{FindIntegrationAnchors} + \code{IntegrateData}). If NULL (default), automatically detects object version
-and uses v5 workflow for v5 objects. Set to FALSE to force v4 workflow even with v5 objects. Ignored for non-Seurat integration methods.}
 }
 \value{
 A \code{Seurat} object.
@@ -190,7 +192,6 @@ for (nr in nonlinear_reductions) {
   ))
 }
 }
-
 }
 \seealso{
 \code{\link{Seurat_integrate}} \code{\link{Seurat_integrate_v5}} \code{\link{scVI_integrate}} \code{\link{SCANVI_integrate}} \code{\link{MNN_integrate}} \code{\link{fastMNN_integrate}} \code{\link{Harmony_integrate}} \code{\link{Scanorama_integrate}} \code{\link{BBKNN_integrate}} \code{\link{CSS_integrate}} \code{\link{LIGER_integrate}} \code{\link{Conos_integrate}} \code{\link{ComBat_integrate}} \code{\link{Standard_SCP}}

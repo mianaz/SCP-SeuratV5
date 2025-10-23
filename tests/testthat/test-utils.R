@@ -1,6 +1,6 @@
 # Unit tests for utility functions
 library(testthat)
-library(SCP)
+library(SCPNext)
 library(Seurat)
 
 # Test IsSeurat5 function
@@ -148,21 +148,20 @@ test_that("isOutlier detects outliers correctly", {
   expect_equal(length(outliers_same), 0)  # No outliers in uniform data
 })
 
-# Test EnsureSeurat5 function
-test_that("EnsureSeurat5 handles Seurat objects correctly", {
+# Test Seurat V5 object creation
+test_that("Seurat objects are V5 by default on Seurat >= 5.0.0", {
   # Create test Seurat object
   counts <- matrix(rpois(100, 5), nrow = 10, ncol = 10)
   rownames(counts) <- paste0("Gene", 1:10)
   colnames(counts) <- paste0("Cell", 1:10)
   srt <- CreateSeuratObject(counts = counts)
 
-  # Test function
-  result <- EnsureSeurat5(srt)
-  expect_s4_class(result, "Seurat")
+  # Test object type
+  expect_s4_class(srt, "Seurat")
 
-  # Check if it's V5 after conversion (if applicable)
+  # Check if it's V5 (if applicable)
   if (packageVersion("Seurat") >= "5.0.0") {
-    expect_true(IsSeurat5(result))
+    expect_true(IsSeurat5(srt))
   }
 })
 

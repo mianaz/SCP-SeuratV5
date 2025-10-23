@@ -120,7 +120,8 @@ DynamicHeatmap(
   width = NULL,
   units = "inch",
   seed = 11,
-  ht_params = list()
+  ht_params = list(),
+  BPPARAM = NULL
 )
 }
 \arguments{

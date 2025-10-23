@@ -2,7 +2,7 @@
 % Please edit documentation in R/SCP-analysis.R
 \name{GeneConvert}
 \alias{GeneConvert}
-\title{Gene ID conversion function using biomart}
+\title{Gene ID conversion function with hybrid approach}
 \usage{
 GeneConvert(
   geneID,
@@ -48,7 +48,13 @@ A list with the following elements:
   }
 }
 \description{
-This function can convert different gene ID types within one species or between two species using the biomart service.
+This function converts different gene ID types within one species or between two species.
+It automatically selects the fastest method available:
+\itemize{
+  \item{Cross-species symbol mapping:}{ Uses gprofiler2::gorth (fast, recommended)}
+  \item{Within-species ID conversion:}{ Uses clusterProfiler::bitr with OrgDb packages (fast)}
+  \item{Complex conversions:}{ Falls back to biomaRt (comprehensive but slower)}
+}
 }
 \examples{
 res <- GeneConvert(

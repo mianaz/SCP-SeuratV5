@@ -549,7 +549,15 @@ RunCellQC <- function(srt, assay = "RNA", split.by = NULL, return_filtered = FAL
   }
   cells <- unlist(lapply(srtList, colnames))
   srt_raw <- srt_raw[, cells]
-  meta.data <- do.call(rbind.data.frame, unname(lapply(srtList, function(x) x@meta.data)))
-  srt_raw <- AddMetaData(srt_raw, metadata = meta.data)
+  # Extract only the QC columns that were added
+  qc_meta <- do.call(rbind.data.frame, unname(lapply(srtList, function(x) {
+    qc_cols <- x@meta.data[, intersect(qc_nm, colnames(x@meta.data)), drop = FALSE]
+    rownames(qc_cols) <- colnames(x)  # Ensure row names match cell names
+    qc_cols
+  })))
+  # Verify qc_meta row names match srt_raw cell order
+  qc_meta <- qc_meta[colnames(srt_raw), , drop = FALSE]
+  # Add only the new QC columns to the original object
+  srt_raw <- AddMetaData(srt_raw, metadata = qc_meta)
   return(srt_raw)
 }

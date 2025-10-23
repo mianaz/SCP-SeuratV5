@@ -41,3 +41,4 @@
 ^\.DS_Store$
 ^inst/\.DS_Store$
 ^inst/python/\.DS_Store$
+^refactor$

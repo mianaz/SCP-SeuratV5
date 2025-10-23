@@ -10,16 +10,24 @@ def SCVELO(adata=None, h5ad=None, group_by=None, palette=None,
           show_plot=True, dpi=300, save=False, dirpath="./", fileprefix=""):
   # Configure environment before any other imports
   import os
+  import sys
   import platform
+
+  # CRITICAL: Force unbuffered output so messages appear immediately in R
+  # This must be set BEFORE any other imports to ensure all Python output is flushed
+  os.environ["PYTHONUNBUFFERED"] = "1"
+  # Also force stdout/stderr to be unbuffered at the Python level
+  sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
+  sys.stderr.reconfigure(line_buffering=True) if hasattr(sys.stderr, 'reconfigure') else None
 
   # Enhanced M-series detection and configuration
   is_m_series = platform.system() == "Darwin" and platform.machine() == "arm64"
 
   if is_m_series:
     print("M-series MacBook detected: Applying M-series specific configurations")
+    sys.stdout.flush()  # Flush immediately
     # Set M-series specific environment variables
     os.environ["PYTHONHASHSEED"] = "0"
-    os.environ["PYTHONUNBUFFERED"] = "1"
     os.environ["SCANPY_SETTINGS"] = "scanpy_settings"
     os.environ["MPLBACKEND"] = "Agg"
     os.environ["DISPLAY"] = ""

@@ -674,7 +674,7 @@ if (is.null(initial_raster)) {
   initial_raster <- length(all_cells) > 1e5
 }
 
-palette_list <- SCP::palette_list
+# palette_list is loaded from data/palette_list.rda
 theme_list <- list(
   SCP = c("theme_scp", "theme_blank"),
   ggplot2 = c("theme_classic", "theme_linedraw", "theme_minimal", "theme_void", "theme_grey", "theme_dark", "theme_light")
@@ -1653,7 +1653,7 @@ server <- function(input, output, session) {
         # print("******************************** New task ********************************")
         # print(">>> fetch data:")
         # print(system.time(
-        srt_tmp <- SCP::FetchH5(
+        srt_tmp <- FetchH5(
           DataFile = DataFile, MetaFile = MetaFile, name = dataset1,
           metanames = unique(c(group1, split1)), reduction = reduction1
         )
@@ -1663,7 +1663,7 @@ server <- function(input, output, session) {
 
         # print(">>> plot:")
         # print(system.time(
-        p1_dim <- SCP::CellDimPlot(srt_tmp,
+        p1_dim <- CellDimPlot(srt_tmp,
           group.by = group1, split.by = split1, reduction = reduction1, raster = raster1, pt.size = pt_size1,
           label = label1, palette = palette1, theme_use = theme1,
           ncol = ncol1, byrow = byrow1, force = TRUE
@@ -1672,12 +1672,12 @@ server <- function(input, output, session) {
 
         # print(">>> panel_fix:")
         # print(system.time(
-        p1_dim <- SCP::panel_fix(SCP::slim_data(p1_dim), height = size1, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+        p1_dim <- panel_fix(slim_data(p1_dim), height = size1, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         # ))
         attr(p1_dim, "dpi") <- 300
         plot3d <- max(sapply(names(srt_tmp@reductions), function(r) dim(srt_tmp[[r]])[2])) >= 3
         if (isTRUE(plot3d)) {
-          p1_3d <- SCP::CellDimPlot3D(srt_tmp, group.by = group1, pt.size = pt_size1 * 2, reduction = reduction1, palette = palette1, force = TRUE)
+          p1_3d <- CellDimPlot3D(srt_tmp, group.by = group1, pt.size = pt_size1 * 2, reduction = reduction1, palette = palette1, force = TRUE)
         } else {
           p1_3d <- NULL
         }
@@ -1805,7 +1805,7 @@ server <- function(input, output, session) {
         # print("******************************** New task ********************************")
         # print(">>> fetch data:")
         # print(system.time(
-        srt_tmp <- SCP::FetchH5(
+        srt_tmp <- FetchH5(
           DataFile = DataFile, MetaFile = MetaFile, name = dataset2,
           features = features2, slot = slots2, assay = assays2,
           metanames = split2, reduction = reduction2
@@ -1816,7 +1816,7 @@ server <- function(input, output, session) {
 
         # print(">>> plot:")
         # print(system.time(
-        p2_dim <- SCP::FeatureDimPlot(
+        p2_dim <- FeatureDimPlot(
           srt = srt_tmp, features = features2, split.by = split2, reduction = reduction2, slot = "data", raster = raster2, pt.size = pt_size2,
           calculate_coexp = coExp2, keep_scale = scale2, palette = palette2, theme_use = theme2,
           ncol = ncol2, byrow = byrow2, force = TRUE
@@ -1825,12 +1825,12 @@ server <- function(input, output, session) {
 
         # print(">>> panel_fix:")
         # print(system.time(
-        p2_dim <- SCP::panel_fix(SCP::slim_data(p2_dim), height = size2, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+        p2_dim <- panel_fix(slim_data(p2_dim), height = size2, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         # ))
         attr(p2_dim, "dpi") <- 300
         plot3d <- max(sapply(names(srt_tmp@reductions), function(r) dim(srt_tmp[[r]])[2])) >= 3
         if (isTRUE(plot3d)) {
-          p2_3d <- SCP::FeatureDimPlot3D(
+          p2_3d <- FeatureDimPlot3D(
             srt = srt_tmp, features = features2, reduction = reduction2, pt.size = pt_size2 * 2,
             calculate_coexp = coExp2, force = TRUE
           )
@@ -1960,7 +1960,7 @@ server <- function(input, output, session) {
         # print("******************************** New task ********************************")
         # print(">>> fetch data:")
         # print(system.time(
-        srt_tmp <- SCP::FetchH5(
+        srt_tmp <- FetchH5(
           DataFile = DataFile, MetaFile = MetaFile, name = dataset3,
           metanames = unique(c(stat3, group3, split3))
         )
@@ -1983,7 +1983,7 @@ server <- function(input, output, session) {
 
         # print(">>> plot:")
         # print(system.time(
-        p3 <- SCP::CellStatPlot(
+        p3 <- CellStatPlot(
           srt = srt_tmp, stat.by = stat3, group.by = group3, split.by = split3, cells = cells,
           plot_type = plottype3, stat_type = stattype3, position = position3,
           label = label3, label.size = labelsize3, flip = flip3, palette = palette3, theme_use = theme3,
@@ -1995,9 +1995,9 @@ server <- function(input, output, session) {
         # print(">>> panel_fix:")
         # print(system.time(
         if (flip3) {
-          p3 <- SCP::panel_fix(SCP::slim_data(p3), width = size3, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+          p3 <- panel_fix(slim_data(p3), width = size3, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         } else {
-          p3 <- SCP::panel_fix(SCP::slim_data(p3), height = size3, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+          p3 <- panel_fix(slim_data(p3), height = size3, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         }
         # ))
         attr(p3, "dpi") <- 300
@@ -2124,7 +2124,7 @@ server <- function(input, output, session) {
         # print("******************************** New task ********************************")
         # print(">>> fetch data:")
         # print(system.time(
-        srt_tmp <- SCP::FetchH5(
+        srt_tmp <- FetchH5(
           DataFile = DataFile, MetaFile = MetaFile, name = dataset4,
           features = features4, slot = slots4, assay = assays4,
           metanames = unique(c(group4, split4))
@@ -2148,7 +2148,7 @@ server <- function(input, output, session) {
 
         # print(">>> plot:")
         # print(system.time(
-        p4 <- SCP::FeatureStatPlot(
+        p4 <- FeatureStatPlot(
           srt = srt_tmp, stat.by = features4, group.by = group4, split.by = split4, cells = cells, slot = "data", plot_type = plottype4,
           calculate_coexp = coExp4, stack = stack4, flip = flip4,
           add_box = addbox4, add_point = addpoint4, add_trend = addtrend4,
@@ -2161,9 +2161,9 @@ server <- function(input, output, session) {
         # print(">>> panel_fix:")
         # print(system.time(
         if (flip4) {
-          p4 <- SCP::panel_fix(SCP::slim_data(p4), width = size4, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+          p4 <- panel_fix(slim_data(p4), width = size4, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         } else {
-          p4 <- SCP::panel_fix(SCP::slim_data(p4), height = size4, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
+          p4 <- panel_fix(slim_data(p4), height = size4, units = "in", raster = panel_raster, BPPARAM = BPPARAM, verbose = FALSE)
         }
 
         # ))
@@ -2246,14 +2246,13 @@ server <- function(input, output, session) {
   }
   app_code <- c(
     "# !/usr/bin/env Rscript",
-    "if (!requireNamespace('SCP', quietly = TRUE)) {
-      if (!requireNamespace('devtools', quietly = TRUE)) {install.packages('devtools')}
-      devtools::install_github('zhanghao-njmu/SCP')
+    "if (!requireNamespace('SCPNext', quietly = TRUE)) {
+      stop('Package SCPNext is required. Please install it first.')
     }",
     "options(SCP_virtualenv_init = FALSE)",
-    paste0("app_SCP_version <- package_version('", as.character(packageVersion("SCP")), "')"),
-    paste0("if (utils::packageVersion('SCP') < app_SCP_version) {
-      stop(paste0('SCExplorer requires SCP >= ", as.character(packageVersion("SCP")), "'))
+    paste0("app_SCP_version <- package_version('", as.character(packageVersion("SCPNext")), "')"),
+    paste0("if (utils::packageVersion('SCPNext') < app_SCP_version) {
+      stop(paste0('SCExplorer requires SCPNext >= ", as.character(packageVersion("SCPNext")), "'))
     }"),
     "# Check required packages",
     "if (!requireNamespace('rhdf5', quietly = TRUE)) stop('Package rhdf5 is required')",
@@ -2267,6 +2266,7 @@ server <- function(input, output, session) {
     "if (!requireNamespace('future', quietly = TRUE)) stop('Package future is required')",
     "if (!requireNamespace('promises', quietly = TRUE)) stop('Package promises is required')",
     "if (!requireNamespace('BiocParallel', quietly = TRUE)) stop('Package BiocParallel is required')",
+    "library(SCPNext)",
     "library(shiny)",
     "library(bslib)",
     "library(future)",

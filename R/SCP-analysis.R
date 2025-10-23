@@ -1,6 +1,12 @@
-#' Gene ID conversion function using biomart
+#' Gene ID conversion function with hybrid approach
 #'
-#' This function can convert different gene ID types within one species or between two species using the biomart service.
+#' This function converts different gene ID types within one species or between two species.
+#' It automatically selects the fastest method available:
+#' \itemize{
+#'   \item{Cross-species symbol mapping:}{ Uses gprofiler2::gorth (fast, recommended)}
+#'   \item{Within-species ID conversion:}{ Uses clusterProfiler::bitr with OrgDb packages (fast)}
+#'   \item{Complex conversions:}{ Falls back to biomaRt (comprehensive but slower)}
+#' }
 #'
 #' @param geneID A vector of the geneID character.
 #' @param geneID_from_IDtype Gene ID type of the input \code{geneID}. e.g. "symbol", "ensembl_id", "entrez_id"
@@ -70,16 +76,237 @@
 GeneConvert <- function(geneID, geneID_from_IDtype = "symbol", geneID_to_IDtype = "entrez_id",
                         species_from = "Homo_sapiens", species_to = NULL,
                         Ensembl_version = 103, biomart = NULL, mirror = NULL, max_tries = 5) {
+
+  # Set species_to if NULL
+  if (is.null(species_to)) {
+    species_to <- species_from
+  }
+
+  # Normalize ID types
+  from_type <- tolower(geneID_from_IDtype[1])
+  to_types <- tolower(unique(geneID_to_IDtype))
+
+  # Route to fast methods when possible
+  # Case 1: Cross-species symbol-to-symbol with gprofiler2
+  if (species_from != species_to && from_type == "symbol" && all(to_types == "symbol")) {
+    if (requireNamespace("gprofiler2", quietly = TRUE)) {
+      message("Using gprofiler2::gorth for cross-species ortholog mapping (fast path)...")
+      return(.geneconvert_gorth(geneID, species_from, species_to))
+    } else {
+      message("gprofiler2 not available, falling back to biomaRt...")
+    }
+  }
+
+  # Case 2: Within-species ID conversion with clusterProfiler::bitr
+  if (species_from == species_to && length(to_types) == 1) {
+    org_db <- .get_org_db(species_from)
+    if (!is.null(org_db) && requireNamespace("clusterProfiler", quietly = TRUE)) {
+      message("Using clusterProfiler::bitr for ID conversion (fast path)...")
+      result <- .geneconvert_bitr(geneID, from_type, to_types, org_db)
+      if (!is.null(result)) {
+        return(result)
+      } else {
+        message("bitr conversion failed, falling back to biomaRt...")
+      }
+    }
+  }
+
+  # Case 3: Fall back to biomaRt (existing implementation)
+  message("Using biomaRt for gene conversion (comprehensive but slower)...")
+  .geneconvert_biomart(geneID, geneID_from_IDtype, geneID_to_IDtype, species_from, species_to,
+                       Ensembl_version, biomart, mirror, max_tries)
+}
+
+# Helper: Get organism database for bitr
+.get_org_db <- function(species) {
+  species_map <- c(
+    "Homo_sapiens" = "org.Hs.eg.db",
+    "Mus_musculus" = "org.Mm.eg.db",
+    "Rattus_norvegicus" = "org.Rn.eg.db",
+    "Drosophila_melanogaster" = "org.Dm.eg.db",
+    "Caenorhabditis_elegans" = "org.Ce.eg.db",
+    "Danio_rerio" = "org.Dr.eg.db",
+    "Saccharomyces_cerevisiae" = "org.Sc.sgd.db"
+  )
+  db_name <- species_map[species]
+  if (is.na(db_name)) {
+    return(NULL)
+  }
+  if (requireNamespace(db_name, quietly = TRUE)) {
+    return(db_name)
+  }
+  NULL
+}
+
+# Helper: gorth-based conversion
+.geneconvert_gorth <- function(geneID, species_from, species_to) {
+  species_map <- c(
+    "Homo_sapiens" = "hsapiens",
+    "Mus_musculus" = "mmusculus",
+    "Rattus_norvegicus" = "rnorvegicus",
+    "Drosophila_melanogaster" = "dmelanogaster",
+    "Caenorhabditis_elegans" = "celegans",
+    "Danio_rerio" = "drerio",
+    "Saccharomyces_cerevisiae" = "scerevisiae"
+  )
+
+  source_org <- species_map[species_from]
+  target_org <- species_map[species_to]
+
+  if (is.na(source_org) || is.na(target_org)) {
+    return(NULL)
+  }
+
+  result <- tryCatch({
+    gprofiler2::gorth(
+      query = geneID,
+      source_organism = source_org,
+      target_organism = target_org,
+      mthreshold = 1,
+      filter_na = TRUE
+    )
+  }, error = function(e) {
+    message("gorth failed: ", e$message)
+    NULL
+  })
+
+  if (is.null(result) || nrow(result) == 0) {
+    warning("No genes converted via gorth", immediate. = TRUE)
+    return(list(geneID_res = NULL, geneID_collapse = NULL, geneID_expand = NULL,
+                Datasets = NULL, Attributes = NULL, geneID_unmapped = geneID))
+  }
+
+  # Format to match GeneConvert output
+  geneID_res <- data.frame(
+    from_IDtype = "symbol",
+    from_geneID = result$input,
+    to_IDtype = "symbol",
+    to_geneID = result$ortholog_name,
+    stringsAsFactors = FALSE
+  )
+
+  # Create collapse format
+  geneID_collapse <- aggregate(
+    to_geneID ~ from_geneID,
+    data = geneID_res,
+    FUN = function(x) list(unique(x))
+  )
+  colnames(geneID_collapse)[2] <- "symbol"
+  rownames(geneID_collapse) <- geneID_collapse$from_geneID
+
+  # Create expand format
+  geneID_expand <- data.frame(
+    from_geneID = geneID_res$from_geneID,
+    symbol = geneID_res$to_geneID,
+    stringsAsFactors = FALSE
+  )
+  rownames(geneID_expand) <- NULL
+
+  # Unmapped genes
+  mapped <- unique(geneID_res$from_geneID)
+  unmapped <- setdiff(geneID, mapped)
+
+  message(paste(length(mapped), "genes mapped"))
+  message(paste(length(unmapped), "genes unmapped"))
+
+  list(
+    geneID_res = geneID_res,
+    geneID_collapse = geneID_collapse,
+    geneID_expand = geneID_expand,
+    Ensembl_version = "gprofiler2",
+    Datasets = NULL,
+    Attributes = NULL,
+    geneID_unmapped = unmapped
+  )
+}
+
+# Helper: bitr-based conversion
+.geneconvert_bitr <- function(geneID, from_type, to_type, org_db) {
+  # Map common ID types to OrgDb column names
+  id_map <- c(
+    "symbol" = "SYMBOL",
+    "ensembl_id" = "ENSEMBL",
+    "entrez_id" = "ENTREZID",
+    "refseq_id" = "REFSEQ",
+    "uniprot_id" = "UNIPROT"
+  )
+
+  from_col <- id_map[from_type]
+  to_col <- id_map[to_type]
+
+  if (is.na(from_col) || is.na(to_col)) {
+    return(NULL)
+  }
+
+  result <- tryCatch({
+    suppressMessages(
+      clusterProfiler::bitr(
+        geneID = geneID,
+        fromType = from_col,
+        toType = to_col,
+        OrgDb = org_db
+      )
+    )
+  }, error = function(e) {
+    message("bitr failed: ", e$message)
+    NULL
+  })
+
+  if (is.null(result) || nrow(result) == 0) {
+    return(NULL)
+  }
+
+  # Format to match GeneConvert output
+  geneID_res <- data.frame(
+    from_IDtype = from_type,
+    from_geneID = result[[from_col]],
+    to_IDtype = to_type,
+    to_geneID = result[[to_col]],
+    stringsAsFactors = FALSE
+  )
+
+  # Create collapse format
+  collapse_df <- aggregate(
+    to_geneID ~ from_geneID,
+    data = geneID_res,
+    FUN = function(x) list(unique(x))
+  )
+  colnames(collapse_df)[2] <- to_type
+  rownames(collapse_df) <- collapse_df$from_geneID
+
+  # Create expand format
+  expand_df <- data.frame(
+    from_geneID = geneID_res$from_geneID,
+    stringsAsFactors = FALSE
+  )
+  expand_df[[to_type]] <- geneID_res$to_geneID
+  rownames(expand_df) <- NULL
+
+  # Unmapped genes
+  mapped <- unique(geneID_res$from_geneID)
+  unmapped <- setdiff(geneID, mapped)
+
+  message(paste(length(mapped), "genes mapped"))
+  message(paste(length(unmapped), "genes unmapped"))
+
+  list(
+    geneID_res = geneID_res,
+    geneID_collapse = collapse_df,
+    geneID_expand = expand_df,
+    Ensembl_version = "AnnotationDbi",
+    Datasets = NULL,
+    Attributes = NULL,
+    geneID_unmapped = unmapped
+  )
+}
+
+# Helper: Original biomaRt implementation
+.geneconvert_biomart <- function(geneID, geneID_from_IDtype, geneID_to_IDtype, species_from, species_to,
+                                  Ensembl_version, biomart, mirror, max_tries) {
   if (requireNamespace("httr", quietly = TRUE)) {
     httr::set_config(httr::config(ssl_verifypeer = FALSE, ssl_verifyhost = FALSE))
   }
 
-  if (missing(geneID)) {
-    stop("'geneID' must be provided.")
-  }
-  if (is.null(species_to)) {
-    species_to <- species_from
-  }
   if (is.null(Ensembl_version)) {
     Ensembl_version <- "current_release"
   }
@@ -2577,7 +2804,7 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         require_packages("reactome.db")
       }
       # if ("MeSH" %in% db) {
-      require_packages(c("AHMeSHDbs", "MeSHDbi", "MeSH.db", "AnnotationHub"))
+      #   require_packages(c("AHMeSHDbs", "MeSHDbi", "MeSH.db", "AnnotationHub"))
       # }
 
       if (is.null(custom_TERM2GENE)) {
@@ -2731,10 +2958,11 @@ PrepareDB <- function(species = c("Homo_sapiens", "Mus_musculus"),
         }
 
         ## Pathwaycommons ---------------------------------------------------------------------------
-        require_packages("paxtoolsr")
+        # Note: paxtoolsr package is no longer available in Bioconductor
 
         ## Reactome ---------------------------------------------------------------------------
         if (any(db == "Reactome") && (!"Reactome" %in% names(db_list[[sps]]))) {
+          require_packages(c("reactome.db", "AnnotationDbi"))
           message("Preparing database: Reactome")
           reactome_sp <- gsub(pattern = "_", replacement = " ", x = sps)
           df_all <- suppressMessages(select(reactome.db::reactome.db, keys = keys(reactome.db::reactome.db), columns = c("PATHID", "PATHNAME")))
@@ -4145,14 +4373,27 @@ RunEnrichment <- function(srt = NULL, group_by = NULL, test.use = "wilcox", DE_t
   res_list <- bplapply(seq_len(nrow(comb)), function(i, id) {
     group <- comb[i, "group"]
     term <- comb[i, "term"]
-    gene <- input[input$geneID_groups == group, IDtype]
-    gene_mapid <- input[input$geneID_groups == group, result_IDtype]
+    gene <- input[input$geneID_groups == group, IDtype, drop = TRUE]
+    gene_mapid <- input[input$geneID_groups == group, result_IDtype, drop = TRUE]
     TERM2GENE_tmp <- db_list[[species]][[term]][["TERM2GENE"]][, c("Term", IDtype)]
     TERM2NAME_tmp <- db_list[[species]][[term]][["TERM2NAME"]]
     dup <- duplicated(TERM2GENE_tmp)
     na <- rowSums(is.na(TERM2GENE_tmp)) > 0
     TERM2GENE_tmp <- TERM2GENE_tmp[!(dup | na), , drop = FALSE]
-    TERM2NAME_tmp <- TERM2NAME_tmp[TERM2NAME_tmp[["Term"]] %in% TERM2GENE_tmp[["Term"]], , drop = FALSE]
+    # Check if TERM2NAME_tmp has the required columns and data
+    if (is.null(TERM2NAME_tmp) || nrow(TERM2NAME_tmp) == 0 || !("Term" %in% colnames(TERM2NAME_tmp))) {
+      return(NULL)
+    }
+    # Safely subset TERM2NAME_tmp with tryCatch to handle any structural issues
+    TERM2NAME_tmp <- tryCatch({
+      TERM2NAME_tmp[TERM2NAME_tmp[["Term"]] %in% TERM2GENE_tmp[["Term"]], , drop = FALSE]
+    }, error = function(e) {
+      return(NULL)
+    })
+    # Return NULL if subsetting failed or resulted in empty data
+    if (is.null(TERM2NAME_tmp) || nrow(TERM2NAME_tmp) == 0) {
+      return(NULL)
+    }
     enrich_res <- enricher(
       gene = gene,
       minGSSize = ifelse(term %in% unlimited_db, 1, minGSSize),
@@ -4435,9 +4676,9 @@ RunGSEA <- function(srt = NULL, group_by = NULL, test.use = "wilcox", DE_thresho
   res_list <- bplapply(seq_len(nrow(comb)), function(i, id) {
     group <- comb[i, "group"]
     term <- comb[i, "term"]
-    geneList <- input[input$geneID_groups == group, "geneScore"]
-    names(geneList) <- input[input$geneID_groups == group, IDtype]
-    gene_mapid <- input[input$geneID_groups == group, result_IDtype]
+    geneList <- input[input$geneID_groups == group, "geneScore", drop = TRUE]
+    names(geneList) <- input[input$geneID_groups == group, IDtype, drop = TRUE]
+    gene_mapid <- input[input$geneID_groups == group, result_IDtype, drop = TRUE]
     ord <- order(geneList, decreasing = TRUE)
     geneList <- geneList[ord]
     gene_mapid <- gene_mapid[ord]
@@ -4446,7 +4687,20 @@ RunGSEA <- function(srt = NULL, group_by = NULL, test.use = "wilcox", DE_thresho
     dup <- duplicated(TERM2GENE_tmp)
     na <- rowSums(is.na(TERM2GENE_tmp)) > 0
     TERM2GENE_tmp <- TERM2GENE_tmp[!(dup | na), , drop = FALSE]
-    TERM2NAME_tmp <- TERM2NAME_tmp[TERM2NAME_tmp[["Term"]] %in% TERM2GENE_tmp[["Term"]], , drop = FALSE]
+    # Check if TERM2NAME_tmp has the required columns and data
+    if (is.null(TERM2NAME_tmp) || nrow(TERM2NAME_tmp) == 0 || !("Term" %in% colnames(TERM2NAME_tmp))) {
+      return(NULL)
+    }
+    # Safely subset TERM2NAME_tmp with tryCatch to handle any structural issues
+    TERM2NAME_tmp <- tryCatch({
+      TERM2NAME_tmp[TERM2NAME_tmp[["Term"]] %in% TERM2GENE_tmp[["Term"]], , drop = FALSE]
+    }, error = function(e) {
+      return(NULL)
+    })
+    # Return NULL if subsetting failed or resulted in empty data
+    if (is.null(TERM2NAME_tmp) || nrow(TERM2NAME_tmp) == 0) {
+      return(NULL)
+    }
     enrich_res <- GSEA(
       geneList = geneList,
       minGSSize = ifelse(term %in% unlimited_db, 1, minGSSize),
@@ -5304,7 +5558,7 @@ RunDynamicFeatures <- function(srt, lineages, features = NULL, suffix = lineages
   }
   gene_status <- status <- check_DataType(srt, assay = assay, layer = slot)
   meta_status <- sapply(meta, function(x) {
-    check_DataType(data = srt[[x]])
+    check_DataType(srt = NULL, data = srt[[x]])
   })
   if (is.null(family)) {
     family <- rep("gaussian", length(features))
@@ -5794,7 +6048,7 @@ srt_to_adata <- function(srt, features = NULL,
 #' # srt <- adata_to_srt(adata)
 #' # srt
 #' @importFrom Seurat CreateSeuratObject CreateAssayObject CreateDimReducObject AddMetaData
-#' @importFrom SeuratObject as.Graph as.sparse
+#' @importFrom SeuratObject as.Graph as.sparse CreateAssay5Object
 #' @importFrom reticulate iterate
 #' @importFrom Matrix t
 #' @export
@@ -5802,13 +6056,14 @@ adata_to_srt <- function(adata) {
   if (!inherits(adata, "python.builtin.object")) {
     stop("'adata' is not a python.builtin.object.")
   }
-  sc <- import("scanpy", convert = TRUE)
-  np <- import("numpy", convert = TRUE)
+  sc <- import("scanpy", convert = FALSE)
+  np <- import("numpy", convert = FALSE)
   sp <- tryCatch(import("scipy.sparse", convert = FALSE), error = function(e) NULL)
 
   # Get feature and cell names BEFORE converting matrix
-  feature_names <- py_to_r_auto(adata$var_names$values)
-  cell_names <- py_to_r_auto(adata$obs_names$values)
+  # CRITICAL: Convert to plain R character vectors to avoid Python string encoding issues
+  feature_names <- as.character(py_to_r_auto(adata$var_names$values))
+  cell_names <- as.character(py_to_r_auto(adata$obs_names$values))
 
   # CRITICAL: Seurat V5 does NOT allow underscores in feature names
   # Replace them BEFORE any other processing
@@ -5823,14 +6078,21 @@ adata_to_srt <- function(adata) {
   }
 
   # Convert matrix from Python
-  # Check if it's a scipy sparse matrix
-  is_sparse_python <- !is.null(sp) && inherits(adata$X, "python.builtin.object")
+  # Check if it's a scipy sparse matrix by checking for the 'toarray' method
+  has_toarray <- FALSE
+  if (!is.null(sp) && inherits(adata$X, "python.builtin.object")) {
+    has_toarray <- tryCatch({
+      # Check if the object has a toarray method
+      py_has_attr(adata$X, "toarray")
+    }, error = function(e) FALSE)
+  }
 
-  if (is_sparse_python) {
+  if (has_toarray) {
     # For scipy sparse matrices, convert to dense first for reliability
     # then convert to R sparse matrix
     x_raw <- py_to_r_auto(adata$X$toarray())
   } else {
+    # For dense numpy arrays or already converted data
     x_raw <- py_to_r_auto(adata$X)
   }
 
@@ -5852,43 +6114,21 @@ adata_to_srt <- function(adata) {
     x <- as.matrix(x)
   }
 
-  # Create a CLEAN sparse matrix by building from scratch
-  # This avoids any issues with numpy/reticulate matrix conversion artifacts
+  # Set dimnames BEFORE converting to sparse to ensure they're preserved correctly
+  rownames(x) <- feature_names
+  colnames(x) <- cell_names
+
+  # Convert to sparse using simple method - much more reliable than manual reconstruction
   if (!inherits(x, "dgCMatrix")) {
-    # Convert to regular R matrix first
-    if (inherits(x, "Matrix") && !is.matrix(x)) {
-      x <- as.matrix(x)
-    }
-    # Now create sparse matrix using sparseMatrix constructor for clean structure
-    # Find non-zero entries
-    nz <- which(x != 0, arr.ind = TRUE)
-    if (nrow(nz) > 0) {
-      x <- Matrix::sparseMatrix(
-        i = nz[, 1],
-        j = nz[, 2],
-        x = x[nz],
-        dims = dim(x),
-        dimnames = list(NULL, NULL),  # Set dimnames separately later
-        repr = "C"  # Column-compressed format (dgCMatrix)
-      )
-    } else {
-      # All zeros - create empty sparse matrix
-      x <- Matrix::sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
-                               dims = c(length(feature_names), length(cell_names)),
-                               dimnames = list(NULL, NULL), repr = "C")
-    }
+    x <- as(x, "CsparseMatrix")  # This auto-converts to dgCMatrix
   }
 
-  # Validate dimensions after sparse conversion
+  # Validate final dimensions
   if (nrow(x) != length(feature_names) || ncol(x) != length(cell_names)) {
     stop("Matrix dimensions changed during sparse conversion. Got: ",
          nrow(x), " x ", ncol(x), ", Expected: ",
          length(feature_names), " x ", length(cell_names))
   }
-
-  # Set dimnames on the clean sparse matrix
-  rownames(x) <- feature_names
-  colnames(x) <- cell_names
 
   # Final validation
   if (is.null(rownames(x)) || is.null(colnames(x))) {
@@ -5906,28 +6146,13 @@ adata_to_srt <- function(adata) {
     rownames(metadata) <- cell_names
   }
 
-  # Create Seurat object - Seurat V5 expects counts as a named list for layers
-  # Try providing counts as a list
+  # Create Seurat object using CreateSeuratObject for Seurat V5
+  # This is simpler and more reliable than manually creating Assay5 objects
   srt <- tryCatch({
-    CreateAssay5Object(counts = list(counts = x), min.cells = 0, min.features = 0)
+    CreateSeuratObject(counts = x, meta.data = metadata, min.cells = 0, min.features = 0)
   }, error = function(e) {
-    # Fallback: Try without list wrapper
-    tryCatch({
-      CreateAssay5Object(counts = x, min.cells = 0, min.features = 0)
-    }, error = function(e2) {
-      stop("Failed to create Assay5 object. Error 1: ", e$message, ", Error 2: ", e2$message)
-    })
+    stop("Failed to create Seurat object from AnnData: ", e$message)
   })
-
-  # Now wrap in Seurat object
-  srt <- new("Seurat",
-            assays = list(RNA = srt),
-            meta.data = metadata,
-            active.assay = "RNA",
-            active.ident = factor(rep("cell", ncol(x))),
-            project.name = "SeuratProject",
-            version = packageVersion("SeuratObject"))
-  names(srt@active.ident) <- colnames(x)
 
   if (inherits(adata$layers, "python.builtin.object")) {
     keys <- iterate(adata$layers$keys())
@@ -5936,7 +6161,31 @@ adata_to_srt <- function(adata) {
   }
   if (length(keys) > 0) {
     for (k in keys) {
-      layer_raw <- py_to_r_auto(adata$layers[[k]])
+      layer_raw_result <- tryCatch({
+        py_to_r_auto(adata$layers[[k]])
+      }, error = function(e) {
+        warning("Failed to extract layer '", k, "': ", e$message, immediate. = TRUE)
+        return(NULL)
+      })
+
+      if (is.null(layer_raw_result)) {
+        next
+      }
+
+      # Handle case where layer might be a scipy sparse matrix
+      has_toarray <- FALSE
+      if (!is.null(sp) && inherits(layer_raw_result, "python.builtin.object")) {
+        has_toarray <- tryCatch({
+          py_has_attr(layer_raw_result, "toarray")
+        }, error = function(e) FALSE)
+      }
+
+      if (has_toarray) {
+        layer_raw <- py_to_r_auto(layer_raw_result$toarray())
+      } else {
+        layer_raw <- layer_raw_result
+      }
+
       if (!inherits(layer_raw, c("Matrix", "matrix"))) {
         warning("Layer '", k, "' is not a matrix. Skipping.", immediate. = TRUE)
         next
@@ -5961,11 +6210,13 @@ adata_to_srt <- function(adata) {
       # Set dimnames
       dimnames(layer) <- list(feature_names, cell_names)
 
-      # Add as assay with error handling
+      # For Seurat V5, add as layer to the RNA assay instead of creating separate assays
+      layer_name <- py_to_r_auto(k)
       tryCatch({
-        srt[[py_to_r_auto(k)]] <- CreateAssayObject(counts = layer, min.cells = 0, min.features = 0)
+        # Use LayerData<- to add the layer to the RNA assay
+        SeuratObject::LayerData(srt[["RNA"]], layer = layer_name) <- layer
       }, error = function(e) {
-        warning("Failed to add layer '", k, "': ", e$message, immediate. = TRUE)
+        warning("Failed to add layer '", layer_name, "': ", e$message, immediate. = TRUE)
       })
     }
   }
@@ -6291,7 +6542,7 @@ RunPAGA <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = FALSE)
   adata <- do.call(SCP_analysis$PAGA, args)
 
   if (isTRUE(return_seurat)) {
@@ -6487,8 +6738,9 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
   # Import Python module with better error handling
+  # IMPORTANT: Use convert = FALSE to prevent automatic conversion that breaks adata structure
   SCP_analysis <- tryCatch({
-    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
+    reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = FALSE)
   }, error = function(e) {
     message("Failed to import SCP_analysis Python module: ", e$message)
     message("This may indicate an issue with your Python environment setup.")
@@ -6508,8 +6760,17 @@ RunSCVELO <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_laye
     if (is.null(srt)) {
       return(srt_out)
     } else {
-      srt_out1 <- SrtAppend(srt_raw = srt, srt_append = srt_out)
-      srt_out2 <- SrtAppend(srt_raw = srt_out1, srt_append = srt_out, pattern = paste0("(velocity)|(distances)|(connectivities)|(Ms)|(Mu)|(", paste(mode, collapse = ")|("), ")|(paga)"), overwrite = TRUE, verbose = FALSE)
+      # IMPORTANT: Must specify layers parameter in BOTH SrtAppend calls
+      # Otherwise defaults to layerNames() which only returns assay layers, not reductions
+      srt_out1 <- SrtAppend(srt_raw = srt, srt_append = srt_out,
+                           layers = c("assays", "reductions", "graphs", "meta.data"))
+      # Create pattern to match velocity embeddings (e.g., "stochastic_umap", "deterministic_tsne")
+      # Each mode can have multiple embeddings with different suffixes, so use partial matching
+      velocity_patterns <- paste0(mode, "_", collapse = "|")
+      srt_out2 <- SrtAppend(srt_raw = srt_out1, srt_append = srt_out,
+                           layers = c("reductions", "graphs", "meta.data"),
+                           pattern = paste0("(velocity)|(distances)|(connectivities)|(Ms)|(Mu)|(", velocity_patterns, ")|(paga)"),
+                           overwrite = TRUE, verbose = FALSE)
       return(srt_out2)
     }
   } else {
@@ -6607,7 +6868,7 @@ RunPalantir <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = FALSE)
   adata <- do.call(SCP_analysis$Palantir, args)
 
   if (isTRUE(return_seurat)) {
@@ -6699,7 +6960,7 @@ RunWOT <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_layers 
   if (!reticulate::py_module_available("wot") || !reticulate::py_module_available("anndata")) {
     stop("Python modules 'wot' and 'anndata' are required. Install with: uv_install(packages = c('wot', 'anndata'))")
   }
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = FALSE)
   adata <- do.call(SCP_analysis$WOT, args)
 
   if (isTRUE(return_seurat)) {
@@ -6779,7 +7040,7 @@ RunCellRank <- function(srt = NULL, assay_X = "RNA", slot_X = "counts", assay_la
   groups <- py_to_r_auto(args[["adata"]]$obs)[[group_by]]
   args[["palette"]] <- palette_scp(levels(groups) %||% unique(groups), palette = palette, palcolor = palcolor)
 
-  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = TRUE)
+  SCP_analysis <- reticulate::import_from_path("SCP_analysis", path = system.file("python", package = "SCPNext", mustWork = TRUE), convert = FALSE)
   adata <- do.call(SCP_analysis$CellRank, args)
 
   if (isTRUE(return_seurat)) {

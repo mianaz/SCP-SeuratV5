@@ -1,4 +1,7 @@
-url: https://zhanghao-njmu.github.io/SCP/
+url: https://mianaz.github.io/SCP-SeuratV5/
+
+# Skip building vignettes during pkgdown - use pre-built HTML
+build_vignettes: false
 
 template:
   bootstrap: 5
@@ -7,18 +10,141 @@ code:
   width: 120
 
 navbar:
-  title: "SCP"
+  title: "SCPNext"
   right:
-    - icon: fa-github
-      href: https://github.com/zhanghao-njmu/SCP
-  figures:
-    dev: ragg::agg_png
-    dpi: 96
-    dev.args: []
-    fig.ext: png
-    fig.width: 10
-    fig.height: ~
-    fig.retina: 2
-    fig.asp: 1.618
-    bg: NA
-    other.parameters: []
+    - icon: fa-github fa-lg
+      href: https://github.com/mianaz/SCP-SeuratV5
+      aria-label: "GitHub"
+
+figures:
+  dev: ragg::agg_png
+  dpi: 96
+  dev.args: []
+  fig.ext: png
+  fig.width: 10
+  fig.height: ~
+  fig.retina: 2
+  fig.asp: 1.618
+  bg: NA
+  other.parameters: []
+
+reference:
+  - title: "Core Workflow"
+    desc: "Main preprocessing and integration workflows"
+    contents:
+      - Standard_SCP
+      - matches("Integration")
+      - RunDimReduction
+      - DefaultReduction
+
+  - title: "Integration Methods"
+    desc: "Batch correction and data integration"
+    contents:
+      - matches("integrate")
+
+  - title: "Analysis"
+    desc: "Data analysis and statistical methods"
+    contents:
+      - matches("^Run(DE|Enrichment|GSEA)")
+      - matches("Scoring")
+      - matches("^Find")
+      - CombinePvalues
+      - CC_GenePrefetch
+      - PrepareDB
+      - ListDB
+
+  - title: "Trajectory Analysis"
+    desc: "Trajectory inference and RNA velocity"
+    contents:
+      - matches("^Run(Slingshot|Monocle|PAGA|SCVELO|Palantir|WOT)")
+      - matches("Dynamic")
+      - matches("Lineage")
+
+  - title: "Cell Annotation & Projection"
+    desc: "Cell type annotation and reference mapping"
+    contents:
+      - matches("^RunKNN")
+      - matches("^Run.*Map")
+      - matches("Scmap|SingleR")
+
+  - title: "Quality Control"
+    desc: "Cell QC and doublet detection"
+    contents:
+      - matches("^RunCellQC|^db_|isOutlier|RunDoublet")
+
+  - title: "Visualization"
+    desc: "Plotting functions"
+    contents:
+      - matches("Plot$")
+      - matches("Heatmap$")
+      - matches("^theme_")
+      - matches("palette")
+      - matches("^geom_")
+      - CellDimPlot3D
+      - FeatureDimPlot3D
+      - adjcolors
+      - blendcolors
+      - compute_velocity_on_grid
+      - drop_data
+      - slim_data
+      - get_vars
+      - make_long
+      - panel_fix
+
+  - title: "Dimensionality Reduction"
+    desc: "Extended dimensionality reduction methods"
+    contents:
+      - matches("^Run(NMF|MDS|GLMPCA|DM|UMAP|PaCMAP|PHATE|TriMap|LargeVis|FR|Harmony2)$")
+      - RunUMAP2
+
+  - title: "Data Management"
+    desc: "Data manipulation and utilities"
+    contents:
+      - matches("^(get_|set_|check_)")
+      - matches("Srt(Append|Reorder)")
+      - matches("^Rename")
+      - matches("adata")
+      - RecoverCounts
+
+  - title: "Imputation & Feature Annotation"
+    desc: "Data imputation and feature annotation"
+    contents:
+      - matches("^Run(Imputation|ALRA|MAGIC|KNNSmooth)")
+      - AnnotateFeatures
+      - GeneConvert
+      - choose_k
+      - matrix_power
+
+  - title: "Interactive Tools"
+    desc: "Interactive data exploration"
+    contents:
+      - matches("SCExplorer")
+      - matches("^(Create|Fetch).*File")
+      - FetchH5
+
+  - title: "Utilities"
+    desc: "Helper functions"
+    contents:
+      - matches("^(capitalize|col2hex|CheckMatrix)")
+      - matches("^(check_uv|install_uv|use_uv|uv_|PrepareEnv|RemoveEnv)")
+      - matches("^(require_packages|invoke|try_get)")
+      - matches("IsSeurat5")
+      - matches("layerNames")
+      - SaveExampleChromium
+      - words_excluded
+      - lifemap_cell
+      - format_size
+      - print.upset_plot_scp
+      - segementsDf
+
+  - title: "Example Data"
+    desc: "Example datasets"
+    contents:
+      - matches("_(sub|scMCA|scHCL)$")
+
+  - title: "Internal Functions"
+    desc: "Internal helper functions"
+    contents:
+      - has_keyword("internal")
+      - matches("^\\.")
+

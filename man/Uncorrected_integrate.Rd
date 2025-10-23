@@ -35,6 +35,7 @@ Uncorrected_integrate(
   neighbor_k = 20L,
   cluster_algorithm = "louvain",
   cluster_resolution = 0.6,
+  verbose = TRUE,
   seed = 11
 )
 }
@@ -98,6 +99,9 @@ Uncorrected_integrate(
 \item{cluster_algorithm}{The clustering algorithm to use. Options are "louvain", "slm", or "leiden" (default is "louvain").}
 
 \item{cluster_resolution}{The resolution parameter to use for clustering. Larger values result in fewer clusters (default is 0.6).}
+
+\item{verbose}{Logical. If TRUE, print detailed progress messages including
+timing information for ScaleData and other operations. Default is TRUE.}
 
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
 }

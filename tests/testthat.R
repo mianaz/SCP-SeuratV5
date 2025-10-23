@@ -2,7 +2,7 @@
 # It runs all tests in the tests/testthat directory
 
 library(testthat)
-library(SCP)
+library(SCPNext)
 
 # Run all tests
-test_check("SCP")
+test_check("SCPNext")

@@ -1,0 +1,462 @@
+---
+title: "Getting Started with SCPNext"
+author: "mianaz"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Getting Started with SCPNext}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  warning = FALSE,
+  message = FALSE
+)
+library(SCPNext)
+
+# Automatically set up Python environment for vignette building
+tryCatch({
+  use_uv_env()
+}, error = function(e) {
+  # If environment doesn't exist, create it
+  message("Creating Python environment for vignette...")
+  PrepareEnv(extras = "all", force = FALSE)
+  use_uv_env()
+})
+```
+
+# Introduction
+
+SCPNext provides a comprehensive set of tools for single-cell data processing and downstream analysis. It is developed on the basis of SCP (Single-Cell Pipeline), but with full support for Seurat V5 and later, and enhanced python package management using [uv](https://github.com/astral-sh/uv).
+
+# Installation
+
+## Prerequisites
+
+You will need uv for managing the Python environment. 
+To install, run the following command in your terminal:
+
+```{bash eval=FALSE}
+# On macOS and Linux.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```{bash eval=FALSE}
+# On Windows.
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Or from PyPI:
+```{bash eval=FALSE}
+# With pip.
+pip install uv
+# Or pipx.
+pipx install uv
+```
+
+## R version requirement
+- R>4.1.0
+- Seurat>4.1.0
+
+## Install from GitHub
+
+```{r install, eval=FALSE}
+# Install devtools if needed
+install.packages("devtools")
+
+# Install SCPNext
+devtools::install_github("mianaz/SCP-SeuratV5")
+```
+
+## Python Environment Setup (One-Time Only)
+
+To speed up and simplify the installation of Python dependencies, SCPNext uses uv to create and manage a dedicated Python environment.
+
+```{r python_setup, eval=FALSE}
+library(SCPNext)
+
+# Option 1: Basic installation (recommended) - ~30 seconds
+# Essential single-cell tools for standard analysis
+PrepareEnv(extras = "basic", force=TRUE)
+
+# Option 2: Full installation - ~90 seconds
+# Includes velocity, trajectory, deep learning, machine learning
+PrepareEnv(extras = "all", force=TRUE)
+```
+
+**In future R sessions**, run:
+
+```{r activate_env, eval=FALSE}
+use_uv_env()  # Activate Python environment
+```
+
+# Quick Start
+
+## Data Exploration
+
+```{r load}
+#library(BiocParallel)
+#register(MulticoreParam(workers = 8, progressbar = TRUE))
+
+data("pancreas_sub")
+print(pancreas_sub)
+```
+
+```{r}
+CellDimPlot(
+  srt = pancreas_sub, group.by = c("CellType", "SubCellType"),
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+CellDimPlot(
+  srt = pancreas_sub, group.by = "SubCellType", stat.by = "Phase",
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+FeatureDimPlot(
+  srt = pancreas_sub, features = c("Sox9", "Neurog3", "Fev", "Rbp4"),
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r}
+FeatureDimPlot(
+  srt = pancreas_sub, features = c("Ins1", "Gcg", "Sst", "Ghrl"),
+  compare_features = TRUE, label = TRUE, label_insitu = TRUE,
+  reduction = "UMAP", theme_use = "theme_blank"
+)
+```
+
+```{r fig.width=12, fig.height=10}
+ht <- GroupHeatmap(
+  srt = pancreas_sub,
+  features = c(
+    "Sox9", "Anxa2", # Ductal
+    "Neurog3", "Hes6", # EPs
+    "Fev", "Neurod1", # Pre-endocrine
+    "Rbp4", "Pyy", # Endocrine
+    "Ins1", "Gcg", "Sst", "Ghrl" # Beta, Alpha, Delta, Epsilon
+  ),
+  group.by = c("CellType", "SubCellType"),
+  heatmap_palette = "YlOrRd",
+  cell_annotation = c("Phase", "G2M_score", "Cdh2"),
+  cell_annotation_palette = c("Dark2", "Paired", "Paired"),
+  show_row_names = TRUE, row_names_side = "left",
+  add_dot = TRUE, add_reticle = TRUE
+)
+print(ht$grob)
+```
+
+## CellQC
+```{r}
+pancreas_sub <- RunCellQC(srt = pancreas_sub)
+CellDimPlot(srt = pancreas_sub, group.by = "CellQC", reduction = "UMAP")
+```
+```{r}
+CellStatPlot(srt = pancreas_sub, stat.by = "CellQC", group.by = "CellType", label = TRUE)
+```
+```{r}
+CellStatPlot(
+  srt = pancreas_sub,
+  stat.by = c(
+    "db_qc", "outlier_qc", "umi_qc", "gene_qc",
+    "mito_qc", "ribo_qc", "ribo_mito_ratio_qc", "species_qc"
+  ),
+  plot_type = "upset", stat_level = "Fail"
+)
+```
+
+## Standard Pipeline
+```{r}
+# needs to add timestamp
+pancreas_sub <- Standard_SCP(srt = pancreas_sub)
+CellDimPlot(
+  srt = pancreas_sub, group.by = c("CellType", "SubCellType"),
+  reduction = "StandardUMAP2D", theme_use = "theme_blank"
+)
+```
+
+```{r}
+CellDimPlot3D(srt = pancreas_sub, group.by = "SubCellType")
+```
+
+```{r}
+FeatureDimPlot3D(srt = pancreas_sub, features = c("Sox9", "Neurog3", "Fev", "Rbp4"))
+```
+
+## Integration Pipeline
+```{r}
+# needs to be tested separately
+data("panc8_sub")
+panc8_sub <- Integration_SCP(srtMerge = panc8_sub, batch = "tech", integration_method = "Seurat")
+CellDimPlot(
+  srt = panc8_sub, group.by = c("celltype", "tech"), reduction = "SeuratUMAP2D",
+  title = "Seurat", theme_use = "theme_blank"
+)
+```
+
+## Cell projection between single-cell datasets
+
+```{r}
+# human to mouse (demo purpose only, please consider ortholog mapping for real cases)
+new.names<- make.unique(capitalize(rownames(panc8_sub[["RNA"]]), force_tolower = TRUE))
+panc8_rename <- panc8_sub
+rownames(panc8_rename[["RNA"]]) <- new.names
+srt_query <- RunKNNMap(srt_query = pancreas_sub, srt_ref = panc8_rename, ref_umap = "SeuratUMAP2D")
+ProjectionPlot(
+  srt_query = srt_query, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype"
+)
+```
+
+## Cell annotation using bulk RNA-seq datasets
+```{r}
+data("ref_scMCA")
+pancreas_sub <- RunKNNPredict(srt_query = pancreas_sub, bulk_ref = ref_scMCA, filter_lowfreq = 20)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+## Cell annotation using single-cell datasets
+```{r}
+pancreas_sub <- RunKNNPredict(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  ref_group = "celltype", filter_lowfreq = 20
+)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+```{r}
+pancreas_sub <- RunKNNPredict(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype",
+  return_full_distance_matrix = TRUE
+)
+CellDimPlot(srt = pancreas_sub, group.by = "KNNPredict_classification", reduction = "UMAP", label = TRUE)
+```
+
+```{r fig.width=10, fig.height=8}
+ht <- CellCorHeatmap(
+  srt_query = pancreas_sub, srt_ref = panc8_rename,
+  query_group = "SubCellType", ref_group = "celltype",
+  nlabel = 3, label_by = "row",
+  show_row_names = TRUE, show_column_names = TRUE
+)
+print(ht$plot)
+```
+
+## PAGA analysis
+```{r}
+pancreas_sub <- RunPAGA(
+  srt = pancreas_sub, group_by = "SubCellType",
+  linear_reduction = "PCA", nonlinear_reduction = "UMAP"
+)
+PAGAPlot(srt = pancreas_sub, reduction = "UMAP", label = TRUE, label_insitu = TRUE, label_repel = TRUE)
+```
+
+## Velocity analysis
+```{r}
+pancreas_sub <- RunSCVELO(
+  srt = pancreas_sub, group_by = "SubCellType",
+  linear_reduction = "PCA", nonlinear_reduction = "UMAP"
+)
+VelocityPlot(srt = pancreas_sub, reduction = "UMAP", group_by = "SubCellType")
+```
+
+```{r}
+VelocityPlot(srt = pancreas_sub, reduction = "UMAP", plot_type = "stream")
+```
+
+add: loom file loading?
+
+## Differential Expression
+```{r}
+pancreas_sub <- RunDEtest(srt = pancreas_sub, group_by = "CellType", fc.threshold = 1, only.pos = FALSE)
+VolcanoPlot(srt = pancreas_sub, group_by = "CellType")
+```
+
+
+```{r fig.width=12, fig.height=10}
+DEGs <- pancreas_sub@tools$DEtest_CellType$AllMarkers_wilcox
+DEGs <- DEGs[with(DEGs, avg_log2FC > 1 & p_val_adj < 0.05), ]
+# Annotate features with transcription factors and surface proteins
+pancreas_sub <- AnnotateFeatures(pancreas_sub, species = "Mus_musculus", db = c("TF", "CSPA"))
+ht <- FeatureHeatmap(
+  srt = pancreas_sub, group.by = "CellType", features = DEGs$gene, feature_split = DEGs$group1,
+  species = "Mus_musculus", db = c("GO_BP", "KEGG", "WikiPathway"), anno_terms = TRUE,
+  feature_annotation = c("TF", "CSPA"), feature_annotation_palcolor = list(c("gold", "steelblue"), c("forestgreen")),
+  height = 5, width = 4
+)
+print(ht$plot)
+```
+
+## Enrichment analysis (over-representation)
+```{r}
+pancreas_sub <- RunEnrichment(
+  srt = pancreas_sub, group_by = "CellType", db = "GO_BP", species = "Mus_musculus",
+  DE_threshold = "avg_log2FC > log2(1.5) & p_val_adj < 0.05"
+)
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "bar"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "wordcloud"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = c("Ductal", "Endocrine"),
+  plot_type = "wordcloud", word_type = "feature"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Ductal",
+  plot_type = "network"
+)
+```
+
+```{r}
+EnrichmentPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Ductal",
+  plot_type = "enrichmap"
+)
+```
+
+```{r fig.width=14, fig.height=10}
+EnrichmentPlot(srt = pancreas_sub, group_by = "CellType", plot_type = "comparison")
+```
+
+## Enrichment analysis (GSEA)
+```{r}
+pancreas_sub <- RunGSEA(
+  srt = pancreas_sub, group_by = "CellType", db = "GO_BP", species = "Mus_musculus"
+)
+GSEAPlot(
+  srt = pancreas_sub, group_by = "CellType", group_use = "Endocrine", plot_type = "bar",
+  direction = "both", topTerm = 20
+)
+```
+
+```{r}
+GSEAPlot(srt = pancreas_sub, group_by = "CellType", plot_type = "comparison")
+```
+
+## Trajectory inference
+```{r}
+pancreas_sub <- RunSlingshot(srt = pancreas_sub, group.by = "SubCellType", reduction = "UMAP")
+```
+
+```{r}
+FeatureDimPlot(pancreas_sub, features = paste0("Lineage", 1:3), reduction = "UMAP", theme_use = "theme_blank")
+```
+
+```{r}
+CellDimPlot(pancreas_sub, group.by = "SubCellType", reduction = "UMAP", lineages = paste0("Lineage", 1:3), lineages_span = 0.1)
+```
+
+## Dynamic features
+```{r fig.width=14, fig.height=10}
+pancreas_sub <- RunDynamicFeatures(srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"), n_candidates = 200)
+pancreas_sub <- AnnotateFeatures(pancreas_sub, species = "Mus_musculus",
+  db = c("TF", "CSPA"))
+ht <- DynamicHeatmap(
+  srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"),
+  use_fitted = TRUE, n_split = 6, reverse_ht = "Lineage1",
+  species = "Mus_musculus", db = "GO_BP", anno_terms = TRUE, anno_keys = TRUE, anno_features = TRUE,
+  heatmap_palette = "viridis", cell_annotation = "SubCellType",
+  separate_annotation = list("SubCellType", c("Nnat", "Irx1")), separate_annotation_palette = c("Paired", "Set1"),
+  feature_annotation = c("TF", "CSPA"), feature_annotation_palcolor = list(c("gold", "steelblue"), c("forestgreen")),
+  pseudotime_label = 25, pseudotime_label_color = "red",
+  height = 5, width = 2
+)
+print(ht$plot)
+```
+
+```{r}
+DynamicPlot(
+  srt = pancreas_sub, lineages = c("Lineage1", "Lineage2"), group.by = "SubCellType",
+  features = c("Plk1", "Hes1", "Neurod2", "Ghrl", "Gcg", "Ins2"),
+  compare_lineages = TRUE, compare_features = FALSE
+)
+```
+
+```{r}
+FeatureStatPlot(
+  srt = pancreas_sub, group.by = "SubCellType", bg.by = "CellType",
+  stat.by = c("Sox9", "Neurod2", "Isl1", "Rbp4"), add_box = TRUE,
+  comparisons = list(
+    c("Ductal", "Ngn3 low EP"),
+    c("Ngn3 high EP", "Pre-endocrine"),
+    c("Alpha", "Beta")
+  )
+)
+```
+
+## Interactive data visualization with SCExplorer
+```{r}
+PrepareSCExplorer(list(mouse_pancreas = pancreas_sub, human_pancreas = panc8_sub), base_dir = "./SCExplorer")
+app <- RunSCExplorer(base_dir = "./SCExplorer")
+list.files("./SCExplorer") # This directory can be used as site directory for Shiny Server.
+
+if (interactive()) {
+  shiny::runApp(app)
+}
+```
+
+
+
+# Troubleshooting
+
+## Python Environment Issues
+
+```{r troubleshoot_python, eval=FALSE}
+# Remove and recreate environment
+RemoveEnv()
+PrepareEnv(force = TRUE, extras = "all")
+
+# Verify installation
+library(SCPNext)
+use_uv_env()
+reticulate::py_config()
+reticulate::py_module_available("scanpy")
+```
+
+## Adding Python Dependencies Later
+
+```{r add_deps, eval=FALSE}
+# Install individual packages to existing environment
+uv_install(packages = "scvelo")
+
+# Or upgrade from basic to all
+uv_install(extras = "all")
+
+# Or reinstall with different extras
+PrepareEnv(extras = "all", update = TRUE)
+```
+
+# Session Info
+
+```{r session_info}
+sessionInfo()
+```

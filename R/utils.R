@@ -11,9 +11,9 @@
 #' @importFrom stringr str_wrap
 #' @import ggplot2
 #' @import Seurat
-#' @import future
-#' @import future.apply
 #' @import methods
+# REMOVED @import future and @import future.apply to prevent namespace conflicts with Seurat
+# These packages will be loaded explicitly only where needed using requireNamespace()
 
 # Declare global variables used in NSE contexts (ggplot, dplyr, tidyr, etc.)
 utils::globalVariables(c(
@@ -48,6 +48,28 @@ utils::globalVariables(c(
 # Removed ensure_scp_python() function - internal helper that was never called
 # Removed EnsureEnv() function - unnecessary wrapper
 # Use use_uv_env() directly when Python environment is needed
+
+#' Helper function for KEGG REST API calls
+#' @keywords internal
+kegg_get <- function(url) {
+  require_packages("httr")
+  response <- httr::GET(url)
+  if (httr::status_code(response) != 200) {
+    stop("Failed to fetch data from KEGG: ", url)
+  }
+  content <- httr::content(response, as = "text", encoding = "UTF-8")
+  # Parse as tab-separated values if it looks like tabular data
+  lines <- strsplit(content, "\n")[[1]]
+  lines <- lines[lines != ""]  # Remove empty lines
+  if (length(lines) > 0) {
+    # Check if it's tab-separated
+    if (grepl("\t", lines[1])) {
+      result <- do.call(rbind, strsplit(lines, "\t"))
+      return(result)
+    }
+  }
+  return(lines)
+}
 
 #' Unified Color Palette System
 #'
@@ -395,17 +417,25 @@ as_matrix.data.frame <- function(x) {
 
 #' Capitalize strings
 #'
-#' Capitalizes the first letter of each word in a string
+#' Capitalizes the first letter of each string and optionally converts the rest to lowercase.
 #'
 #' @param x Character vector to capitalize
-#' @param force_tolower Logical, whether to convert to lowercase first
+#' @param force_tolower Logical. If TRUE, converts entire string to lowercase first before capitalizing.
+#'   This is useful for converting gene names from UPPERCASE to Capitalized format (e.g., "INS" -> "Ins").
+#'   Default is FALSE.
 #' @return Character vector with capitalized strings
 #' @export
+#' @examples
+#' capitalize(c("hello", "WORLD"))
+#' # [1] "Hello" "WORLD"
+#'
+#' capitalize(c("INS", "GCG", "NEUROG3"), force_tolower = TRUE)
+#' # [1] "Ins" "Gcg" "Neurog3"
 capitalize <- function(x, force_tolower = FALSE) {
   if (force_tolower) {
     x <- tolower(x)
   }
-  gsub("(?<!^)(?=[A-Z])", " ", gsub("(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2", tolower(x), perl = TRUE), perl = TRUE)
+  paste0(toupper(substring(x, 1, 1)), substring(x, 2))
 }
 
 layer <- function(object, name = NULL) {
@@ -561,7 +591,7 @@ panel_fix_single <- function(x) {
   return(x)
 }
 
-panel_fix <- function(x) {
+.panel_fix_facets <- function(x) {
   if (is.list(x) && !inherits(x, "ggplot")) {
     for (i in seq_along(x)) {
       x[[i]] <- panel_fix_single(x[[i]])
@@ -1076,7 +1106,26 @@ PrepareEnv <- function(force = FALSE, update = FALSE, python_version = "3.10", e
 }
 
 # Removed install_py() function - no longer needed with UV-only approach
-# Removed try_get() function - unused retry wrapper
+
+#' Retry wrapper for unreliable operations
+#' @keywords internal
+try_get <- function(expr, max_tries = 5, error_message = "Operation failed") {
+  for (i in seq_len(max_tries)) {
+    result <- tryCatch(
+      expr,
+      error = function(e) {
+        if (i == max_tries) {
+          stop(error_message, "\nLast error: ", e$message, call. = FALSE)
+        }
+        NULL
+      }
+    )
+    if (!is.null(result)) {
+      return(result)
+    }
+    Sys.sleep(1)
+  }
+}
 
 layerNames <- function(srt, assay = NULL) {
   if (!inherits(srt, "Seurat")) {
@@ -1168,8 +1217,8 @@ get_seurat_data <- function(srt, layer = "data", assay = NULL, join_layers = TRU
     # SeuratObject >= 5.0.0: use 'layer' parameter
     return(GetAssayData(srt, layer = layer, assay = assay))
   } else {
-    # SeuratObject < 5.0.0: use 'slot' parameter
-    return(GetAssayData(srt, slot = layer, assay = assay))
+    # SeuratObject < 5.0.0: use 'slot' parameter (suppress deprecation warning)
+    return(suppressWarnings(GetAssayData(srt, slot = layer, assay = assay)))
   }
 }
 
@@ -1200,8 +1249,8 @@ set_seurat_data <- function(srt, data, layer = "data", assay = NULL) {
     # SeuratObject >= 5.0.0: use 'layer' parameter
     srt <- SetAssayData(srt, layer = layer, new.data = data, assay = assay)
   } else {
-    # SeuratObject < 5.0.0: use 'slot' parameter
-    srt <- SetAssayData(srt, slot = layer, new.data = data, assay = assay)
+    # SeuratObject < 5.0.0: use 'slot' parameter (suppress deprecation warning)
+    srt <- suppressWarnings(SetAssayData(srt, slot = layer, new.data = data, assay = assay))
   }
 
   return(srt)
@@ -1226,26 +1275,23 @@ get_feature_metadata <- function(srt, assay = NULL) {
   assay_obj <- srt[[assay]]
 
   if (is_v5) {
-    # For Seurat V5
-    if (exists("Features", mode = "function")) {
-      # Get feature metadata using V5 functions
-      feature_df <- Features(assay_obj, layer = NULL)
-      if (is.character(feature_df)) {
-        # If it returns feature names, create a data frame
-        feature_df <- data.frame(row.names = feature_df)
+    # For Seurat V5 - Assay5 objects use 'meta.data' slot for feature metadata
+    if (.hasSlot(assay_obj, "meta.data")) {
+      meta <- slot(assay_obj, "meta.data")
+      # CRITICAL FIX: meta.data has sequential numeric rownames (1, 2, 3...),
+      # but we need actual feature names for proper matching
+      rownames(meta) <- rownames(assay_obj)
+      if (nrow(meta) == 0) {
+        # If empty, create data frame with feature names as rownames
+        meta <- data.frame(row.names = rownames(assay_obj))
       }
-      return(feature_df)
+      return(meta)
     } else {
-      # Fallback: access meta.features slot if it exists
-      if (.hasSlot(assay_obj, "meta.features")) {
-        return(slot(assay_obj, "meta.features"))
-      } else {
-        # Return empty data frame with correct row names
-        return(data.frame(row.names = rownames(assay_obj)))
-      }
+      # Fallback: return empty data frame with correct row names
+      return(data.frame(row.names = rownames(assay_obj)))
     }
   } else {
-    # For Seurat V4
+    # For Seurat V4 - uses 'meta.features' slot
     if (.hasSlot(assay_obj, "meta.features")) {
       return(slot(assay_obj, "meta.features"))
     } else {
@@ -1275,8 +1321,8 @@ set_feature_metadata <- function(srt, metadata, assay = NULL) {
   assay_obj <- srt[[assay]]
 
   if (is_v5) {
-    # For Seurat V5, we need to be careful about how we set metadata
-    # The recommended way is to add columns to the existing metadata
+    # For Seurat V5 - Assay5 objects use 'meta.data' slot for feature metadata
+    # Merge with existing metadata to preserve other columns
     existing_meta <- get_feature_metadata(srt, assay)
 
     # Merge with existing metadata
@@ -1288,19 +1334,20 @@ set_feature_metadata <- function(srt, metadata, assay = NULL) {
       metadata <- existing_meta
     }
 
-    # Set the metadata back
+    # Set the metadata back using the correct slot for V5
+    if (.hasSlot(assay_obj, "meta.data")) {
+      slot(assay_obj, "meta.data") <- metadata
+      srt[[assay]] <- assay_obj
+    } else {
+      warning("Unable to set feature metadata for Seurat V5: 'meta.data' slot not found.")
+    }
+  } else {
+    # For Seurat V4 - uses 'meta.features' slot
     if (.hasSlot(assay_obj, "meta.features")) {
       slot(assay_obj, "meta.features") <- metadata
       srt[[assay]] <- assay_obj
     } else {
-      # For V5, we might need to use a different approach
-      warning("Unable to set feature metadata for Seurat V5. This might require manual intervention.")
-    }
-  } else {
-    # For Seurat V4
-    if (.hasSlot(assay_obj, "meta.features")) {
-      slot(assay_obj, "meta.features") <- metadata
-      srt[[assay]] <- assay_obj
+      warning("Unable to set feature metadata for Seurat V4: 'meta.features' slot not found.")
     }
   }
 

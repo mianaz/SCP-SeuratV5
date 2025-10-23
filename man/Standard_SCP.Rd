@@ -30,7 +30,8 @@ Standard_SCP(
   neighbor_k = 20L,
   cluster_algorithm = "louvain",
   cluster_resolution = 0.6,
-  seed = 11
+  seed = 11,
+  verbose = TRUE
 )
 }
 \arguments{

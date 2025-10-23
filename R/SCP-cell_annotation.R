@@ -7,7 +7,7 @@ NULL
 #'
 #' @param srt_query An object of class Seurat to be annotated with cell types.
 #' @param srt_ref An object of class Seurat storing the reference cells.
-#' @param bulk_ref A cell atlas matrix, where cell types are represented by columns and genes are represented by rows, for example, SCP::ref_scHCL. Either `srt_ref` or `bulk_ref` must be provided.
+#' @param bulk_ref A cell atlas matrix, where cell types are represented by columns and genes are represented by rows, for example, SCPNext::ref_scHCL. Either `srt_ref` or `bulk_ref` must be provided.
 #' @param query_group A character vector specifying the column name in the `srt_query` metadata that represents the cell grouping.
 #' @param ref_group A character vector specifying the column name in the `srt_ref` metadata that represents the cell grouping.
 #' @param query_assay A character vector specifying the assay to be used for the query data. Defaults to the default assay of the `srt_query` object.
@@ -290,9 +290,9 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   }
 
   if (!isTRUE(use_reduction)) {
-    status_dat <- check_DataType(data = query)
+    status_dat <- check_DataType(srt = NULL, data = query)
     message("Detected query data type: ", status_dat)
-    status_ref <- check_DataType(data = ref)
+    status_ref <- check_DataType(srt = NULL, data = ref)
     message("Detected reference data type: ", status_ref)
     if (status_ref != status_dat || any(status_dat == "unknown", status_ref == "unknown")) {
       warning("Data type is unknown or different between query and reference.", immediate. = TRUE)
@@ -375,14 +375,14 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
         }
         distance_metric <- "correlation"
       }
-      d <- 1 - simil(
+      d <- 1 - proxyC::simil(
         x = as.sparse(ref),
         y = as.sparse(query),
         method = distance_metric,
         use_nan = TRUE
       )
     } else if (distance_metric %in% dist_method) {
-      d <- dist(
+      d <- proxyC::dist(
         x = as.sparse(ref),
         y = as.sparse(query),
         method = distance_metric,
@@ -453,16 +453,16 @@ RunKNNPredict <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   } else {
     query_index <- colnames(srt_query)
   }
-  srt_query[[paste0(prefix, "_classification")]] <- match_best[query_index]
+  srt_query[[paste0(prefix, "_classification")]] <- unname(match_best[query_index])
   if (!is.null(match_prob)) {
-    srt_query[[paste0(prefix, "_prob")]] <- apply(match_prob, 1, max)[query_index]
+    srt_query[[paste0(prefix, "_prob")]] <- unname(apply(match_prob, 1, max)[query_index])
   } else {
     distance <- match_k_distance[, 1]
     # srt_query[[paste0(prefix, "_score")]] <- ((max(distance) - distance) / diff(range(distance)))[query_index]
     if (distance_metric %in% c(simil_method, "pearson", "spearman")) {
-      srt_query[[paste0(prefix, "_simil")]] <- (1 - distance)[query_index]
+      srt_query[[paste0(prefix, "_simil")]] <- unname((1 - distance)[query_index])
     } else {
-      srt_query[[paste0(prefix, "_dist")]] <- distance[query_index]
+      srt_query[[paste0(prefix, "_dist")]] <- unname(distance[query_index])
     }
   }
 

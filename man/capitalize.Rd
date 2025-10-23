@@ -9,11 +9,20 @@ capitalize(x, force_tolower = FALSE)
 \arguments{
 \item{x}{Character vector to capitalize}
 
-\item{force_tolower}{Logical, whether to convert to lowercase first}
+\item{force_tolower}{Logical. If TRUE, converts entire string to lowercase first before capitalizing.
+This is useful for converting gene names from UPPERCASE to Capitalized format (e.g., "INS" -> "Ins").
+Default is FALSE.}
 }
 \value{
 Character vector with capitalized strings
 }
 \description{
-Capitalizes the first letter of each word in a string
+Capitalizes the first letter of each string and optionally converts the rest to lowercase.
+}
+\examples{
+capitalize(c("hello", "WORLD"))
+# [1] "Hello" "WORLD"
+
+capitalize(c("INS", "GCG", "NEUROG3"), force_tolower = TRUE)
+# [1] "Ins" "Gcg" "Neurog3"
 }

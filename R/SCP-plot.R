@@ -167,7 +167,8 @@ theme_blank <- function(add_coord = TRUE, xlen_npc = 0.15, ylen_npc = 0.15, xlab
 #'
 palette_scp <- function(x, n = 100, palette = "Paired", palcolor = NULL, type = "auto",
                         matched = FALSE, reverse = FALSE, NA_keep = FALSE, NA_color = "grey80") {
-  palette_list <- SCP::palette_list
+  # Access palette_list from package data
+  palette_list <- get("palette_list", envir = asNamespace("SCPNext"))
   if (missing(x)) {
     x <- 1:n
     type <- "continuous"
@@ -296,7 +297,8 @@ palette_scp <- function(x, n = 100, palette = "Paired", palcolor = NULL, type = 
 #' @importFrom ggplot2 ggplot geom_col scale_fill_manual scale_x_continuous element_blank
 #' @export
 show_palettes <- function(palettes = NULL, type = c("discrete", "continuous"), index = NULL, palette_names = NULL, return_names = TRUE, return_palettes = FALSE) {
-  palette_list <- SCP::palette_list
+  # Access palette_list from package data
+  palette_list <- get("palette_list", envir = asNamespace("SCPNext"))
   if (!is.null(palettes)) {
     palette_list <- palettes
   } else {
@@ -1655,7 +1657,13 @@ CellDimPlot <- function(srt, group.by, reduction = NULL, dims = c(1, 2), split.b
       labs(title = title, subtitle = subtitle_use, x = xlab, y = ylab) +
       scale_x_continuous(limits = c(min(dat_dim[, paste0(reduction_key, dims[1])], na.rm = TRUE), max(dat_dim[, paste0(reduction_key, dims[1])], na.rm = TRUE))) +
       scale_y_continuous(limits = c(min(dat_dim[, paste0(reduction_key, dims[2])], na.rm = TRUE), max(dat_dim[, paste0(reduction_key, dims[2])], na.rm = TRUE))) +
-      do.call(theme_use, theme_args) +
+      {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
       theme(
         aspect.ratio = aspect.ratio,
         legend.position = legend.position,
@@ -2233,11 +2241,8 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
   }
 
   if (length(features_gene) > 0) {
-    if (all(rownames(srt@assays[[assay]]) %in% features_gene)) {
-      dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)))
-    } else {
-      dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)[features_gene, , drop = FALSE]))
-    }
+    # Always subset before densifying to keep sparse matrix operations efficient
+    dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)[features_gene, , drop = FALSE]))
   } else {
     dat_gene <- matrix(nrow = ncol(srt@assays[[1]]), ncol = 0)
   }
@@ -2376,7 +2381,13 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
         legend_list[[i]] <- get_legend(
           ggplot(dat, aes(x = .data[["x"]], y = .data[["y"]])) +
             temp_geom[[i]] +
-            do.call(theme_use, theme_args) +
+            {
+              theme_result <- do.call(theme_use, theme_args)
+              if (identical(theme_use, "theme_blank")) {
+                theme_result <- unlist(theme_result, recursive = FALSE)
+              }
+              theme_result
+            } +
             theme(
               aspect.ratio = aspect.ratio,
               legend.position = legend.position,
@@ -2448,7 +2459,13 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
       } else {
         p <- p + facet_grid(split.by ~ features)
       }
-      p <- p + do.call(theme_use, theme_args) +
+      p <- p + {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = "none",
@@ -2571,7 +2588,13 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
             guides(colour = guide_legend(override.aes = list(color = colors[label_df$label]), order = 1)) +
             theme(legend.position = "none")
           legend2 <- get_legend(p +
-            do.call(theme_use, theme_args) +
+            {
+              theme_result <- do.call(theme_use, theme_args)
+              if (identical(theme_use, "theme_blank")) {
+                theme_result <- unlist(theme_result, recursive = FALSE)
+              }
+              theme_result
+            } +
             theme(
               aspect.ratio = aspect.ratio,
               legend.position = legend.position,
@@ -2720,7 +2743,13 @@ FeatureDimPlot <- function(srt, features, reduction = NULL, dims = c(1, 2), spli
         labs(title = title, subtitle = subtitle_use, x = xlab, y = ylab) +
         scale_x_continuous(limits = c(min(dat_use[, paste0(reduction_key, dims[1])], na.rm = TRUE), max(dat_use[, paste0(reduction_key, dims[1])], na.rm = TRUE))) +
         scale_y_continuous(limits = c(min(dat_use[, paste0(reduction_key, dims[2])], na.rm = TRUE), max(dat_use[, paste0(reduction_key, dims[2])], na.rm = TRUE))) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -3239,11 +3268,8 @@ FeatureDimPlot3D <- function(srt, features, reduction = NULL, dims = c(1, 2, 3),
   }
 
   if (length(features_gene) > 0) {
-    if (all(rownames(srt@assays[[assay]]) %in% features_gene)) {
-      dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)))
-    } else {
-      dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)[features_gene, , drop = FALSE]))
-    }
+    # Always subset before densifying to keep sparse matrix operations efficient
+    dat_gene <- t(as.matrix(get_seurat_data(srt, layer = slot, assay = assay)[features_gene, , drop = FALSE]))
   } else {
     dat_gene <- matrix(nrow = ncol(srt@assays[[1]]), ncol = 0)
   }
@@ -3928,7 +3954,7 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
     if (length(features_meta) > 0) {
       warning(paste(features_meta, collapse = ","), "is not used when calculating co-expression", immediate. = TRUE)
     }
-    status <- check_DataType(data = exp.data)
+    status <- check_DataType(srt = NULL, data = exp.data)
     message("Data type: ", status)
     if (status %in% c("raw_counts", "raw_normalized_counts")) {
       meta.data[["CoExp"]] <- apply(exp.data[features_gene, , drop = FALSE], 2, function(x) exp(mean(log(x))))
@@ -3941,11 +3967,8 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
     features_meta <- c(features_meta, "CoExp")
   }
   if (length(features_gene) > 0) {
-    if (all(allfeatures %in% features_gene)) {
-      dat_gene <- t(as.matrix(exp.data))
-    } else {
-      dat_gene <- t(as.matrix(exp.data[features_gene, , drop = FALSE]))
-    }
+    # Always subset before densifying to keep sparse matrix operations efficient
+    dat_gene <- t(as.matrix(exp.data[features_gene, , drop = FALSE]))
   } else {
     dat_gene <- matrix(nrow = length(allcells), ncol = 0)
   }
@@ -4406,7 +4429,13 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
 
     if (isTRUE(flip)) {
       if (isTRUE(stack)) {
-        p <- p + do.call(theme_use, theme_args) +
+        p <- p + {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
           theme(
             aspect.ratio = aspect.ratio,
             axis.text.x = element_text(angle = 90, hjust = 1),
@@ -4416,7 +4445,13 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
             legend.direction = legend.direction
           ) + coord_flip(ylim = c(y_min_use, y_max_use))
       } else {
-        p <- p + do.call(theme_use, theme_args) +
+        p <- p + {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
           theme(
             aspect.ratio = aspect.ratio,
             axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
@@ -4427,7 +4462,13 @@ ExpressionStatPlot <- function(exp.data, meta.data, stat.by, group.by = NULL, sp
           ) + coord_flip(ylim = c(y_min_use, y_max_use))
       }
     } else {
-      p <- p + do.call(theme_use, theme_args) +
+      p <- p + {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
         theme(
           aspect.ratio = aspect.ratio,
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
@@ -4753,7 +4794,7 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
     warning("group.by is not used when plot sankey, chord, venn or upset", immediate. = TRUE)
   }
   if (stat_type == "percent" && plot_type %in% c("sankey", "chord", "venn", "upset")) {
-    warning("stat_type is forcibly set to 'count' when plot sankey, chord, venn or upset", immediate. = TRUE)
+    message("Note: stat_type is set to 'count' for ", plot_type, " plots")
     stat_type <- "count"
   }
   dat_all <- meta.data[, unique(c(stat.by, group.by, split.by, bg.by)), drop = FALSE]
@@ -5028,7 +5069,13 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
           drop = FALSE,
           na.translate = TRUE
         ) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           axis.text.x = axis.text.x,
@@ -5135,31 +5182,30 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
           dat_use[["intersection"]][n] <- list(stat.by[unlist(dat_use[n, stat.by])])
         }
         dat_use <- dat_use[sapply(dat_use[["intersection"]], length) > 0, , drop = FALSE]
-        # Suppress warnings from ggupset's internal geom_line calls
-        # These occur when some intersection groups have only one observation
-        p <- suppressWarnings({
-          ggplot(dat_use, aes(x = intersection)) +
-            geom_bar(aes(fill = after_stat(count)), color = "black", width = 0.5, show.legend = FALSE) +
-            geom_text_repel(aes(label = after_stat(count)),
-              stat = "count",
-              colour = label.fg, size = label.size,
-              bg.color = label.bg, bg.r = label.bg.r,
-              point.size = NA, max.overlaps = 100, force = 0,
-              min.segment.length = 0, segment.colour = "black"
-            ) +
-            labs(title = title, subtitle = subtitle, x = sp, y = "Intersection size") +
-            ggupset::scale_x_upset(sets = stat.by, n_intersections = 20) +
-            scale_fill_gradientn(colors = palette_scp(palette = "material-indigo")) +
-            theme_scp(
-              aspect.ratio = 0.6,
-              panel.grid.major = element_line(colour = "grey80", linetype = 2)
-            ) +
-            ggupset::theme_combmatrix(
-              combmatrix.label.text = element_text(size = 12, color = "black"),
-              combmatrix.label.extra_spacing = 6
-            )
-        })
-        p <- p + labs(title = title, subtitle = subtitle)
+        # Build the upset plot
+        # Note: ggupset may generate harmless warnings about geom_line groups and deprecated size aesthetic
+        p <- ggplot(dat_use, aes(x = intersection)) +
+          geom_bar(aes(fill = after_stat(count)), color = "black", width = 0.5, show.legend = FALSE) +
+          geom_text_repel(aes(label = after_stat(count)),
+            stat = "count",
+            colour = label.fg, size = label.size,
+            bg.color = label.bg, bg.r = label.bg.r,
+            point.size = NA, max.overlaps = 100, force = 0,
+            min.segment.length = 0, segment.colour = "black"
+          ) +
+          labs(title = title, subtitle = subtitle, x = sp, y = "Intersection size") +
+          ggupset::scale_x_upset(sets = stat.by, n_intersections = 20) +
+          scale_fill_gradientn(colors = palette_scp(palette = "material-indigo")) +
+          theme_scp(
+            aspect.ratio = 0.6,
+            panel.grid.major = element_line(colour = "grey80", linetype = 2)
+          ) +
+          ggupset::theme_combmatrix(
+            combmatrix.label.text = element_text(size = 12, color = "black"),
+            combmatrix.label.extra_spacing = 6
+          )
+        # Wrap in a class that suppresses ggupset warnings on print
+        p <- structure(p, class = c("upset_plot_scp", class(p)))
       }
       if (plot_type == "sankey") {
         colors <- palette_scp(c(unique(unlist(lapply(dat_all[, stat.by, drop = FALSE], levels))), NA), palette = palette, palcolor = palcolor, NA_keep = TRUE, NA_color = NA_color)
@@ -5250,6 +5296,22 @@ StatPlot <- function(meta.data, stat.by, group.by = NULL, split.by = NULL, bg.by
   } else {
     return(plist)
   }
+}
+
+#' Print method for upset plots
+#'
+#' This print method suppresses harmless warnings from ggupset package that occur
+#' when rendering upset plots (warnings about geom_line groups and deprecated size aesthetic).
+#'
+#' @param x An upset_plot_scp object
+#' @param ... Additional arguments passed to print.ggplot
+#' @keywords internal
+#' @export
+print.upset_plot_scp <- function(x, ...) {
+  suppressWarnings({
+    NextMethod("print")
+  })
+  invisible(x)
 }
 
 #' Features correlation plot
@@ -5493,7 +5555,13 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
       f1_index <- as.numeric(x)
       f2_index <- as.numeric(y)
       p <- ggplot(data = dat) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           axis.title = element_blank(),
@@ -5656,7 +5724,13 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
           colors = cor_colors,
           guide = guide_colorbar(frame.colour = "black", ticks.colour = "black", title.hjust = 0)
         ) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -5670,7 +5744,13 @@ FeatureCorPlot <- function(srt, features, group.by = NULL, split.by = NULL, cell
           order = 1,
           override.aes = list(size = 4, color = "black", alpha = 1)
         )) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -5924,7 +6004,13 @@ CellDensityPlot <- function(srt, features, group.by = NULL, split.by = NULL, ass
         }
         p <- p + labs(title = title, subtitle = subtitle, x = f, y = g)
         if (isTRUE(flip)) {
-          p <- p + do.call(theme_use, theme_args) +
+          p <- p + {
+   theme_result <- do.call(theme_use, theme_args)
+   if (identical(theme_use, "theme_blank")) {
+     theme_result <- unlist(theme_result, recursive = FALSE)
+   }
+   theme_result
+ } +
             theme(
               aspect.ratio = aspect.ratio,
               strip.text.x = element_text(angle = 0),
@@ -5935,7 +6021,13 @@ CellDensityPlot <- function(srt, features, group.by = NULL, split.by = NULL, ass
               legend.direction = legend.direction
             ) + coord_flip()
         } else {
-          p <- p + do.call(theme_use, theme_args) +
+          p <- p + {
+   theme_result <- do.call(theme_use, theme_args)
+   if (identical(theme_use, "theme_blank")) {
+     theme_result <- unlist(theme_result, recursive = FALSE)
+   }
+   theme_result
+ } +
             theme(
               aspect.ratio = aspect.ratio,
               strip.text.y = element_text(angle = 0),
@@ -6102,7 +6194,13 @@ LineagePlot <- function(srt, lineages, reduction = NULL, dims = c(1, 2), cells =
   curve_layer <- c(unlist(curve_layer), list(scale_color_manual(values = colors)))
 
   lab_layer <- list(labs(title = title, subtitle = subtitle, x = xlab, y = ylab))
-  theme_layer <- list(do.call(theme_use, theme_args) +
+  theme_layer <- list({
+    theme_result <- do.call(theme_use, theme_args)
+    if (identical(theme_use, "theme_blank")) {
+      theme_result <- unlist(theme_result, recursive = FALSE)
+    }
+    theme_result
+  } +
     theme(
       aspect.ratio = aspect.ratio,
       legend.position = legend.position,
@@ -6697,7 +6795,13 @@ GraphPlot <- function(node, edge, transition = NULL,
   }
 
   lab_layer <- list(labs(title = title, subtitle = subtitle, x = xlab, y = ylab))
-  theme_layer <- list(do.call(theme_use, theme_args) +
+  theme_layer <- list({
+    theme_result <- do.call(theme_use, theme_args)
+    if (identical(theme_use, "theme_blank")) {
+      theme_result <- unlist(theme_result, recursive = FALSE)
+    }
+    theme_result
+  } +
     theme(
       aspect.ratio = aspect.ratio,
       legend.position = legend.position,
@@ -6895,7 +6999,7 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
       velocity_layer <- list(
         geom_segment(
           data = df_field, aes(x = x, y = y, xend = x + u, yend = y + v, color = group_by),
-          arrow = arrow(length = unit(df_field[["length_perc"]], "npc"), type = "closed", angle = arrow_angle),
+          arrow = arrow(length = unit(0.01, "npc"), type = "closed", angle = arrow_angle),
           lineend = "round", linejoin = "mitre", inherit.aes = FALSE
         ),
         scale_color_manual(
@@ -6908,7 +7012,7 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
         geom_segment(
           data = df_field, aes(x = x, y = y, xend = x + u, yend = y + v),
           color = arrow_color,
-          arrow = arrow(length = unit(df_field[["length_perc"]], "npc"), type = "closed", angle = arrow_angle),
+          arrow = arrow(length = unit(0.01, "npc"), type = "closed", angle = arrow_angle),
           lineend = "round", linejoin = "mitre", inherit.aes = FALSE
         )
       )
@@ -6931,7 +7035,7 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
       geom_segment(
         data = df_field, aes(x = x, y = y, xend = x + u, yend = y + v),
         color = arrow_color,
-        arrow = arrow(length = unit(df_field[["length_perc"]], "npc"), type = "closed", angle = arrow_angle),
+        arrow = arrow(length = unit(0.01, "npc"), type = "closed", angle = arrow_angle),
         lineend = "round", linejoin = "mitre", inherit.aes = FALSE
       )
     )
@@ -7017,7 +7121,13 @@ VelocityPlot <- function(srt, reduction, dims = c(1, 2), cells = NULL, velocity 
   }
 
   lab_layer <- list(labs(title = title, subtitle = subtitle, x = xlab, y = ylab))
-  theme_layer <- list(do.call(theme_use, theme_args) + theme(
+  theme_layer <- list({
+    theme_result <- do.call(theme_use, theme_args)
+    if (identical(theme_use, "theme_blank")) {
+      theme_result <- unlist(theme_result, recursive = FALSE)
+    }
+    theme_result
+  } + theme(
     aspect.ratio = aspect.ratio,
     legend.position = legend.position,
     legend.direction = legend.direction
@@ -7271,7 +7381,13 @@ VolcanoPlot <- function(srt, group_by = NULL, test.use = "wilcox", DE_threshold 
       ) +
       scale_y_continuous(labels = abs) +
       facet_wrap(~group1) +
-      do.call(theme_use, theme_args) +
+      {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
       theme(aspect.ratio = aspect.ratio)
     plist[[group]] <- p
   }
@@ -7396,9 +7512,10 @@ heatmap_enrichment <- function(geneID, geneID_groups, feature_split_palette = "s
                                IDtype = "symbol", species = "Homo_sapiens", db_update = FALSE, db_combine = FALSE, db_version = "latest", convert_species = FALSE, Ensembl_version = 103, mirror = NULL,
                                db = "GO_BP", TERM2GENE = NULL, TERM2NAME = NULL, minGSSize = 10, maxGSSize = 500,
                                GO_simplify = FALSE, GO_simplify_cutoff = "p.adjust < 0.05", simplify_method = "Wang", simplify_similarityCutoff = 0.7,
-                               pvalueCutoff = NULL, padjustCutoff = 0.05, topTerm = 5, show_termid = FALSE, topWord = 20, words_excluded = NULL) {
+                               pvalueCutoff = NULL, padjustCutoff = 0.05, topTerm = 5, show_termid = FALSE, topWord = 20, words_excluded = NULL,
+                               BPPARAM = NULL) {
   res <- NULL
-  words_excluded <- words_excluded %||% SCP::words_excluded
+  words_excluded <- words_excluded %||% SCPNext::words_excluded
 
   if (isTRUE(anno_keys) || isTRUE(anno_features) || isTRUE(anno_terms)) {
     if (isTRUE(flip)) {
@@ -7411,11 +7528,36 @@ heatmap_enrichment <- function(geneID, geneID_groups, feature_split_palette = "s
       geneID_groups <- factor(geneID_groups, levels = unique(geneID_groups))
     }
     fill_split <- palette_scp(levels(geneID_groups), type = "discrete", palette = feature_split_palette, palcolor = feature_split_palcolor)[levels(geneID_groups) %in% geneID_groups]
+
+    # Automatic optimization for large gene sets
+    if (is.null(BPPARAM)) {
+      require_packages("BiocParallel")
+      n_genes <- length(geneID)
+      n_groups <- length(unique(geneID_groups))
+      n_dbs <- length(db)
+      total_computations <- n_groups * n_dbs
+
+      # Warn if large computation
+      if (n_genes > 500 && total_computations > 10) {
+        message("Note: Processing ", n_genes, " genes across ", n_groups, " groups and ", n_dbs,
+                " databases. This may take several minutes.")
+        message("Using sequential processing to avoid timeout. Set BPPARAM for custom parallel configuration.")
+        BPPARAM <- BiocParallel::SerialParam()
+      } else if (n_genes > 200 && total_computations > 5) {
+        # Use limited parallel processing for moderate datasets
+        BPPARAM <- BiocParallel::MulticoreParam(workers = min(2, BiocParallel::multicoreWorkers()), timeout = 300)
+      } else {
+        # Use default for small datasets
+        BPPARAM <- BiocParallel::bpparam()
+      }
+    }
+
     res <- RunEnrichment(
       geneID = geneID, geneID_groups = geneID_groups, IDtype = IDtype, species = species,
       db_update = db_update, db_version = db_version, db_combine = db_combine, convert_species = convert_species, Ensembl_version = Ensembl_version, mirror = mirror,
       db = db, TERM2GENE = TERM2GENE, TERM2NAME = TERM2NAME, minGSSize = minGSSize, maxGSSize = maxGSSize,
-      GO_simplify = GO_simplify, GO_simplify_cutoff = GO_simplify_cutoff, simplify_method = simplify_method, simplify_similarityCutoff = simplify_similarityCutoff
+      GO_simplify = GO_simplify, GO_simplify_cutoff = GO_simplify_cutoff, simplify_method = simplify_method, simplify_similarityCutoff = simplify_similarityCutoff,
+      BPPARAM = BPPARAM
     )
     if (isTRUE(db_combine)) {
       db <- "Combined"
@@ -8593,7 +8735,7 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          require_packages("e1071")
+          status <- require_packages("e1071")
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -8837,7 +8979,8 @@ GroupHeatmap <- function(srt, features = NULL, group.by = NULL, split.by = NULL,
     IDtype = IDtype, species = species, db_update = db_update, db_version = db_version, db_combine = db_combine, convert_species = convert_species, Ensembl_version = Ensembl_version, mirror = mirror,
     db = db, TERM2GENE = TERM2GENE, TERM2NAME = TERM2NAME, minGSSize = minGSSize, maxGSSize = maxGSSize,
     GO_simplify = GO_simplify, GO_simplify_cutoff = GO_simplify_cutoff, simplify_method = simplify_method, simplify_similarityCutoff = simplify_similarityCutoff,
-    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded
+    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded,
+    BPPARAM = BPPARAM
   )
   res <- enrichment$res
   ha_right <- enrichment$ha_right
@@ -9236,7 +9379,7 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
                            cell_annotation = NULL, cell_annotation_palette = "Paired", cell_annotation_palcolor = NULL, cell_annotation_params = if (flip) list(width = unit(5, "mm")) else list(height = unit(5, "mm")),
                            feature_annotation = NULL, feature_annotation_palette = "Dark2", feature_annotation_palcolor = NULL, feature_annotation_params = if (flip) list(height = unit(5, "mm")) else list(width = unit(5, "mm")),
                            use_raster = NULL, raster_device = "png", raster_by_magick = FALSE, height = NULL, width = NULL, units = "inch",
-                           seed = 11, ht_params = list()) {
+                           seed = 11, ht_params = list(), BPPARAM = NULL) {
   set.seed(seed)
   if (isTRUE(raster_by_magick)) {
     require_packages("magick")
@@ -9676,7 +9819,7 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          require_packages("e1071")
+          status <- require_packages("e1071")
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -9920,7 +10063,8 @@ FeatureHeatmap <- function(srt, features = NULL, cells = NULL, group.by = NULL, 
     IDtype = IDtype, species = species, db_update = db_update, db_version = db_version, db_combine = db_combine, convert_species = convert_species, Ensembl_version = Ensembl_version, mirror = mirror,
     db = db, TERM2GENE = TERM2GENE, TERM2NAME = TERM2NAME, minGSSize = minGSSize, maxGSSize = maxGSSize,
     GO_simplify = GO_simplify, GO_simplify_cutoff = GO_simplify_cutoff, simplify_method = simplify_method, simplify_similarityCutoff = simplify_similarityCutoff,
-    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded
+    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded,
+    BPPARAM = BPPARAM
   )
   res <- enrichment$res
   ha_right <- enrichment$ha_right
@@ -10348,14 +10492,22 @@ CellCorHeatmap <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   cell_groups[["ref_group"]] <- factor(cell_groups[["ref_group"]], levels = levels[levels %in% cell_groups[["ref_group"]]])
 
   if (isTRUE(query_collapsing)) {
-    simil_matrix <- simil_matrix[levels(cell_groups[["query_group"]]), , drop = FALSE]
+    query_levels <- levels(cell_groups[["query_group"]])
+    query_levels_present <- query_levels[query_levels %in% rownames(simil_matrix)]
+    simil_matrix <- simil_matrix[query_levels_present, , drop = FALSE]
   } else {
-    simil_matrix <- simil_matrix[names(cell_groups[["query_group"]]), , drop = FALSE]
+    query_names <- names(cell_groups[["query_group"]])
+    query_names_present <- query_names[query_names %in% rownames(simil_matrix)]
+    simil_matrix <- simil_matrix[query_names_present, , drop = FALSE]
   }
   if (isTRUE(ref_collapsing)) {
-    simil_matrix <- simil_matrix[, levels(cell_groups[["ref_group"]]), drop = FALSE]
+    ref_levels <- levels(cell_groups[["ref_group"]])
+    ref_levels_present <- ref_levels[ref_levels %in% colnames(simil_matrix)]
+    simil_matrix <- simil_matrix[, ref_levels_present, drop = FALSE]
   } else {
-    simil_matrix <- simil_matrix[, names(cell_groups[["ref_group"]]), drop = FALSE]
+    ref_names <- names(cell_groups[["ref_group"]])
+    ref_names_present <- ref_names[ref_names %in% colnames(simil_matrix)]
+    simil_matrix <- simil_matrix[, ref_names_present, drop = FALSE]
   }
 
   if (!is.null(query_cell_annotation)) {
@@ -10407,12 +10559,12 @@ CellCorHeatmap <- function(srt_query, srt_ref = NULL, bulk_ref = NULL,
   )
   query_metadata <- cbind.data.frame(
     srt_query@meta.data[cell_metadata[["cells"]], c(query_group, intersect(query_cell_annotation, colnames(srt_query@meta.data))), drop = FALSE],
-    as.data.frame(t(srt_query[[query_assay]]@data[intersect(query_cell_annotation, rownames(srt_query[[query_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
+    as.data.frame(t(GetAssayData(srt_query[[query_assay]], layer = "data")[intersect(query_cell_annotation, rownames(srt_query[[query_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
   )
   colnames(query_metadata) <- paste0("query_", colnames(query_metadata))
   ref_metadata <- cbind.data.frame(
     srt_ref@meta.data[cell_metadata[["cells"]], c(ref_group, intersect(ref_cell_annotation, colnames(srt_ref@meta.data))), drop = FALSE],
-    as.data.frame(t(srt_ref[[ref_assay]]@data[intersect(ref_cell_annotation, rownames(srt_ref[[ref_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
+    as.data.frame(t(GetAssayData(srt_ref[[ref_assay]], layer = "data")[intersect(ref_cell_annotation, rownames(srt_ref[[ref_assay]])) %||% integer(), , drop = FALSE]))[cell_metadata[["cells"]], , drop = FALSE]
   )
   colnames(ref_metadata) <- paste0("ref_", colnames(ref_metadata))
   cell_metadata <- cbind.data.frame(cell_metadata, cbind.data.frame(query_metadata, ref_metadata))
@@ -11157,7 +11309,7 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
                            feature_annotation = NULL, feature_annotation_palette = "Dark2", feature_annotation_palcolor = NULL, feature_annotation_params = if (flip) list(height = unit(5, "mm")) else list(width = unit(5, "mm")),
                            separate_annotation = NULL, separate_annotation_palette = "Paired", separate_annotation_palcolor = NULL, separate_annotation_params = if (flip) list(width = unit(10, "mm")) else list(height = unit(10, "mm")),
                            reverse_ht = NULL, use_raster = NULL, raster_device = "png", raster_by_magick = FALSE, height = NULL, width = NULL, units = "inch",
-                           seed = 11, ht_params = list()) {
+                           seed = 11, ht_params = list(), BPPARAM = NULL) {
   set.seed(seed)
   if (isTRUE(raster_by_magick)) {
     require_packages("magick")
@@ -11667,7 +11819,7 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
         row_split_raw <- row_split <- feature_split <- setNames(rep(1, nrow(mat_split)), rownames(mat_split))
       } else {
         if (split_method == "mfuzz") {
-          require_packages("e1071")
+          status <- require_packages("e1071")
           if (inherits(status, "error")) {
             warning("The e1071 package was not found. Switch split_method to 'kmeans'", immediate. = TRUE)
             split_method <- "kmeans"
@@ -11936,7 +12088,8 @@ DynamicHeatmap <- function(srt, lineages, features = NULL, use_fitted = FALSE, b
     IDtype = IDtype, species = species, db_update = db_update, db_version = db_version, db_combine = db_combine, convert_species = convert_species, Ensembl_version = Ensembl_version, mirror = mirror,
     db = db, TERM2GENE = TERM2GENE, TERM2NAME = TERM2NAME, minGSSize = minGSSize, maxGSSize = maxGSSize,
     GO_simplify = GO_simplify, GO_simplify_cutoff = GO_simplify_cutoff, simplify_method = simplify_method, simplify_similarityCutoff = simplify_similarityCutoff,
-    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded
+    pvalueCutoff = pvalueCutoff, padjustCutoff = padjustCutoff, topTerm = topTerm, show_termid = show_termid, topWord = topWord, words_excluded = words_excluded,
+    BPPARAM = BPPARAM
   )
   res <- enrichment$res
   ha_right <- enrichment$ha_right
@@ -12564,7 +12717,13 @@ DynamicPlot <- function(srt, lineages, features, group.by = NULL, cells = NULL, 
         line +
         labs(x = ifelse(x_order == "rank", "Pseudotime(rank)", "Pseudotime"), y = exp_name) +
         facet_grid(formula(formula), scales = "free") +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -12734,7 +12893,7 @@ ProjectionPlot <- function(srt_query, srt_ref,
 #' @param topWord The number of top words to display for wordcloud. Default is 100.
 #' @param word_type The type of words to display in wordcloud. Options are "term" and "feature". Default is "term".
 #' @param word_size The size range for words in wordcloud. Default is c(2, 8).
-#' @param words_excluded Words to be excluded from the wordcloud. The default value is NULL, which means that the built-in words (SCP::words_excluded) will be used.
+#' @param words_excluded Words to be excluded from the wordcloud. The default value is NULL, which means that the built-in words (SCPNext::words_excluded) will be used.
 #' @param network_layout The layout algorithm to use for network plot. Options are "fr", "kk","random", "circle", "tree", "grid", or other algorithm from 'igraph' package. Default is "fr".
 #' @param network_labelsize The label size for network plot. Default is 5.
 #' @param network_blendmode The blend mode for network plot. Default is "blend".
@@ -12873,7 +13032,7 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
   word_type <- match.arg(word_type)
   enrichmap_label <- match.arg(enrichmap_label)
   enrichmap_mark <- match.arg(enrichmap_mark)
-  words_excluded <- words_excluded %||% SCP::words_excluded
+  words_excluded <- words_excluded %||% SCPNext::words_excluded
 
   if (any(!split_by %in% c("Database", "Groups"))) {
     stop("'split_by' must be either 'Database', 'Groups', or both of them")
@@ -13011,7 +13170,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
       scale_color_manual(values = NA, na.value = "black") +
       guides(colour = if (isTRUE(compare_only_sig)) guide_none() else guide_legend("Non-sig", override.aes = list(colour = "black", fill = "grey80", size = 3))) +
       facet_grid(Database ~ ., scales = "free") +
-      do.call(theme_use, theme_args) +
+      {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
       theme(
         aspect.ratio = aspect.ratio,
         legend.position = legend.position,
@@ -13055,7 +13220,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         scale_y_continuous(limits = c(0, 1.3 * max(df[["metric"]], na.rm = TRUE)), expand = expansion(0, 0)) +
         facet_grid(facet, scales = "free") +
         coord_flip() +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13105,7 +13276,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         scale_y_continuous(limits = c(0, 1.3 * max(df[["GeneRatio"]], na.rm = TRUE)), expand = expansion(0, 0)) +
         facet_grid(facet, scales = "free") +
         coord_flip() +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13172,7 +13349,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         ) +
         facet_grid(facet, scales = "free") +
         coord_flip() +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13282,7 +13465,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         guides(color = guide_legend(override.aes = list(color = "transparent"))) +
         labs(x = "", y = "") +
         facet_grid(facet, scales = "free") +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13451,7 +13640,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         scale_x_continuous(expand = expansion(c(enrichmap_expand[1], enrichmap_expand[1]), 0)) +
         scale_y_continuous(expand = expansion(c(enrichmap_expand[2], enrichmap_expand[2]), 0)) +
         facet_grid(facet, scales = "free") +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13544,7 +13739,13 @@ EnrichmentPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilco
         guides(size = guide_legend(override.aes = list(colour = "black", label = "G"), order = 1)) +
         facet_grid(facet, scales = "free") +
         coord_flip() +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -13712,7 +13913,7 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
   direction <- match.arg(direction)
   enrichmap_label <- match.arg(enrichmap_label)
   enrichmap_mark <- match.arg(enrichmap_mark)
-  words_excluded <- words_excluded %||% SCP::words_excluded
+  words_excluded <- words_excluded %||% SCPNext::words_excluded
 
   subplots <- 1:3
   rel_heights <- c(1.5, 0.5, 1)
@@ -13851,7 +14052,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
         guide = if (isTRUE(compare_only_sig)) guide_none() else guide_legend()
       ) +
       facet_grid(Database ~ ., scales = "free") +
-      do.call(theme_use, theme_args) +
+      {
+        theme_result <- do.call(theme_use, theme_args)
+        if (identical(theme_use, "theme_blank")) {
+          theme_result <- unlist(theme_result, recursive = FALSE)
+        }
+        theme_result
+      } +
       theme(
         aspect.ratio = aspect.ratio,
         legend.position = legend.position,
@@ -14104,7 +14311,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
       legend <- get_legend(
         p1 +
           guides(color = guide_legend(title = "Term:", byrow = TRUE)) +
-          do.call(theme_use, theme_args) +
+          {
+            theme_result <- do.call(theme_use, theme_args)
+            if (identical(theme_use, "theme_blank")) {
+              theme_result <- unlist(theme_result, recursive = FALSE)
+            }
+            theme_result
+          } +
           theme(
             legend.position = legend.position,
             legend.direction = legend.direction
@@ -14196,7 +14409,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
         ) +
         facet_grid(Database ~ Groups, scales = "free") +
         coord_cartesian(xlim = c(-max(abs(stat[["NES"]])), max(abs(stat[["NES"]])))) +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -14335,7 +14554,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
         guides(fill = guide_legend(title = "Term:", byrow = TRUE)) +
         labs(x = "", y = "") +
         facet_grid(Database ~ Groups, scales = "free") +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -14532,7 +14757,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
         scale_x_continuous(expand = expansion(c(enrichmap_expand[1], enrichmap_expand[1]), 0)) +
         scale_y_continuous(expand = expansion(c(enrichmap_expand[2], enrichmap_expand[2]), 0)) +
         facet_grid(Database ~ Groups, scales = "free") +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,
@@ -14649,7 +14880,13 @@ GSEAPlot <- function(srt, db = "GO_BP", group_by = NULL, test.use = "wilcox", re
         guides(size = guide_legend(override.aes = list(colour = "black", label = "G"), order = 1)) +
         facet_grid(Database ~ Groups, scales = "free") +
         coord_flip() +
-        do.call(theme_use, theme_args) +
+        {
+          theme_result <- do.call(theme_use, theme_args)
+          if (identical(theme_use, "theme_blank")) {
+            theme_result <- unlist(theme_result, recursive = FALSE)
+          }
+          theme_result
+        } +
         theme(
           aspect.ratio = aspect.ratio,
           legend.position = legend.position,

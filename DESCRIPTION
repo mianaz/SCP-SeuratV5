@@ -62,7 +62,6 @@ Imports:
     stringr,
     tidyr
 Suggests:
-    AHMeSHDbs,
     AnnotationHub,
     AUCell,
     batchelor,
@@ -95,6 +94,7 @@ Suggests:
     glmpca,
     GO.db,
     GOSemSim,
+    gprofiler2,
     gtable,
     harmony,
     HDF5Array,
@@ -106,8 +106,6 @@ Suggests:
     irlba,
     MASS,
     MatrixGenerics,
-    MeSH.db,
-    MeSHDbi,
     metR,
     mgcv,
     NMF,
@@ -167,6 +165,10 @@ Collate:
     'SCP-plot.R'
     'SCP-projection.R'
     'utils.R'
+    'integration-utils.R'
+    'integration-framework.R'
+    'integration-python.R'
+    'Seurat_integrate.R'
     'SCP-workflow.R'
     'Seurat-function.R'
     'data.R'

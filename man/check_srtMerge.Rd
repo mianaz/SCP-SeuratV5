@@ -18,7 +18,9 @@ check_srtMerge(
   HVF = NULL,
   vars_to_regress = NULL,
   seed = 11,
-  check_v5 = TRUE
+  check_v5 = TRUE,
+  skip_list_processing = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -47,6 +49,10 @@ check_srtMerge(
 \item{vars_to_regress}{A vector of variable names to include as additional regression variables. Default is NULL.}
 
 \item{seed}{An integer specifying the random seed for reproducibility. Default is 11.}
+
+\item{check_v5}{Logical. Whether to check and update Seurat object versions. Default is TRUE.}
+
+\item{verbose}{Logical. Whether to print progress messages. Default is TRUE.}
 }
 \description{
 This function checks and preprocesses a merged seurat object.

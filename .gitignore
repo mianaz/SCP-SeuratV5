@@ -4,7 +4,6 @@
 .Ruserdata
 .Rprofile
 SCExplorer
-docs
 renv
 renv.lock
 tmaps
@@ -43,8 +42,29 @@ Desktop.ini
 # Test scripts and outputs
 test_outputs/
 tests/*.rds
+tests/debug_*.pdf
+test_*.R
+test_*.log
+*.log
+Rplots.pdf
 
 # Documentation files (development only)
 CLAUDE.md
 agents.md
+FUNCTION_INDEX.md
+*_PROGRESS*.md
+*_SUMMARY*.md
+*_REPORT*.md
+*_PLAN*.md
+*_EXTRACTION*.md
+*_STATUS*.md
+INDEX.md
 
+# Python build artifacts
+*.egg-info/
+
+# unstable code
+refactor
+
+# pkgdown generated documentation (generate on deploy)
+docs/
